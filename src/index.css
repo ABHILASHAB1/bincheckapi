@@ -1,0 +1,106 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --fintech-accent: #3b82f6;
+  --fintech-accent-glow: rgba(59, 130, 246, 0.4);
+}
+
+.theme-mada {
+  --fintech-accent: #10b981;
+  --fintech-accent-glow: rgba(16, 185, 129, 0.4);
+}
+
+.theme-visa {
+  --fintech-accent: #1a1f71;
+  --fintech-accent-glow: rgba(26, 31, 113, 0.4);
+}
+
+.theme-mastercard {
+  --fintech-accent: #eb001b;
+  --fintech-accent-glow: rgba(235, 0, 27, 0.4);
+}
+
+@layer base {
+  body {
+    @apply bg-[#030305] text-gray-200 font-sans antialiased overflow-hidden selection:bg-[var(--fintech-accent)] selection:text-white;
+    background-image: 
+      linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 40px 40px;
+    background-position: -1px -1px;
+  }
+}
+
+@layer components {
+  .glass-panel {
+    @apply bg-fintech-panel backdrop-blur-md border border-fintech-border shadow-2xl;
+  }
+  
+  .btn-primary {
+    @apply px-4 py-2 text-white font-medium rounded-md transition-all active:scale-95;
+    background-color: var(--fintech-accent);
+    box-shadow: 0 0 15px var(--fintech-accent-glow);
+  }
+  
+  .btn-primary:hover {
+    box-shadow: 0 0 20px var(--fintech-accent-glow);
+    filter: brightness(1.1);
+  }
+  
+  .btn-secondary {
+    @apply px-4 py-2 bg-white/5 border border-white/10 text-gray-300 font-medium rounded-md hover:bg-white/10 transition-colors active:scale-95;
+  }
+  
+  .nav-item {
+    @apply flex items-center space-x-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-gray-100 hover:bg-white/5 rounded-lg transition-all cursor-pointer relative;
+  }
+  
+  .nav-item.active {
+    @apply text-white bg-white/10;
+  }
+  
+  .nav-item.active::before {
+    content: '';
+    @apply absolute left-0 top-1/2 -translate-y-1/2 w-1 h-2/3 rounded-r-md;
+    background-color: var(--fintech-accent);
+    box-shadow: 0 0 10px var(--fintech-accent-glow);
+  }
+
+  .status-badge {
+    @apply px-2 py-1 text-xs font-medium rounded border flex items-center space-x-1.5 w-fit;
+  }
+  .status-badge-approved {
+    @apply bg-fintech-green/10 border-fintech-green/30 text-fintech-green shadow-[0_0_10px_rgba(16,185,129,0.2)];
+  }
+  .status-badge-declined {
+    @apply bg-fintech-red/10 border-fintech-red/30 text-fintech-red shadow-[0_0_10px_rgba(239,68,68,0.2)];
+  }
+  .status-badge-pending {
+    @apply bg-fintech-yellow/10 border-fintech-yellow/30 text-fintech-yellow shadow-[0_0_10px_rgba(245,158,11,0.2)];
+  }
+  .status-badge-info {
+    @apply bg-fintech-accent/10 border-fintech-accent/30 text-fintech-accent shadow-[0_0_10px_rgba(59,130,246,0.2)];
+  }
+  
+  .status-dot {
+    @apply w-1.5 h-1.5 rounded-full;
+  }
+  .status-dot-approved { @apply bg-fintech-green shadow-[0_0_5px_rgba(16,185,129,0.8)]; }
+  .status-dot-declined { @apply bg-fintech-red shadow-[0_0_5px_rgba(239,68,68,0.8)]; }
+  .status-dot-pending { @apply bg-fintech-yellow shadow-[0_0_5px_rgba(245,158,11,0.8)] animate-pulse; }
+  .status-dot-info { @apply bg-fintech-accent shadow-[0_0_5px_rgba(59,130,246,0.8)]; }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-white/10 rounded-full hover:bg-white/20 transition-colors;
+  }
+}
