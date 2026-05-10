@@ -22,5 +22,17 @@ export default defineConfig({
         rewrite: (path) => path.replace(/^\/api/, '/api')
       }
     }
+  },
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'react-vendor': ['react', 'react-dom'],
+          'three-vendor': ['three', '@react-three/fiber', 'globe.gl', 'react-globe.gl'],
+          'ui-vendor': ['lucide-react']
+        }
+      }
+    }
   }
 })

@@ -77,8 +77,47 @@ app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Request Logger
 app.use((req, res, next) => {
-  console.log(`🌐 [HTTP] ${req.method} ${req.url}`);
+  const start = Date.now();
+  res.on('finish', () => {
+    const duration = Date.now() - start;
+    console.log(`🌐 [HTTP] ${req.method} ${req.url} - ${res.statusCode} (${duration}ms)`);
+  });
   next();
+});
+
+// --- API ENDPOINTS ---
+// (API routes moved here to ensure they are evaluated before static files)
+
+app.get('/api/bin/:bin', async (req, res) => {
+  const binId = req.params.bin;
+  console.log(`🔍 [BIN API] Looking up: ${binId}`);
+  try {
+    if (!binService) {
+      console.warn('⚠️ [BIN API] BinService not initialized yet');
+      return res.status(503).json({ error: 'BIN Service Initializing' });
+    }
+    const data = await binService.getBinDetails(binId);
+    if (!data) {
+       return res.status(404).json({ error: 'BIN not found' });
+    }
+    res.json(data);
+  } catch (e) { 
+    console.error(`❌ [BIN API] Error for ${binId}:`, e.message);
+    res.status(404).json({ error: e.message }); 
+  }
+});
+
+app.get('/api/bins/stats', async (req, res) => {
+  try {
+    if (!db) return res.status(503).json({ error: 'Initializing' });
+    const row = await db.get('SELECT COUNT(*) as count FROM bins');
+    res.json({ success: true, count: row.count || 0 });
+  } catch (e) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/bins/sync/status', (req, res) => {
+  if (!BinService) return res.json({ isSyncing: false, processed: 0, total: 0 });
+  res.json(BinService.syncStatus || { isSyncing: false, processed: 0, total: 0 });
 });
 
 // Serve static files from the React app
@@ -472,13 +511,7 @@ app.post('/api/v1/cloud/sql', async (req, res) => {
   }
 });
 
-app.get('/api/bin/:bin', async (req, res) => {
-  try {
-    if (!binService) return res.status(503).json({ error: 'Initializing' });
-    const data = await binService.getBinDetails(req.params.bin);
-    res.json(data);
-  } catch (e) { res.status(404).json({ error: e.message }); }
-});
+// BIN Routes moved to top for priority
 
 app.put('/api/bin/:bin', async (req, res) => {
   try {
@@ -490,17 +523,7 @@ app.put('/api/bin/:bin', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/bins/stats', async (req, res) => {
-  try {
-    if (!db) return res.status(503).json({ error: 'Initializing' });
-    const row = await db.get('SELECT COUNT(*) as count FROM bins');
-    res.json({ success: true, count: row.count || 0 });
-  } catch (e) { res.status(500).json({ error: e.message }); }
-});
-
-app.get('/api/bins/sync/status', (req, res) => {
-  res.json(BinService.syncStatus || { isSyncing: false, processed: 0, total: 0 });
-});
+// Moved to top
 
 app.get('/api/issuers', async (req, res) => {
   try {
@@ -601,6 +624,78 @@ app.post('/api/v1/vault/cards', async (req, res) => {
     if (error) throw error;
     res.json({ success: true, card: data[0] });
   } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// --- VAULT REGISTRY EXPORT/IMPORT ---
+app.get('/api/v1/vault/registry/export', async (req, res) => {
+  try {
+    if (!supabase) throw new Error('Supabase not configured');
+    
+    const { data, error } = await supabase
+      .from('test_cards')
+      .select('*');
+    
+    if (error) throw error;
+
+    // Decrypt all sensitive fields before exporting
+    const decryptedRegistry = (data || []).map(c => {
+      try {
+        return {
+          ...c,
+          pan: CryptoLab.decryptVaultData(c.pan),
+          cvv: CryptoLab.decryptVaultData(c.cvv),
+          track2: CryptoLab.decryptVaultData(c.track2)
+        };
+      } catch (e) {
+        return { ...c, _decryptError: true };
+      }
+    });
+
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename=card_vault_registry.json');
+    res.json(decryptedRegistry);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/v1/vault/registry/import', async (req, res) => {
+  try {
+    if (!supabase) throw new Error('Supabase not configured');
+    const { cards } = req.body;
+    
+    if (!Array.isArray(cards)) {
+      return res.status(400).json({ error: 'Invalid payload: cards array required' });
+    }
+
+    console.log(`📥 [Vault Import] Processing ${cards.length} cards...`);
+
+    const encryptedCards = cards.map(c => ({
+      pan: CryptoLab.encryptVaultData(c.pan),
+      bin: c.bin || c.pan.substring(0, 6),
+      exp: c.exp,
+      cvv: CryptoLab.encryptVaultData(c.cvv),
+      scheme: c.scheme || c.network,
+      type: c.type,
+      issuer_name: c.issuer_name || c.issuer,
+      scenario: c.scenario,
+      cashback: parseFloat(c.cashback || 0),
+      amount: parseFloat(c.amount || 0),
+      mti: c.mti,
+      track2: CryptoLab.encryptVaultData(c.track2)
+    }));
+
+    // Perform bulk upsert
+    const { data, error } = await supabase
+      .from('test_cards')
+      .upsert(encryptedCards, { onConflict: 'pan' });
+
+    if (error) throw error;
+    res.json({ success: true, count: encryptedCards.length });
+  } catch (err) {
+    console.error('[Vault Import] Error:', err.message);
     res.status(500).json({ success: false, error: err.message });
   }
 });
@@ -1177,8 +1272,55 @@ app.get('/api/v1/tokens/:token', async (req, res) => {
       token: row.token,
       masked_pan: row.masked_pan,
       scheme: row.scheme,
-      status: row.status,
+      status: row.status || 'ACTIVE',
       created_at: row.created_at
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+app.post('/api/v1/tokens/:token/lifecycle', async (req, res) => {
+  try {
+    const { action } = req.body; // 'SUSPEND', 'RESUME', 'DELETE'
+    const { token } = req.params;
+
+    if (!['SUSPEND', 'RESUME', 'DELETE'].includes(action)) {
+      return res.status(400).json({ error: 'Invalid lifecycle action' });
+    }
+
+    if (action === 'DELETE') {
+      await db.run('DELETE FROM tokens WHERE token = ?', [token]);
+      return res.json({ success: true, message: 'Token purged from vault' });
+    }
+
+    const newStatus = action === 'SUSPEND' ? 'SUSPENDED' : 'ACTIVE';
+    await db.run('UPDATE tokens SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE token = ?', [newStatus, token]);
+    
+    res.json({ success: true, token, status: newStatus });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+/**
+ * Enterprise Detokenization (Internal/Backend only)
+ * Translates a Token back to a PAN for switching
+ */
+app.post('/api/v1/tokens/:token/detokenize', async (req, res) => {
+  try {
+    const { token } = req.params;
+    const row = await db.get('SELECT encrypted_pan, status FROM tokens WHERE token = ?', [token]);
+    
+    if (!row) return res.status(404).json({ error: 'Token not found' });
+    if (row.status === 'SUSPENDED') return res.status(403).json({ error: 'Token is suspended' });
+
+    const pan = CryptoLab.decryptVaultData(row.encrypted_pan);
+    
+    // Simulate TSP Cryptogram Generation (for 3DS/EMV Tokenization)
+    const cryptogram = `CG_${Math.random().toString(36).substr(2, 12).toUpperCase()}`;
+
+    res.json({ 
+      success: true, 
+      pan, 
+      cryptogram,
+      info: 'Detokenized for secure ISO 8583 propagation' 
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
@@ -1204,7 +1346,16 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', time: new Date().toISOString(), db: !!db });
 });
 
-// Final fallback for SPA routing
+// 404 handler for API routes (Ensures we return JSON, not HTML index)
+app.use('/api', (req, res) => {
+  console.warn(`🚫 [404] API Route Not Found: ${req.originalUrl}`);
+  res.status(404).json({ 
+    error: 'API endpoint not found',
+    path: req.originalUrl
+  });
+});
+
+// Final fallback for SPA routing (Only for non-API requests)
 app.use((req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
 });
