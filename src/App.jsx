@@ -46,39 +46,42 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 
 const NAV_CATEGORIES = [
   {
-    title: 'GLOBAL INTELLIGENCE',
+    title: 'CORE PLATFORM',
     items: [
-      { id: 'dashboard', label: 'Executive Command', icon: Activity },
-      { id: 'neural-ingestion', label: 'Neural Data Ingestion', icon: Brain },
-      { id: 'globe', label: 'Global Intelligence Map', icon: Map },
-      { id: 'telemetry', label: 'Network Pulse', icon: Gauge },
+      { id: 'dashboard', label: 'Command Center', icon: Activity },
+      { id: 'simulator', label: 'Transaction Simulator', icon: Play },
+      { id: 'iso-builder', label: 'ISO 8583 Builder', icon: Code },
+      { id: 'iso-20022', label: 'ISO 20022 Builder', icon: FileLock2 },
+      { id: 'load-test', label: 'Load Testing Engine', icon: TerminalSquare },
     ]
   },
   {
-    title: 'FINANCIAL OPERATIONS',
+    title: 'FINANCIAL DATA',
     items: [
-      { id: 'banking', label: 'Banking & Treasury', icon: Landmark },
-      { id: 'gateway', label: 'Payment Gateway', icon: Wallet },
-      { id: 'tokens', label: 'TSP Token Lifecycle', icon: Smartphone },
+      { id: 'bin-checker', label: 'BIN Intelligence', icon: Search },
+      { id: 'test-cards', label: 'Test Card Vault', icon: CreditCard },
       { id: 'settlement', label: 'Clearing & Settlement', icon: ScrollText },
-      { id: 'fraud', label: 'Risk & Fraud AI', icon: ShieldAlert },
+      { id: 'remittance', label: 'Remittance Engine', icon: Wallet },
     ]
   },
   {
-    title: 'PROJECT & ASSET CONTROL',
+    title: 'SECURITY & COMPLIANCE',
     items: [
-      { id: 'projects', label: 'Project Portfolio', icon: Briefcase },
-      { id: 'real-estate', label: 'Real Estate Valuation', icon: Home },
-      { id: 'iso-builder', label: 'Message Engineering', icon: Code },
+      { id: 'crypto', label: 'Cryptography Lab', icon: ShieldCheck },
+      { id: '3ds', label: '3-D Secure Flow', icon: ShieldAlert },
+      { id: 'scheme', label: 'Scheme Rules', icon: FileText },
+      { id: 'compliance', label: 'Compliance Auditor', icon: ShieldCheck },
     ]
   },
   {
-    title: 'EXECUTIVE STRATEGY',
+    title: 'OBSERVABILITY',
     items: [
-      { id: 'consulting', label: 'Strategic Advisory', icon: Award },
-      { id: 'compliance', label: 'Regulatory Audit', icon: ShieldCheck },
-      { id: 'logs', label: 'Audit Intelligence', icon: FileText },
-      { id: 'settings', label: 'System Configuration', icon: Settings },
+      { id: 'telemetry', label: 'Telemetry & Metrics', icon: Gauge },
+      { id: 'topology', label: 'Network Topology', icon: Columns2 },
+      { id: 'explorer', label: 'Data Explorer', icon: Database },
+      { id: 'diff', label: 'Message Diff', icon: Columns2 },
+      { id: 'logs', label: 'Audit Logs', icon: Terminal },
+      { id: 'tcp-config', label: 'TCP/IP Switch', icon: Settings },
     ]
   }
 ];
@@ -134,7 +137,7 @@ function AppContent() {
   const { 
     runTransaction, speedMultiplier, setSpeedMultiplier, theme, setTheme, 
     lang, setLang, t, isInfinityMode, setIsInfinityMode,
-    showTerminal, setShowTerminal 
+    showTerminal, setShowTerminal, activeConnections
   } = simContext;
   const { currentUser, logout } = authContext;
 
@@ -228,40 +231,47 @@ function AppContent() {
             <div className="absolute bottom-[-20%] right-[-10%] w-[40%] h-[40%] bg-purple-500/10 rounded-full blur-[120px] pointer-events-none"></div>
 
             {/* Top Header */}
-            <header className="h-16 glass-panel border-x-0 border-t-0 flex items-center justify-between px-6 z-10 sticky top-0 bg-black/20 backdrop-blur-xl">
-              <div className="flex-1 max-w-2xl">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-cyan-400" size={16} />
-                  <input type="text" placeholder="Natural Language Query: 'Show me Q3 revenue variance against Primavera schedules...'"
-                    className="w-full bg-black/40 border border-white/10 rounded-xl py-2 pl-10 pr-12 text-xs text-gray-200 focus:outline-none focus:border-cyan-400/50 focus:ring-1 focus:ring-cyan-400/50 transition-all font-mono placeholder:font-sans placeholder:text-gray-500 shadow-inner shadow-black/50" />
-                  <button onClick={() => alert("Voice Intelligence Module Listening...")} className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-cyan-400 hover:bg-cyan-400/10 rounded-lg transition-colors">
-                     <Mic size={14} className="animate-pulse" />
-                  </button>
-                </div>
+            <header className="h-16 glass-panel border-x-0 border-t-0 flex items-center justify-between px-6 z-10 sticky top-0">
+              <div className="flex items-center space-x-4">
+                <div className="text-[10px] font-mono text-gray-400">NETWORK TOPOLOGY</div>
+                {activeConnections.includes('mada') && (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 rounded-full bg-fintech-green animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+                    <span className="text-[10px] text-white uppercase">SPG ACTIVE</span>
+                  </div>
+                )}
+                {activeConnections.includes('Visa') && (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+                    <span className="text-[10px] text-white uppercase">VISA BASE II</span>
+                  </div>
+                )}
+                {activeConnections.includes('Mastercard') && (
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 rounded-full bg-orange-500 shadow-[0_0_8px_rgba(249,115,22,0.5)]"></div>
+                    <span className="text-[10px] text-white uppercase">MASTERCARD GCMS</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center space-x-6">
-                <div className="flex items-center space-x-2 bg-black/30 border border-white/10 rounded-lg p-1.5">
-                  <button onClick={() => setTheme('mada')} className={`px-4 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all ${theme === 'mada' ? 'bg-indigo-500 text-white shadow-[0_0_10px_rgba(99,102,241,0.5)]' : 'text-gray-500 hover:text-gray-300'}`}>Global AI</button>
-                  <button onClick={() => setTheme('visa')} className={`px-4 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all ${theme === 'visa' ? 'bg-cyan-500 text-white shadow-[0_0_10px_rgba(6,182,212,0.5)]' : 'text-gray-500 hover:text-gray-300'}`}>Read-Only</button>
-                  <button onClick={() => setTheme('mastercard')} className={`px-4 py-1.5 text-[9px] font-black uppercase tracking-widest rounded-md transition-all ${theme === 'mastercard' ? 'bg-rose-500 text-white shadow-[0_0_10px_rgba(244,63,94,0.5)]' : 'text-gray-500 hover:text-gray-300'}`}>Simulate</button>
+                <div className="flex items-center space-x-2 bg-black/50 rounded-lg p-1">
+                  <button onClick={() => setTheme('mada')} className={`px-3 py-1.5 text-[10px] font-bold rounded ${theme === 'mada' ? 'bg-fintech-green text-black' : 'text-gray-400 hover:text-white'}`}>MADA</button>
+                  <button onClick={() => setTheme('visa')} className={`px-3 py-1.5 text-[10px] font-bold rounded ${theme === 'visa' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'}`}>VISA</button>
+                  <button onClick={() => setTheme('mastercard')} className={`px-3 py-1.5 text-[10px] font-bold rounded ${theme === 'mastercard' ? 'bg-red-500 text-white' : 'text-gray-400 hover:text-white'}`}>MASTERCARD</button>
                 </div>
 
                 <div className="flex items-center space-x-3 border-r border-white/10 pr-6">
-                  <Activity size={14} className="text-gray-400" />
-                  <div className="text-[10px] font-mono text-emerald-400">SYNC: 14ms</div>
+                  <Clock size={14} className="text-gray-400" />
+                  <div className="text-[10px] font-mono">{new Date().toLocaleTimeString()}</div>
                 </div>
 
-                <button onClick={() => setActiveScreen('dashboard')} className="px-5 py-2 bg-white text-black hover:bg-gray-200 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(255,255,255,0.2)]">
-                  Execute Query
-                </button>
-
-                <div className="border-l border-white/10 pl-6 flex items-center space-x-4">
+                <div className="flex items-center space-x-4">
                   <div className="text-right">
                     <div className="text-[11px] font-bold text-white">{currentUser.username}</div>
-                    <div className="text-[9px] text-cyan-400 font-mono uppercase">Executive Board</div>
+                    <div className="text-[9px] text-gray-500 font-mono uppercase">{currentUser.role === 'admin' ? 'Security Officer' : 'Test Engineer'}</div>
                   </div>
-                  <button onClick={() => logout()} className="p-2.5 bg-black/40 border border-white/10 rounded-xl text-gray-400 hover:text-rose-400 hover:border-rose-400/30 hover:bg-rose-500/10 transition-all">
+                  <button onClick={() => logout()} className="p-2 bg-white/5 rounded-lg hover:bg-red-500/20 hover:text-red-400 transition-colors">
                     <LogOut size={16} />
                   </button>
                 </div>

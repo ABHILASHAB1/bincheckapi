@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { detectScheme, executeSchemeModule, loadISOConfig, buildISO8583Message } from '../data/iso8583';
 import { TEST_CARDS } from '../data/testCards';
 import { PulseEngine } from '../utils/pulseEngine';
@@ -116,6 +116,9 @@ export const SimulationProvider = ({ children }) => {
 
   const [tcpStatus, setTcpStatus] = useState('disconnected'); // disconnected, connecting, connected
   const [tcpPing, setTcpPing] = useState(0);
+
+  // Dynamic active network connections
+  const [activeConnections, setActiveConnections] = useState(['mada', 'Visa']);
 
   const [isoFields, setIsoFields] = useState({
     mti: '0100',
@@ -614,6 +617,8 @@ export const SimulationProvider = ({ children }) => {
       setTcpStatus,
       tcpPing,
       setTcpPing,
+      activeConnections,
+      setActiveConnections,
       theme,
       setTheme,
       lang,

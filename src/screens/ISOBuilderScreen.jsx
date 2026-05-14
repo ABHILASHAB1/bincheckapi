@@ -35,7 +35,7 @@ export default function ISOBuilderScreen({ setActiveScreen }) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastSynced, setLastSynced] = useState(null);
   const [activeTxType, setActiveTxType] = useState('PURCHASE');
-  const { isoFields, setIsoFields, runTransaction, detectScheme, vaultCards, refreshVault } = useSimulation();
+  const { isoFields, setIsoFields, runTransaction, detectScheme, vaultCards, refreshVault, activeConnections } = useSimulation();
 
   const scheme = useMemo(() => detectScheme(isoFields.pan || ''), [isoFields.pan, detectScheme]);
   const schemeConfig = useMemo(() => loadISOConfig(scheme), [scheme]);
@@ -175,6 +175,13 @@ export default function ISOBuilderScreen({ setActiveScreen }) {
 
     // 1. Detect Scheme & Validate Luhn
     const activeScheme = detectScheme(isoFields.pan || '');
+
+    // Check for active connection
+    if (!activeConnections.includes(activeScheme)) {
+      alert(`❌ [ROUTING ERROR]: No Active Connection for ${activeScheme}.\n\nThe simulator currently only has active TCP connections to: ${activeConnections.join(', ')}. Please select a supported card or connect the required node.`);
+      return;
+    }
+
     if (isoFields.pan && !luhnCheck(isoFields.pan)) {
       alert('❌ [SECURITY BLOCK]: Transaction Aborted.\n\nThe PAN provided fails the Luhn validation check. Only mathematically valid cards can be simulated in production-hardened mode.');
       return;

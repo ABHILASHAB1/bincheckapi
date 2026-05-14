@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   UploadCloud, FileSpreadsheet, FileJson, Database, BrainCircuit, 
   CheckCircle2, AlertTriangle, ChevronRight, Activity, ScanLine, 
@@ -9,6 +9,8 @@ export default function NeuralIngestionScreen() {
   const [ingestState, setIngestState] = useState('idle'); // idle, processing, complete
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState('');
+  const [fileName, setFileName] = useState('Q3_Financial_Master.xlsx');
+  const fileInputRef = useRef(null);
 
   const steps = [
     'Parsing Raw Binary Stream...',
@@ -19,7 +21,12 @@ export default function NeuralIngestionScreen() {
     'Finalizing Read-Only Overlay...'
   ];
 
-  const handleUpload = () => {
+  const handleUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setFileName(file.name);
+    }
+    
     setIngestState('processing');
     setProgress(0);
     
@@ -79,8 +86,20 @@ export default function NeuralIngestionScreen() {
         {/* IDLE STATE: Dropzone */}
         {ingestState === 'idle' && (
           <div className="w-full max-w-4xl animate-in fade-in zoom-in duration-500">
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleUpload} 
+              style={{ display: 'none' }}
+              accept=".xlsx,.csv,.xml,.json,.txt" 
+            />
             <div 
-              onClick={handleUpload}
+              onClick={() => {
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = '';
+                  fileInputRef.current.click();
+                }
+              }}
               className="w-full glass-panel border border-dashed border-white/20 hover:border-cyan-400/50 rounded-3xl p-16 flex flex-col items-center justify-center text-center cursor-pointer transition-all hover:bg-cyan-500/5 group"
             >
               <div className="w-24 h-24 bg-black/50 rounded-full flex items-center justify-center mb-6 group-hover:scale-110 transition-transform shadow-[0_0_30px_rgba(255,255,255,0.05)] group-hover:shadow-[0_0_30px_rgba(6,182,212,0.2)]">
@@ -139,7 +158,9 @@ export default function NeuralIngestionScreen() {
                   <div className="flex justify-between items-center mb-6">
                     <div>
                       <h3 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.3em]">AI Schema Mapping</h3>
-                      <p className="text-[9px] font-mono text-gray-500 mt-1">Source: Q3_Financial_Master.xlsx</p>
+                      <p className="text-[9px] font-mono text-cyan-400 mt-1 flex items-center">
+                        <FileSpreadsheet size={10} className="mr-1" /> Source: {fileName}
+                      </p>
                     </div>
                     <div className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[9px] font-black uppercase tracking-widest rounded-lg flex items-center">
                       <CheckCircle2 size={12} className="mr-1" /> 14.2M Rows Ingested
