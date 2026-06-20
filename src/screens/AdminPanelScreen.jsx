@@ -8,7 +8,7 @@ import { useSimulation } from '../context/SimulationContext';
 
 function AdminPanelScreen() {
   const { users, auditLogs, createUser, updateUser, deleteUser } = useAuth();
-  const { transactions } = useSimulation();
+  const { transactions, activeModules, setActiveModules } = useSimulation();
   const [activeTab, setActiveTab] = useState('governance');
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -54,7 +54,8 @@ function AdminPanelScreen() {
           {[
             { id: 'governance', label: 'Governance', icon: Users },
             { id: 'hsm', label: 'Security (HSM)', icon: Lock },
-            { id: 'audit', label: 'Audit Trail', icon: Activity }
+            { id: 'audit', label: 'Audit Trail', icon: Activity },
+            { id: 'modules', label: 'Feature Flags', icon: Settings }
           ].map(tab => (
             <button 
               key={tab.id}
@@ -248,6 +249,36 @@ function AdminPanelScreen() {
                  ))}
               </div>
            </div>
+        )}
+
+        {activeTab === 'modules' && (
+          <div className="flex-1 glass-panel rounded-[2.5rem] border border-white/5 overflow-hidden flex flex-col bg-black/40 animate-slideUp">
+            <div className="p-6 border-b border-white/5 bg-white/[0.02] flex justify-between items-center">
+              <h2 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Platform Feature Flags</h2>
+              <Settings size={16} className="text-fintech-accent" />
+            </div>
+            <div className="flex-1 overflow-auto p-8 custom-scrollbar">
+               <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+                  {Object.keys(activeModules).map(moduleId => (
+                     <div key={moduleId} className="bg-white/[0.02] border border-white/5 rounded-2xl p-5 flex items-center justify-between group hover:border-white/10 transition-all">
+                        <div>
+                           <div className="text-[11px] font-black text-white uppercase tracking-widest">{moduleId}</div>
+                           <div className="text-[9px] text-gray-500 font-mono mt-1">Status: {activeModules[moduleId] ? 'ENABLED' : 'DISABLED'}</div>
+                        </div>
+                        <button 
+                           onClick={() => {
+                              if (moduleId === 'admin') return; // Prevent disabling admin
+                              setActiveModules(prev => ({ ...prev, [moduleId]: !prev[moduleId] }));
+                           }}
+                           className={`w-12 h-6 rounded-full relative transition-colors ${activeModules[moduleId] ? 'bg-fintech-green' : 'bg-gray-700'} ${moduleId === 'admin' ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        >
+                           <div className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${activeModules[moduleId] ? 'left-7' : 'left-1'}`}></div>
+                        </button>
+                     </div>
+                  ))}
+               </div>
+            </div>
+          </div>
         )}
       </div>
     </div>

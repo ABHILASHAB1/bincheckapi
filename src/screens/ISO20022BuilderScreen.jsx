@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { FileCode2, Copy, Download, Network, FileJson, CheckCircle2, Send, Activity, ChevronDown, Search, ArrowLeftRight } from 'lucide-react';
+import { FileCode2, Copy, Download, Network, FileJson, CheckCircle2, Send, Activity, ChevronDown, Search, ArrowLeftRight, ShieldAlert } from 'lucide-react';
 import { translateXmlTo8583 } from '../utils/cbprTranslator';
 import { TEST_CARDS } from '../data/testCards';
 import { useSimulation } from '../context/SimulationContext';

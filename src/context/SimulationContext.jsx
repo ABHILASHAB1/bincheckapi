@@ -144,6 +144,15 @@ export const SimulationProvider = ({ children }) => {
     remitCountry: 'SAR_INR'
   });
 
+  const [activeModules, setActiveModules] = useState({
+    'dashboard': true, 'simulator': true, 'iso-builder': true, 'iso-20022': true, 
+    'load-test': true, 'bin-checker': true, 'test-cards': true, 'settlement': true, 
+    'remittance': true, 'crypto': true, '3ds': true, 'scheme': true, 
+    'compliance': true, 'telemetry': true, 'topology': true, 'explorer': true, 
+    'diff': true, 'logs': true, 'tcp-config': true, 'admin': true
+  });
+
+
   // Database Logs & Intelligence Streams
   const [dbLogs, setDbLogs] = useState([]);
   const [marketStream, setMarketStream] = useState([]);
@@ -646,9 +655,12 @@ export const SimulationProvider = ({ children }) => {
       setGatewayWebhooks,
       marketPulse,
       opsPulse,
-      liveEvents
+      liveEvents,
+      activeModules,
+      setActiveModules
     }}>
       {children}
+
     </SimulationContext.Provider>
   );
 };

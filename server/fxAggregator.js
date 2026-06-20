@@ -1,5 +1,11 @@
 import axios from 'axios';
 import { supabase } from './supabaseClient.js';
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Global FX Aggregation Service
@@ -31,9 +37,36 @@ export class FXAggregator {
     results.push(...scraperResults);
 
     // 3. Normalization Engine
-    const normalized = this.normalize(results);
+    let normalized = this.normalize(results);
 
-    // 4. Persistence to TimescaleDB (Supabase)
+    // 4. Fail-safe Fallback: If DB and APIs are empty, provide mock data so UI doesn't go blank
+    if (!normalized || normalized.length === 0) {
+       console.log("⚠️ [FX AGGREGATOR] Database and APIs are empty! Injecting fail-safe mock data...");
+       const fallbackResults = targets.map(curr => {
+         let rate = 1.0;
+         if (curr === 'INR') rate = 22.35;
+         if (curr === 'PHP') rate = 14.85;
+         if (curr === 'PKR') rate = 74.20;
+         if (curr === 'EGP') rate = 12.65;
+         if (curr === 'BDT') rate = 29.10;
+         if (curr === 'USD') rate = 0.266;
+
+         return {
+           source: 'Mock Provider (Awaiting Scraper)',
+           pair: `${base}_${curr}`,
+           rate: rate,
+           cash_rate: rate - (rate * 0.005), // slightly worse for cash
+           b2b_charge: 15,
+           cash_charge: 20,
+           transfer_time: 'In minutes',
+           timestamp: new Date().toISOString(),
+           is_scraped: false
+         };
+       });
+       normalized = this.normalize(fallbackResults);
+    }
+
+    // 5. Persistence to TimescaleDB (Supabase)
     if (supabase) {
        await this.persistToHistory(normalized);
     }
@@ -66,15 +99,63 @@ export class FXAggregator {
   }
 
   static async fetchLocalScrapers(base, targets) {
-    // Simulated scraper output for Al Rajhi, STC Bank, Lulu
-    // In production, these would be populated by the scrapers/ module
-    return targets.map(curr => ({
-       source: Math.random() > 0.5 ? 'Al Rajhi' : 'STC Bank',
-       pair: `${base}_${curr}`,
-       rate: (Math.random() * 0.5) + (curr === 'INR' ? 22 : 1), // Realistic mock spreads
-       timestamp: new Date().toISOString(),
-       is_scraped: true
-    }));
+    if (!supabase) {
+      console.warn('⚠️ [FX] Supabase client not initialized. Cannot fetch local scrapers.');
+      return [];
+    }
+    
+    try {
+      let data = null;
+      
+      // 1. Try to read from the local JSON backup created by the Python scraper
+      try {
+        const jsonPath = path.join(__dirname, '../scraper/latest_rates.json');
+        if (fs.existsSync(jsonPath)) {
+            const fileContent = fs.readFileSync(jsonPath, 'utf8');
+            data = JSON.parse(fileContent);
+            console.log(`✅ [FX DB] Loaded ${data.length} live records from local JSON backup!`);
+        }
+      } catch (err) {
+        console.warn('⚠️ [FX DB] Could not read local JSON backup:', err.message);
+      }
+
+      // 2. If no local JSON, try Supabase Cloud
+      if (!data || data.length === 0) {
+          const { data: dbData, error } = await supabase
+            .from('bank_fx_rates')
+            .select('*')
+            .order('updated_at', { ascending: false })
+            .limit(100);
+
+          if (error) {
+            console.warn('⚠️ [FX DB] Supabase fetch error:', error.message);
+            return [];
+          }
+          data = dbData;
+      }
+
+      if (!data || data.length === 0) {
+        console.log('ℹ️ [FX DB] No live scraped records found. Awaiting python script execution.');
+        return [];
+      }
+
+      // Translate schema (handles both DB and JSON structure) into the standard FXAggregator format
+      return data.map(row => ({
+         source: row.bank_name,
+         pair: `${row.base_currency}_${row.target_currency}`,
+         rate: parseFloat(row.buy_rate || row.rate || 1.0), 
+         cash_rate: parseFloat(row.sell_rate || row.buy_rate || 1.0),
+         b2b_charge: parseFloat(row.b2b_charge_sar || 0),
+         cash_charge: parseFloat(row.cash_charge_sar || 0),
+         transfer_time: row.transfer_type || 'Standard',
+         timestamp: row.updated_at || new Date().toISOString(),
+         is_scraped: true
+      }));
+
+    } catch (e) {
+      console.warn('⚠️ [FX DB] Fatal fetch error:', e.message);
+      return [];
+    }
   }
 
   static normalize(rawResults) {
@@ -89,11 +170,14 @@ export class FXAggregator {
     // Determine Best Rate, Fees, and Effective Payout
     return Object.entries(pairs).map(([pair, data]) => {
       const processed = data.rates.map(r => {
-        // Intelligence Layer: Dynamic Fee Calculation based on Provider
-        let fee = 15; // Base fee (SAR)
+        // Intelligence Layer: Dynamic Fee Calculation
+        let fee = 15; // Base fallback fee (SAR)
         if (r.source === 'STC Bank') fee = 10;
         if (r.source === 'Al Rajhi') fee = 20;
         if (r.source === 'Wise') fee = 12.5;
+        
+        // Use exact scraped fees if available from CTR KSA
+        if (r.b2b_charge !== undefined) fee = r.b2b_charge;
         
         const received = (amountToTransfer - fee) * r.rate;
         const effectiveRate = received / amountToTransfer;

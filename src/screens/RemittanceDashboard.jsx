@@ -24,6 +24,7 @@ function RemittanceDashboard() {
     if (pair?.endsWith('PKR')) return '₨';
     if (pair?.endsWith('PHP')) return '₱';
     if (pair?.endsWith('EGP')) return 'E£';
+    if (pair?.endsWith('BDT')) return '৳';
     return '$';
   };
 
@@ -32,6 +33,7 @@ function RemittanceDashboard() {
     if (pair === 'SAR_PKR') return 'Pakistan (PKR)';
     if (pair === 'SAR_PHP') return 'Philippines (PHP)';
     if (pair === 'SAR_EGP') return 'Egypt (EGP)';
+    if (pair === 'SAR_BDT') return 'Bangladesh (BDT)';
     return pair || 'Select Corridor';
   };
 
@@ -169,52 +171,101 @@ function RemittanceDashboard() {
               {/* Payout Ranker */}
               <div className="flex-1 overflow-y-auto space-y-4 pr-2 custom-scrollbar">
                  {currentRateData?.all_providers?.map((provider, idx) => (
-                    <div 
-                       key={idx} 
-                       className={`relative overflow-hidden rounded-[2.5rem] p-8 border transition-all flex items-center justify-between
-                          ${idx === 0 ? 'bg-fintech-accent/5 border-fintech-accent/30 shadow-[0_0_30px_rgba(37,99,235,0.1)]' : 'bg-white/[0.02] border-white/5 hover:border-white/10'}
-                       `}
-                    >
-                       {idx === 0 && (
-                          <div className="absolute top-0 right-0 px-6 py-2 bg-fintech-green text-black font-black text-[9px] uppercase tracking-widest rounded-bl-3xl">
-                             BEST PAYOUT
-                          </div>
-                       )}
+                     <div 
+                        key={idx} 
+                        className={`relative overflow-hidden rounded-[2.5rem] p-8 border transition-all flex flex-col justify-between
+                           ${idx === 0 ? 'bg-fintech-accent/5 border-fintech-accent/30 shadow-[0_0_30px_rgba(37,99,235,0.1)]' : 'bg-white/[0.02] border-white/5 hover:border-white/10'}
+                        `}
+                     >
+                        {idx === 0 && (
+                           <div className="absolute top-0 right-0 px-6 py-2 bg-fintech-green text-black font-black text-[9px] uppercase tracking-widest rounded-bl-3xl">
+                              BEST PAYOUT
+                           </div>
+                        )}
 
-                       <div className="flex items-center space-x-8">
-                          <div className={`w-16 h-16 rounded-[1.5rem] flex items-center justify-center border transition-all ${idx === 0 ? 'bg-fintech-accent text-white border-fintech-accent/20' : 'bg-black/60 text-gray-500 border-white/5'}`}>
-                             {provider.source === 'Al Rajhi' ? <Landmark size={32} /> : provider.source === 'STC Bank' ? <CreditCard size={32} /> : <ArrowUpRight size={32} />}
-                          </div>
-                          <div>
-                             <div className="text-lg font-black text-white tracking-tighter uppercase">{provider.source}</div>
-                             <div className="flex items-center space-x-4 mt-1.5">
-                                <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Fee: <span className="text-white">SAR {provider.fee}</span></div>
-                                <div className="w-1 h-1 rounded-full bg-gray-800"></div>
-                                <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Spread: <span className="text-orange-500">{provider.hidden_spread?.toFixed(2)}%</span></div>
-                             </div>
-                          </div>
-                       </div>
+                        <div className="flex items-center space-x-6 mb-6">
+                           <div className={`w-14 h-14 rounded-[1.5rem] flex items-center justify-center border transition-all ${idx === 0 ? 'bg-fintech-accent text-white border-fintech-accent/20' : 'bg-black/60 text-gray-500 border-white/5'}`}>
+                              {provider.source === 'Al Rajhi' ? <Landmark size={24} /> : provider.source === 'STC Bank' ? <CreditCard size={24} /> : <ArrowUpRight size={24} />}
+                           </div>
+                           <div>
+                              <div className="text-xl font-black text-white tracking-tighter uppercase">{provider.source}</div>
+                              <div className="text-[10px] font-mono text-gray-500 uppercase font-black mt-1">Updated: {new Date(provider.timestamp).toLocaleString()}</div>
+                           </div>
+                        </div>
 
-                       <div className="text-right">
-                          <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest mb-1.5">Net Recipient Receives</div>
-                          <div className="text-3xl font-black text-white tracking-tighter">
-                             {getCurrencySymbol(selectedCorridor)} {((amount - provider.fee) * provider.rate).toLocaleString(undefined, { maximumFractionDigits: 2 })}
-                          </div>
-                          <div className="text-[10px] font-mono text-fintech-accent mt-1 uppercase font-black">Effective Rate: {provider.effective_rate?.toFixed(4)}</div>
-                       </div>
-                    </div>
-                 ))}
+                        {/* GRID FOR B2B AND CASH */}
+                        <div className="grid grid-cols-2 gap-4 w-full">
+                           {/* Bank to Bank Box */}
+                           <div className="bg-white/5 border border-white/10 rounded-3xl p-5 flex flex-col justify-between">
+                                 <div className="flex justify-between items-start mb-4">
+                                    <div className="text-[10px] text-gray-400 font-black uppercase tracking-widest bg-white/5 px-3 py-1 rounded-full border border-white/10">Bank to Bank</div>
+                                    <div className="text-[10px] text-fintech-accent font-black uppercase tracking-widest">{provider.transfer_time || "Standard"}</div>
+                                 </div>
+                                 
+                                 <div className="grid grid-cols-2 gap-2 mb-4">
+                                    <div>
+                                       <div className="text-[9px] text-gray-500 uppercase font-black mb-1">Exchange Rate</div>
+                                       <div className="text-lg font-black text-white">{provider.rate} <span className="text-xs text-gray-500">{selectedCorridor.split('_')[1]}</span></div>
+                                    </div>
+                                    <div>
+                                       <div className="text-[9px] text-gray-500 uppercase font-black mb-1">Transfer Fee</div>
+                                       <div className="text-lg font-black text-white">{provider.b2b_charge !== undefined ? provider.b2b_charge : provider.fee} <span className="text-xs text-gray-500">SAR</span></div>
+                                    </div>
+                                 </div>
+                                 
+                                 <div className="pt-4 border-t border-white/10 flex justify-between items-end">
+                                    <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Net Amount</div>
+                                    <div className={`text-2xl font-black tracking-tighter ${((amount - (provider.b2b_charge !== undefined ? provider.b2b_charge : provider.fee)) * provider.rate) < 0 ? 'text-red-500' : 'text-fintech-green'}`}>
+                                       {((amount - (provider.b2b_charge !== undefined ? provider.b2b_charge : provider.fee)) * provider.rate).toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-sm">{selectedCorridor.split('_')[1]}</span>
+                                    </div>
+                                 </div>
+                           </div>
+
+                           {/* Cash Pickup Box */}
+                           {(provider.cash_rate !== undefined && provider.cash_rate !== provider.rate) ? (
+                           <div className="bg-fintech-green/5 border border-fintech-green/20 rounded-3xl p-5 flex flex-col justify-between relative overflow-hidden">
+                                 <div className="flex justify-between items-start mb-4">
+                                    <div className="text-[10px] text-fintech-green font-black uppercase tracking-widest bg-fintech-green/10 px-3 py-1 rounded-full border border-fintech-green/20">Cash Pickup</div>
+                                    <div className="text-[10px] text-fintech-green font-black uppercase tracking-widest">{provider.transfer_time || "Standard"}</div>
+                                 </div>
+                                 
+                                 <div className="grid grid-cols-2 gap-2 mb-4">
+                                    <div>
+                                       <div className="text-[9px] text-gray-500 uppercase font-black mb-1">Exchange Rate</div>
+                                       <div className="text-lg font-black text-white">{provider.cash_rate} <span className="text-xs text-gray-500">{selectedCorridor.split('_')[1]}</span></div>
+                                    </div>
+                                    <div>
+                                       <div className="text-[9px] text-gray-500 uppercase font-black mb-1">Transfer Fee</div>
+                                       <div className="text-lg font-black text-white">{provider.cash_charge !== undefined ? provider.cash_charge : provider.fee} <span className="text-xs text-gray-500">SAR</span></div>
+                                    </div>
+                                 </div>
+                                 
+                                 <div className="pt-4 border-t border-white/10 flex justify-between items-end">
+                                    <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Net Amount</div>
+                                    <div className={`text-2xl font-black tracking-tighter ${((amount - (provider.cash_charge !== undefined ? provider.cash_charge : provider.fee)) * provider.cash_rate) < 0 ? 'text-red-500' : 'text-fintech-green'}`}>
+                                       {((amount - (provider.cash_charge !== undefined ? provider.cash_charge : provider.fee)) * provider.cash_rate).toLocaleString(undefined, { maximumFractionDigits: 2 })} <span className="text-sm">{selectedCorridor.split('_')[1]}</span>
+                                    </div>
+                                 </div>
+                           </div>
+                           ) : (
+                               <div className="bg-white/5 border border-white/10 rounded-3xl p-5 flex flex-col items-center justify-center opacity-50">
+                                   <div className="text-[10px] text-gray-500 font-black uppercase tracking-widest">Cash Pickup Unavailable</div>
+                               </div>
+                           )}
+                        </div>
+                     </div>
+                  ))}
               </div>
 
               {/* Summary Footer */}
               <div className="mt-10 pt-10 border-t border-white/5 grid grid-cols-4 gap-8 shrink-0">
                  <div className="text-center p-4 bg-white/[0.02] rounded-2xl border border-white/5">
                     <div className="text-[9px] text-gray-600 uppercase font-black mb-1">Spread Advantage</div>
-                    <div className="text-xl font-black text-white font-mono">+{currentRateData?.market_spread?.toFixed(2)}%</div>
+                    <div className="text-xl font-black text-white font-mono">+{currentRateData?.market_spread ? currentRateData.market_spread.toFixed(2) : '0.00'}%</div>
                  </div>
                  <div className="text-center p-4 bg-white/[0.02] rounded-2xl border border-white/5">
                     <div className="text-[9px] text-gray-600 uppercase font-black mb-1 text-fintech-green">Best Value</div>
-                    <div className="text-xl font-black text-white uppercase tracking-tighter truncate">{currentRateData?.best_provider}</div>
+                    <div className="text-xl font-black text-white uppercase tracking-tighter truncate">{currentRateData?.best_provider || '-'}</div>
                  </div>
                  <div className="text-center p-4 bg-white/[0.02] rounded-2xl border border-white/5">
                     <div className="text-[9px] text-gray-600 uppercase font-black mb-1 text-fintech-accent">Live Ingestion</div>

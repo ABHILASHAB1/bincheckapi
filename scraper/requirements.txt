@@ -1,0 +1,6 @@
+playwright
+playwright-stealth
+beautifulsoup4
+supabase
+python-dotenv
+setuptools

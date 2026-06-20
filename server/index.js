@@ -20,6 +20,7 @@ import { SettlementEngine } from './settlementEngine.js';
 import { FraudEngine } from './fraudEngine.js';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { exec } from 'child_process';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -115,6 +116,15 @@ app.get('/api/bins/stats', async (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
+app.get('/api/v1/fx/rates', async (req, res) => {
+  try {
+    const rates = await FXAggregator.getAggregatedRates();
+    res.json({ success: true, rates });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.get('/api/bins/sync/status', (req, res) => {
   if (!BinService) return res.json({ isSyncing: false, processed: 0, total: 0 });
   res.json(BinService.syncStatus || { isSyncing: false, processed: 0, total: 0 });
@@ -146,6 +156,31 @@ setInterval(async () => {
      console.error('❌ [MARKET] FX Sync Failed:', err.message);
   }
 }, 30000);
+
+// Automated Python Web Scraper (Runs every 1 hour)
+const SCRAPER_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+const runScraper = () => {
+  console.log(`🤖 [AUTO-SCRAPER] Initiating scheduled CTR KSA data extraction...`);
+  // Use 'python' or 'python3' depending on the environment. Assuming 'python' on Windows.
+  exec('python scraper/ctr_ksa_scraper.py', { cwd: path.join(__dirname, '..') }, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`❌ [AUTO-SCRAPER] Execution Failed: ${error.message}`);
+      return;
+    }
+    // Python's logging module outputs to stderr by default
+    if (stderr) {
+      console.log(`🐍 [PYTHON LOGS]:\n${stderr.trim()}`);
+    }
+    if (stdout) {
+      console.log(`🐍 [PYTHON OUTPUT]:\n${stdout.trim()}`);
+    }
+    console.log(`✅ [AUTO-SCRAPER] Extraction Process Completed.`);
+  });
+};
+
+// Run it once immediately on server start, then schedule it every hour
+setTimeout(runScraper, 5000);
+setInterval(runScraper, SCRAPER_INTERVAL_MS);
 
 // Real-time Streaming
 function broadcast(event, data) {
@@ -392,21 +427,94 @@ const syncToCloud = async (table, record) => {
  * @api {post} /api/v1/transactions Ingest & Process ISO Message
  * Dual-write to Local SQLite and Cloud Supabase
  */
+// --- TCP DIAGNOSTICS & PING ---
+app.post('/api/tcp/ping', async (req, res) => {
+  const { tcpConfig } = req.body;
+  if (!tcpConfig || !tcpConfig.host || !tcpConfig.port) {
+    return res.status(400).json({ success: false, error: 'Invalid TCP Configuration provided.' });
+  }
+
+  const start = Date.now();
+  try {
+    await new Promise((resolve, reject) => {
+      const client = new net.Socket();
+      const timeout = parseInt(tcpConfig.timeout) || 5000;
+      
+      client.setTimeout(timeout);
+      client.on('timeout', () => {
+        client.destroy();
+        reject(new Error(`Timeout after ${timeout}ms`));
+      });
+
+      client.on('error', (err) => {
+        client.destroy();
+        reject(err);
+      });
+
+      const host = tcpConfig.host;
+      const port = parseInt(tcpConfig.port, 10);
+
+      if (tcpConfig.useTLS) {
+        const tlsClient = tls.connect(port, host, {
+          cert: tcpConfig.certificate,
+          key: tcpConfig.privateKey,
+          rejectUnauthorized: false // Mock environment tolerance
+        }, () => {
+          tlsClient.destroy();
+          resolve();
+        });
+        tlsClient.on('error', (err) => {
+          tlsClient.destroy();
+          reject(err);
+        });
+      } else {
+        client.connect(port, host, () => {
+          client.destroy();
+          resolve();
+        });
+      }
+    });
+
+    const pingTime = Date.now() - start;
+    res.json({ success: true, ping: pingTime });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // --- SHARED TRANSACTION HANDLER ---
 async function handleTransaction(req, res) {
-  const { mti, elements, type = 'ISO8583' } = req.body;
+  const { mti, elements, type = 'ISO8583', tcpConfig } = req.body;
   try {
     console.log(`🔌 [API] Ingesting ${mti} transaction...`);
     const { rawRes, decodedRes } = await new Promise((resolve, reject) => {
        const tcpBuffer = Builder.pack({ mti, elements });
-       const client = new net.Socket();
+       
+       const targetHost = (tcpConfig && tcpConfig.host) ? tcpConfig.host : '127.0.0.1';
+       const targetPort = (tcpConfig && tcpConfig.port) ? parseInt(tcpConfig.port, 10) : 8583;
+       const timeoutMs = (tcpConfig && tcpConfig.timeout) ? parseInt(tcpConfig.timeout, 10) : 5000;
+
+       console.log(`🚀 [TCP SWITCH] Routing to ${targetHost}:${targetPort} (TLS: ${!!tcpConfig?.useTLS})...`);
+
+       let client;
+
+       if (tcpConfig && tcpConfig.useTLS) {
+         client = tls.connect(targetPort, targetHost, {
+           cert: tcpConfig.certificate,
+           key: tcpConfig.privateKey,
+           rejectUnauthorized: false
+         }, () => {
+           client.write(tcpBuffer);
+         });
+       } else {
+         client = new net.Socket();
+         client.connect(targetPort, targetHost, () => client.write(tcpBuffer));
+       }
        
        const timeout = setTimeout(() => {
-         client.destroy();
-         reject(new Error('TCP Switch Timeout (5s)'));
-       }, 5000);
-
-       client.connect(8583, '127.0.0.1', () => client.write(tcpBuffer));
+         if(client) client.destroy();
+         reject(new Error(`TCP Switch Timeout (${timeoutMs}ms)`));
+       }, timeoutMs);
        
        client.on('data', data => { 
          clearTimeout(timeout);

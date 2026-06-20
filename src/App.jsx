@@ -137,7 +137,7 @@ function AppContent() {
   const { 
     runTransaction, speedMultiplier, setSpeedMultiplier, theme, setTheme, 
     lang, setLang, t, isInfinityMode, setIsInfinityMode,
-    showTerminal, setShowTerminal, activeConnections
+    showTerminal, setShowTerminal, activeConnections, activeModules
   } = simContext;
   const { currentUser, logout } = authContext;
 
@@ -166,11 +166,14 @@ function AppContent() {
             </div>
 
             <nav className="flex-1 px-3 py-6 space-y-8 overflow-y-auto custom-scrollbar">
-              {NAV_CATEGORIES.map((category, idx) => (
+              {NAV_CATEGORIES.map((category, idx) => {
+                const visibleItems = category.items.filter(item => activeModules[item.id] !== false);
+                if (visibleItems.length === 0) return null;
+                return (
                 <div key={idx} className="space-y-2">
                    <h3 className="px-4 text-[9px] font-black text-gray-600 uppercase tracking-[0.2em] mb-4">{category.title}</h3>
                    <div className="space-y-1">
-                      {category.items.map((item) => {
+                      {visibleItems.map((item) => {
                         const Icon = item.icon;
                         const isActive = activeScreen === item.id;
                         return (
@@ -192,7 +195,8 @@ function AppContent() {
                       })}
                    </div>
                 </div>
-              ))}
+                );
+              })}
             </nav>
 
             <div className="p-4 border-t border-fintech-border mt-auto space-y-4">

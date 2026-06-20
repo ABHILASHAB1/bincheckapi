@@ -7,7 +7,7 @@ import {
 import { useSimulation } from '../context/SimulationContext';
 
 export default function DashboardScreen() {
-  const { isInfinityMode, logs, activeConnections } = useSimulation();
+  const { isInfinityMode, dbLogs = [], activeConnections } = useSimulation();
   const [time, setTime] = useState(new Date().toLocaleTimeString());
 
   useEffect(() => {
@@ -15,23 +15,52 @@ export default function DashboardScreen() {
     return () => clearInterval(timer);
   }, []);
 
-  // Mock transaction data
+  // Calculate live stats from real dbLogs
+  const approvedLogs = dbLogs.filter(l => l.resp_code === '00' || l.status === 'APPROVED' || l.status === 'Approved');
+  const totalVolume = approvedLogs.reduce((sum, l) => sum + (parseFloat(l.amount) || 0), 0);
+  const approvalRate = dbLogs.length > 0 ? ((approvedLogs.length / dbLogs.length) * 100).toFixed(1) + '%' : '100%';
+
   const stats = {
-    tps: isInfinityMode ? (Math.random() * 40 + 10).toFixed(1) : '0.0',
-    volume: '$' + (Math.random() * 50000 + 100000).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
-    approvalRate: isInfinityMode ? '98.4%' : '100%',
-    activeConnections: 2
+    tps: isInfinityMode ? (Math.random() * 40 + 10).toFixed(1) : (dbLogs.length > 0 ? (dbLogs.length / 60).toFixed(1) : '0.0'),
+    volume: '$' + totalVolume.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
+    approvalRate: approvalRate,
+    activeConnections: activeConnections.length
   };
 
-  const recentTransactions = [
-    { protocol: 'ISO 8583', id: '100452', type: '0200', amount: '$1,250.00', status: 'Approved', code: '00', time: '10:42:15' },
-    { protocol: 'ISO 20022', id: 'UETR-9A4B', type: 'pacs.008.001.08', amount: '$45,500.00', status: 'Approved', code: 'ACCC', time: '10:42:16' },
-    { protocol: 'ISO 8583', id: '100453', type: '0200', amount: '$45.50', status: 'Declined', code: '51', time: '10:42:18' },
-    { protocol: 'ISO 20022', id: 'UETR-77C1', type: 'pain.001.001.09', amount: '$12,000.00', status: 'Approved', code: 'ACSP', time: '10:42:20' },
-    { protocol: 'ISO 8583', id: '100454', type: '0400', amount: '$120.00', status: 'Reversed', code: '00', time: '10:42:22' },
-    { protocol: 'ISO 20022', id: 'UETR-33F9', type: 'pacs.002.001.10', amount: '$8,900.00', status: 'Declined', code: 'RJCT', time: '10:42:24' },
-    { protocol: 'ISO 8583', id: '100455', type: '0100', amount: '$3,400.00', status: 'Approved', code: '00', time: '10:42:25' },
-  ];
+  const [expandedTxId, setExpandedTxId] = useState(null);
+
+  const safeJsonParse = (data) => {
+    if (typeof data !== 'string') return data;
+    try {
+      return JSON.parse(data);
+    } catch(e) {
+      return data;
+    }
+  };
+
+  const recentTransactions = dbLogs.map((log, index) => {
+    // Map dbLogs format to dashboard table format
+    const isXml = log.request_xml || log.mti?.includes('.');
+    const protocol = isXml ? 'ISO 20022' : 'ISO 8583';
+    
+    // Amount formatting
+    let amtStr = log.amount ? parseFloat(log.amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '0.00';
+    if (!amtStr.includes('$') && !amtStr.includes('SAR')) {
+      amtStr = '$' + amtStr;
+    }
+
+    return {
+      raw: log,
+      protocol,
+      id: log.id || log.stan || `tx-${index}`,
+      type: log.mti || 'Unknown',
+      amount: amtStr,
+      status: log.status === 'APPROVED' || log.resp_code === '00' ? 'Approved' : (log.status || 'Declined'),
+      code: log.resp_code || 'N/A',
+      time: log.created_at ? new Date(log.created_at).toLocaleTimeString() : new Date().toLocaleTimeString()
+    };
+  }).slice(0, 50); // Show last 50 on dashboard
+
 
   return (
     <div className="h-full w-full flex flex-col p-8 space-y-6 overflow-hidden bg-[#030305] text-gray-200 relative">
@@ -181,7 +210,7 @@ export default function DashboardScreen() {
               <h2 className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em]">Real-Time Transaction Ledger</h2>
               <div className="flex items-center space-x-2 text-[9px] font-mono text-cyan-400">
                 <Network size={12} />
-                <span>Monitoring Port 8583</span>
+                <span>Monitoring Port 8583 & API</span>
               </div>
             </div>
             
@@ -199,40 +228,115 @@ export default function DashboardScreen() {
                 </thead>
                 <tbody>
                   {recentTransactions.map((tx, idx) => (
-                    <tr key={idx} className="hover:bg-white/5 transition-colors group">
-                      <td className="p-3 border-b border-white/5">
-                        <div className="text-[11px] font-mono text-gray-400 group-hover:text-white transition-colors">{tx.time}</div>
-                      </td>
-                      <td className="p-3 border-b border-white/5">
-                        <div className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest inline-block
-                          ${tx.protocol === 'ISO 20022' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'}`}>
-                          {tx.protocol}
-                        </div>
-                      </td>
-                      <td className="p-3 border-b border-white/5">
-                        <div className="text-[11px] font-mono text-cyan-400">{tx.id}</div>
-                      </td>
-                      <td className="p-3 border-b border-white/5">
-                        <div className="px-2 py-1 bg-white/5 rounded text-[10px] font-mono text-gray-300 inline-block">
-                          {tx.type}
-                        </div>
-                      </td>
-                      <td className="p-3 border-b border-white/5">
-                        <div className="text-[12px] font-mono font-bold text-white">{tx.amount}</div>
-                      </td>
-                      <td className="p-3 border-b border-white/5">
-                        <div className={`flex items-center space-x-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider inline-flex
-                          ${tx.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 
-                            tx.status === 'Declined' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 
-                            'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'}`}>
-                          {tx.status === 'Approved' && <CheckCircle2 size={12} />}
-                          {tx.status === 'Declined' && <ShieldAlert size={12} />}
-                          {tx.status === 'Reversed' && <ArrowDownRight size={12} />}
-                          <span>{tx.status} [{tx.code}]</span>
-                        </div>
-                      </td>
-                    </tr>
+                    <React.Fragment key={idx}>
+                      <tr 
+                        onClick={() => setExpandedTxId(expandedTxId === tx.id ? null : tx.id)} 
+                        className="hover:bg-white/5 transition-colors group cursor-pointer"
+                      >
+                        <td className="p-3 border-b border-white/5">
+                          <div className="text-[11px] font-mono text-gray-400 group-hover:text-white transition-colors">{tx.time}</div>
+                        </td>
+                        <td className="p-3 border-b border-white/5">
+                          <div className={`px-2 py-1 rounded text-[9px] font-black uppercase tracking-widest inline-block
+                            ${tx.protocol === 'ISO 20022' ? 'bg-purple-500/20 text-purple-400 border border-purple-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'}`}>
+                            {tx.protocol}
+                          </div>
+                        </td>
+                        <td className="p-3 border-b border-white/5">
+                          <div className="text-[11px] font-mono text-cyan-400">{tx.id}</div>
+                        </td>
+                        <td className="p-3 border-b border-white/5">
+                          <div className="px-2 py-1 bg-white/5 rounded text-[10px] font-mono text-gray-300 inline-block">
+                            {tx.type}
+                          </div>
+                        </td>
+                        <td className="p-3 border-b border-white/5">
+                          <div className="text-[12px] font-mono font-bold text-white">{tx.amount}</div>
+                        </td>
+                        <td className="p-3 border-b border-white/5">
+                          <div className={`flex items-center space-x-1.5 px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider inline-flex
+                            ${tx.status === 'Approved' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 
+                              tx.status === 'Declined' ? 'bg-rose-500/10 text-rose-400 border border-rose-500/20' : 
+                              'bg-yellow-500/10 text-yellow-400 border border-yellow-500/20'}`}>
+                            {tx.status === 'Approved' && <CheckCircle2 size={12} />}
+                            {tx.status === 'Declined' && <ShieldAlert size={12} />}
+                            {tx.status === 'Reversed' && <ArrowDownRight size={12} />}
+                            <span>{tx.status} [{tx.code}]</span>
+                          </div>
+                        </td>
+                      </tr>
+                      
+                      {expandedTxId === tx.id && (
+                        <tr>
+                          <td colSpan="6" className="p-0 border-b border-white/5">
+                            <div className="bg-black/80 p-6 flex flex-col space-y-4 border-l-4 border-fintech-accent shadow-inner">
+                              <div className="text-[10px] font-black text-gray-500 uppercase tracking-[0.2em] mb-2 flex items-center">
+                                <Terminal size={14} className="mr-2 text-fintech-accent"/> 
+                                Deep Inspection (Hex / XML / JSON)
+                              </div>
+                              
+                              <div className="grid grid-cols-2 gap-4">
+                                {/* ISO 20022 XML Views */}
+                                {tx.protocol === 'ISO 20022' && tx.raw.request_xml && (
+                                  <div className="bg-[#0a0a0f] p-4 rounded-xl border border-white/5 col-span-2 md:col-span-1">
+                                    <h3 className="text-[9px] font-bold text-purple-400 uppercase tracking-widest mb-2">Request XML</h3>
+                                    <pre className="text-[10px] font-mono text-gray-400 whitespace-pre-wrap overflow-x-auto max-h-48 custom-scrollbar">
+                                      {tx.raw.request_xml}
+                                    </pre>
+                                  </div>
+                                )}
+                                {tx.protocol === 'ISO 20022' && tx.raw.response_xml && (
+                                  <div className="bg-[#0a0a0f] p-4 rounded-xl border border-white/5 col-span-2 md:col-span-1">
+                                    <h3 className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest mb-2">Response XML</h3>
+                                    <pre className="text-[10px] font-mono text-gray-400 whitespace-pre-wrap overflow-x-auto max-h-48 custom-scrollbar">
+                                      {tx.raw.response_xml}
+                                    </pre>
+                                  </div>
+                                )}
+
+                                {/* ISO 8583 Hex Views */}
+                                {tx.protocol === 'ISO 8583' && tx.raw.raw_request && (
+                                  <div className="bg-[#0a0a0f] p-4 rounded-xl border border-white/5">
+                                    <h3 className="text-[9px] font-bold text-cyan-400 uppercase tracking-widest mb-2">Raw Request (HEX)</h3>
+                                    <div className="text-[11px] font-mono text-gray-300 break-all leading-relaxed">
+                                      {tx.raw.raw_request}
+                                    </div>
+                                  </div>
+                                )}
+                                {tx.protocol === 'ISO 8583' && tx.raw.raw_response && (
+                                  <div className="bg-[#0a0a0f] p-4 rounded-xl border border-white/5">
+                                    <h3 className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest mb-2">Raw Response (HEX)</h3>
+                                    <div className="text-[11px] font-mono text-gray-300 break-all leading-relaxed">
+                                      {tx.raw.raw_response}
+                                    </div>
+                                  </div>
+                                )}
+                                
+                                {/* ISO 8583 JSON Parsed Views */}
+                                {tx.protocol === 'ISO 8583' && tx.raw.parsed_request && (
+                                  <div className="bg-[#0a0a0f] p-4 rounded-xl border border-white/5 col-span-2 md:col-span-1">
+                                    <h3 className="text-[9px] font-bold text-cyan-400 uppercase tracking-widest mb-2">Decoded ISO Fields (Request)</h3>
+                                    <pre className="text-[10px] font-mono text-gray-400 whitespace-pre-wrap overflow-x-auto max-h-48 custom-scrollbar">
+                                      {JSON.stringify(safeJsonParse(tx.raw.parsed_request), null, 2)}
+                                    </pre>
+                                  </div>
+                                )}
+                                {tx.protocol === 'ISO 8583' && tx.raw.parsed_response && (
+                                  <div className="bg-[#0a0a0f] p-4 rounded-xl border border-white/5 col-span-2 md:col-span-1">
+                                    <h3 className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest mb-2">Decoded ISO Fields (Response)</h3>
+                                    <pre className="text-[10px] font-mono text-gray-400 whitespace-pre-wrap overflow-x-auto max-h-48 custom-scrollbar">
+                                      {JSON.stringify(safeJsonParse(tx.raw.parsed_response), null, 2)}
+                                    </pre>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   ))}
+
                 </tbody>
               </table>
             </div>
