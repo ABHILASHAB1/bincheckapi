@@ -5,15 +5,60 @@ let filteredList = [];
 const keysTableBody = document.querySelector('#keys-table tbody');
 const searchFilterInput = document.getElementById('search-filter');
 const toastElement = document.getElementById('toast');
+const lockScreenOverlay = document.getElementById('admin-lock-screen');
+const lockForm = document.getElementById('lock-form');
+const lockErrorMsg = document.getElementById('lock-error');
+const adminPinInput = document.getElementById('admin-pin');
+const btnSignOut = document.getElementById('btn-admin-signout');
+
+// Get active session token
+function getAdminToken() {
+  return localStorage.getItem('adminToken') || '';
+}
+
+// Show/Hide Lock Overlay
+function showLockScreen() {
+  lockScreenOverlay.classList.remove('hidden');
+  adminPinInput.value = '';
+  adminPinInput.focus();
+}
+
+function hideLockScreen() {
+  lockScreenOverlay.classList.add('hidden');
+  adminPinInput.value = '';
+  lockErrorMsg.classList.add('hidden');
+}
+
+// Handle Admin Sign Out
+function handleSignOut() {
+  localStorage.removeItem('adminToken');
+  showLockScreen();
+  showToast('Logged out securely');
+}
 
 // Fetch and load keys from API
 async function loadKeys() {
+  const token = getAdminToken();
+  if (!token) {
+    showLockScreen();
+    return;
+  }
   try {
-    const res = await fetch('/api/keys');
+    const res = await fetch('/api/keys', {
+      headers: { 'X-Admin-Token': token }
+    });
+    
+    if (res.status === 401) {
+      handleSignOut();
+      return;
+    }
+    
     keysList = await res.json();
     applyFilter();
+    hideLockScreen();
   } catch (err) {
     console.error('Error fetching API keys:', err);
+    showToast('Failed to connect to server');
   }
 }
 
@@ -48,7 +93,6 @@ function renderKeysTable() {
   filteredList.forEach(key => {
     const tr = document.createElement('tr');
     
-    // Obscured key string (e.g. AOU-SECR...12345)
     const displayKey = key.api_key;
     const obscuredKey = displayKey.slice(0, 10) + '...' + displayKey.slice(-5);
     
@@ -57,7 +101,6 @@ function renderKeysTable() {
       ? `<span class="status-badge status-suspended">Suspended</span>` 
       : `<span class="status-badge status-active">Active</span>`;
       
-    // Firebase User ID rendering or Manual API Key fallback label
     const userBadge = key.firebase_uid
       ? `<div class="user-id-badge" title="UID: ${key.firebase_uid}">ID: ${key.firebase_uid.substring(0,18)}...</div>`
       : `<div class="user-id-badge" style="background-color: rgba(99, 102, 241, 0.05); color: #a5b4fc; border-color: rgba(99, 102, 241, 0.1);">Admin manual</div>`;
@@ -115,7 +158,10 @@ document.getElementById('key-form').addEventListener('submit', async (e) => {
   try {
     const res = await fetch('/api/keys', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Admin-Token': getAdminToken()
+      },
       body: JSON.stringify({
         client_name: clientName,
         limit_queries: limitQueries,
@@ -125,6 +171,11 @@ document.getElementById('key-form').addEventListener('submit', async (e) => {
       })
     });
     
+    if (res.status === 401) {
+      handleSignOut();
+      return;
+    }
+
     if (res.ok) {
       document.getElementById('client-name').value = '';
       document.getElementById('allowed-countries').value = '*';
@@ -146,9 +197,18 @@ async function toggleKeyStatus(id, currentStatus) {
   try {
     const res = await fetch(`/api/keys/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Admin-Token': getAdminToken()
+      },
       body: JSON.stringify({ status: newStatus })
     });
+    
+    if (res.status === 401) {
+      handleSignOut();
+      return;
+    }
+
     if (res.ok) {
       showToast(`Key status updated to ${newStatus}`);
       await loadKeys();
@@ -163,9 +223,18 @@ async function topUpKey(id) {
   try {
     const res = await fetch(`/api/keys/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Admin-Token': getAdminToken()
+      },
       body: JSON.stringify({ top_up_balance: 10000 })
     });
+    
+    if (res.status === 401) {
+      handleSignOut();
+      return;
+    }
+
     if (res.ok) {
       showToast('Balance topped up successfully (+10,000)');
       await loadKeys();
@@ -196,12 +265,21 @@ async function adjustKeyBalance(id, currentBalance, currentLimit) {
   try {
     const res = await fetch(`/api/keys/${id}`, {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-Admin-Token': getAdminToken()
+      },
       body: JSON.stringify({
         balance: newBalance,
         limit_queries: newLimit
       })
     });
+    
+    if (res.status === 401) {
+      handleSignOut();
+      return;
+    }
+
     if (res.ok) {
       showToast("Balance and limit adjusted successfully!");
       await loadKeys();
@@ -218,8 +296,15 @@ async function deleteKey(id) {
   if (!confirm('Are you sure you want to permanently revoke this API Key? Client connections using this key will fail immediately.')) return;
   try {
     const res = await fetch(`/api/keys/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: { 'X-Admin-Token': getAdminToken() }
     });
+    
+    if (res.status === 401) {
+      handleSignOut();
+      return;
+    }
+
     if (res.ok) {
       showToast('API Key revoked successfully');
       await loadKeys();
@@ -238,11 +323,42 @@ function copyTextToClipboard(text) {
   });
 }
 
+// Admin Lock Screen Form Handler
+lockForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const pin = adminPinInput.value;
+  lockErrorMsg.classList.add('hidden');
+
+  try {
+    // Attempt authentication by requesting the keys list with the passcode
+    const res = await fetch('/api/keys', {
+      headers: { 'X-Admin-Token': pin }
+    });
+
+    if (res.ok) {
+      localStorage.setItem('adminToken', pin);
+      keysList = await res.json();
+      applyFilter();
+      hideLockScreen();
+      showToast('Welcome back, Admin!');
+    } else {
+      lockErrorMsg.classList.remove('hidden');
+      adminPinInput.value = '';
+      adminPinInput.focus();
+    }
+  } catch (err) {
+    showToast('Failed to connect to authentication service');
+  }
+});
+
 // Manual refresh
 document.getElementById('btn-refresh').addEventListener('click', loadKeys);
 
 // Filter bindings
 searchFilterInput.addEventListener('input', applyFilter);
 
-// Initial Load
+// Sign Out click handler
+btnSignOut.addEventListener('click', handleSignOut);
+
+// Initial Load on page entry
 loadKeys();

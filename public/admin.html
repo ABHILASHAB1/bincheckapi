@@ -67,10 +67,11 @@
       <h1 class="logo-text">AOU BIN Check</h1>
       <span class="badge" style="background: linear-gradient(135deg, var(--accent-warning) 0%, var(--accent-danger) 100%);">Admin Control Console</span>
     </div>
-    <div class="system-status">
+    <div class="system-status" style="display: flex; align-items: center; gap: 20px;">
       <a href="/" style="color: var(--text-muted); font-size: 12px; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 6px;">
         <span>🏠</span> View Client Portal
       </a>
+      <button class="btn-copy-small" id="btn-admin-signout" style="background-color: rgba(239, 68, 68, 0.1); color: #fca5a5; border-color: rgba(239, 68, 68, 0.2); padding: 6px 12px; font-weight:600;">🔒 Sign Out</button>
     </div>
   </header>
 
@@ -147,6 +148,25 @@
   </main>
 
   <div id="toast" class="toast hidden">Copied to clipboard!</div>
+
+  <!-- Secure Login Lock Overlay -->
+  <div id="admin-lock-screen" class="lock-screen-overlay">
+    <div class="lock-card glass-panel">
+      <div class="lock-header">
+        <span class="lock-icon">🔒</span>
+        <h2 class="lock-title">Elevated Access</h2>
+        <p class="lock-subtitle">Restricted Repository Management</p>
+      </div>
+      <form id="lock-form" class="form-grid">
+        <div class="input-group">
+          <label for="admin-pin">Admin Passcode</label>
+          <input type="password" id="admin-pin" placeholder="••••••••" required style="text-align: center; font-size: 18px; letter-spacing: 2px;">
+        </div>
+        <div id="lock-error" class="lock-error-msg hidden">Invalid Admin Passcode</div>
+        <button type="submit" class="btn btn-primary" style="margin-top: 10px; width: 100%;">Unlock Directory</button>
+      </form>
+    </div>
+  </div>
 
   <script src="admin.js"></script>
 </body>

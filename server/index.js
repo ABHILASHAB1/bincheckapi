@@ -208,10 +208,21 @@ app.get('/v1/:bin', authenticateApiKey, async (req, res) => {
   }
 });
 
+// ── ADMIN SECURITY MIDDLEWARE ──────────────────────────────────────────────
+function authenticateAdmin(req, res, next) {
+  const adminToken = req.headers['x-admin-token'];
+  const secureToken = process.env.ADMIN_PIN || 'AOU-Admin-2026';
+  
+  if (!adminToken || adminToken !== secureToken) {
+    return res.status(401).json({ error: 'Unauthorized admin access' });
+  }
+  next();
+}
+
 // ── KEY MANAGEMENT ENDPOINTS (SUPABASE CLOUD) ──────────────────────────────
 
 // GET /api/keys - Retrieve all API keys
-app.get('/api/keys', async (req, res) => {
+app.get('/api/keys', authenticateAdmin, async (req, res) => {
   if (!supabase) return res.status(503).json({ error: 'Supabase not initialized' });
   try {
     const { data, error } = await supabase
@@ -297,7 +308,7 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // POST /api/keys - Generate a new API key with restrictions
-app.post('/api/keys', async (req, res) => {
+app.post('/api/keys', authenticateAdmin, async (req, res) => {
   const { client_name, limit_queries, expires_months, allowed_countries, allowed_schemes } = req.body;
   if (!client_name) {
     return res.status(400).json({ error: 'Client name is required' });
@@ -339,7 +350,7 @@ app.post('/api/keys', async (req, res) => {
 });
 
 // PATCH /api/keys/:id - Update key status, top up balance, or restrictions
-app.patch('/api/keys/:id', async (req, res) => {
+app.patch('/api/keys/:id', authenticateAdmin, async (req, res) => {
   const { id } = req.params;
   const { status, top_up_balance, allowed_countries, allowed_schemes, balance, limit_queries } = req.body;
   
@@ -383,7 +394,7 @@ app.patch('/api/keys/:id', async (req, res) => {
 });
 
 // DELETE /api/keys/:id - Revoke API Key
-app.delete('/api/keys/:id', async (req, res) => {
+app.delete('/api/keys/:id', authenticateAdmin, async (req, res) => {
   const { id } = req.params;
   if (!supabase) return res.status(503).json({ error: 'Supabase not initialized' });
   try {
