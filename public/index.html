@@ -349,7 +349,15 @@
         const config = await res.json();
         
         if (config.apiKey && config.apiKey !== "YOUR_API_KEY" && !config.apiKey.includes("YOUR_")) {
-          const app = initializeApp(config);
+          // Clean null/undefined/empty string properties to avoid Firebase SDK validation crashes
+          const cleanConfig = {};
+          for (const [key, val] of Object.entries(config)) {
+            if (val !== null && val !== undefined && val !== "") {
+              cleanConfig[key] = val;
+            }
+          }
+          
+          const app = initializeApp(cleanConfig);
           auth = getAuth(app);
           provider = new GoogleAuthProvider();
           
