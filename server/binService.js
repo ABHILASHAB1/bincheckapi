@@ -127,9 +127,14 @@ export class BinService {
     const cached = binCache.get(cleanBin);
     if (cached) return { ...cached, cached: true };
 
-    // ── TIER 2: Local SQLite DB ───────────────────────────────────────────────
+    // ── TIER 2: Local SQLite DB (Longest Prefix Match) ───────────────────────
     try {
-      const row = await this.db.get('SELECT * FROM bins WHERE bin = ?', [cleanBin]);
+      let row = null;
+      for (let len = cleanBin.length; len >= 6; len--) {
+        const prefix = cleanBin.substring(0, len);
+        row = await this.db.get('SELECT * FROM bins WHERE bin = ?', [prefix]);
+        if (row) break;
+      }
       if (row) {
         const result = this.formatDbResult(row);
         binCache.set(cleanBin, result);
@@ -139,14 +144,22 @@ export class BinService {
       console.warn('[BIN] SQLite read error:', e.message);
     }
 
-    // ── TIER 3: Supabase Cloud Query (rich data, within 5s) ───────────────────
+    // ── TIER 3: Supabase Cloud Query (Longest Prefix Match) ───────────────────
     if (supabase) {
       try {
-        const { data, error } = await Promise.race([
-          supabase.from('bins').select('*').eq('bin', cleanBin).single(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase timeout')), 5000))
-        ]);
-        if (!error && data) {
+        let data = null;
+        for (let len = cleanBin.length; len >= 6; len--) {
+          const prefix = cleanBin.substring(0, len);
+          const response = await Promise.race([
+            supabase.from('bins').select('*').eq('bin', prefix).maybeSingle(),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Supabase timeout')), 5000))
+          ]);
+          if (response && response.data) {
+            data = response.data;
+            break;
+          }
+        }
+        if (data) {
           console.log(`[BIN] TIER-3 Supabase hit for ${cleanBin}`);
           const result = this._supabaseRowToResult(data);
           binCache.set(cleanBin, result);
@@ -545,6 +558,353 @@ export class BinService {
         reject(err);
       });
     });
+  }
+
+  async syncFromGithub() {
+    if (BinService.syncStatus.isSyncing) return { success: false, message: 'Sync already in progress' };
+    
+    BinService.syncStatus = { isSyncing: true, processed: 0, total: 0, lastSync: null };
+    console.log('🚀 [BIN] Starting GitHub Repository Sync...');
+    
+    try {
+      const csvUrl = 'https://raw.githubusercontent.com/venelinkochev/bin-list-data/refs/heads/master/bin-list-data.csv';
+      const response = await axios.get(csvUrl, { timeout: 15000 });
+      const csvData = response.data;
+      
+      const Papa = (await import('papaparse')).default;
+      
+      const parsed = Papa.parse(csvData, {
+        header: true,
+        skipEmptyLines: true
+      });
+      
+      const rows = parsed.data;
+      BinService.syncStatus.total = rows.length;
+      console.log(`📖 [BIN] Parsed ${rows.length} rows from GitHub CSV.`);
+      
+      let count = 0;
+      let inserted = 0;
+      let updated = 0;
+      
+      await this.db.run('BEGIN TRANSACTION');
+      for (const row of rows) {
+        const bin = (row.BIN || '').trim();
+        if (!bin) continue;
+        
+        const scheme = (row.Brand || 'UNKNOWN').trim().toLowerCase();
+        const type = (row.Type || 'UNKNOWN').trim().toLowerCase();
+        const category = (row.Category || 'STANDARD').trim().toUpperCase();
+        const issuer = (row.Issuer || 'UNKNOWN').trim();
+        const country = (row.CountryName || 'Unknown').trim();
+        const source = 'GITHUB_SYNC';
+        
+        try {
+          // Insert into SQLite
+          await this.db.run(`
+            INSERT INTO bins (bin, scheme, type, category, issuer, country, source)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+          `, [bin, scheme, type, category, issuer, country, source]);
+          inserted++;
+        } catch (e) {
+          // Update SQLite if duplicate
+          await this.db.run(`
+            UPDATE bins 
+            SET scheme = ?, type = ?, category = ?, issuer = ?, country = ?, source = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE bin = ?
+          `, [scheme, type, category, issuer, country, source, bin]);
+          updated++;
+        }
+        
+        count++;
+        if (count % 100 === 0) {
+          BinService.syncStatus.processed = count;
+        }
+      }
+      await this.db.run('COMMIT');
+      
+      // Sync to Supabase in batches if available
+      if (supabase) {
+        console.log('☁️ [BIN] Syncing to Supabase in batches...');
+        
+        const extractSubBrandLocal = (cat = '') => {
+          const upper = cat.toUpperCase();
+          if (upper.includes('INFINITE')) return 'INFINITE';
+          if (upper.includes('SIGNATURE')) return 'SIGNATURE';
+          if (upper.includes('WORLD ELITE')) return 'WORLD ELITE';
+          if (upper.includes('WORLD BLACK')) return 'WORLD BLACK';
+          if (upper.includes('WORLD')) return 'WORLD';
+          if (upper.includes('PLATINUM')) return 'PLATINUM';
+          if (upper.includes('TITANIUM')) return 'TITANIUM';
+          if (upper.includes('GOLD')) return 'GOLD';
+          if (upper.includes('SILVER')) return 'SILVER';
+          if (upper.includes('CLASSIC')) return 'CLASSIC';
+          if (upper.includes('BUSINESS')) return 'BUSINESS';
+          if (upper.includes('CORPORATE')) return 'CORPORATE';
+          if (upper.includes('PREPAID')) return 'PREPAID';
+          if (upper.includes('ELECTRON')) return 'ELECTRON';
+          return null;
+        };
+
+        const BATCH_SIZE = 500;
+        for (let i = 0; i < rows.length; i += BATCH_SIZE) {
+          const chunk = rows.slice(i, i + BATCH_SIZE).map(row => {
+            const bin = (row.BIN || '').trim();
+            const category = (row.Category || 'STANDARD').trim().toUpperCase();
+            const type = (row.Type || 'UNKNOWN').trim().toLowerCase();
+            const alpha2 = (row.isoCode2 || '').trim().toUpperCase();
+            
+            return {
+              bin,
+              bin_length: bin.length,
+              scheme: (row.Brand || 'UNKNOWN').trim().toLowerCase(),
+              type,
+              category,
+              sub_brand: extractSubBrandLocal(category),
+              prepaid: category.includes('PREPAID') || type.includes('prepaid'),
+              pan_length: 16,
+              luhn_valid: true,
+              issuer: (row.Issuer || 'UNKNOWN').trim(),
+              bank_phone: (row.IssuerPhone || null),
+              bank_url: (row.IssuerUrl || null),
+              country_name: (row.CountryName || 'Unknown').trim(),
+              country_code: alpha2 || null,
+              source: 'GITHUB_SYNC'
+            };
+          });
+
+          try {
+            await supabase.from('bins').upsert(chunk, { onConflict: 'bin' });
+          } catch (supaErr) {
+            console.warn(`⚠️ [BIN Supabase Sync] Batch starting at index ${i} failed:`, supaErr.message);
+          }
+        }
+      }
+      
+      BinService.syncStatus.isSyncing = false;
+      BinService.syncStatus.lastSync = new Date();
+      console.log(`✅ [BIN] GitHub Sync Complete! ${inserted} inserted, ${updated} updated.`);
+      return { success: true, inserted, updated, total: rows.length };
+      
+    } catch (err) {
+      BinService.syncStatus.isSyncing = false;
+      BinService.syncStatus.error = err.message;
+      console.error('❌ [BIN] GitHub Sync Error:', err.message);
+      throw err;
+    }
+  }
+
+  async syncFromBincheck(countrySlugs = ['saudi-arabia']) {
+    if (BinService.syncStatus.isSyncing) return { success: false, message: 'Sync already in progress' };
+    
+    // Ensure countrySlugs is an array
+    if (!Array.isArray(countrySlugs)) {
+      countrySlugs = [countrySlugs];
+    }
+    
+    BinService.syncStatus = { isSyncing: true, processed: 0, total: 0, lastSync: null };
+    console.log('🚀 [BINCHECK] Starting bincheck.it scraper sync for countries:', countrySlugs);
+    
+    try {
+      const allBankLinks = [];
+      
+      for (const countrySlug of countrySlugs) {
+        console.log(`[BINCHECK] Fetching banks for country: ${countrySlug}...`);
+        try {
+          const mainUrl = `https://bincheck.it/country/${countrySlug}`;
+          const mainRes = await axios.get(mainUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+          });
+          
+          const html = mainRes.data;
+          
+          let countryName = '';
+          const titleMatch = html.match(/<title>([^|]+) BINs List/i) || html.match(/<title>([^|]+) BIN list/i);
+          if (titleMatch && titleMatch[1]) {
+            countryName = titleMatch[1].trim().split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+          } else {
+            countryName = countrySlug
+              .split('-')
+              .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+              .join(' ');
+          }
+          
+          const bankRegex = new RegExp(`/bank/${countrySlug}-[a-zA-Z0-9-]+`, 'g');
+          const matches = html.match(bankRegex) || [];
+          const bankLinks = [...new Set(matches)]; // unique bank links
+          
+          console.log(`[BINCHECK] Country: ${countryName} (${countrySlug}) - Found ${bankLinks.length} bank pages.`);
+          
+          for (const bankLink of bankLinks) {
+            allBankLinks.push({ bankLink, countryName, countrySlug });
+          }
+          
+          await new Promise(r => setTimeout(r, 300));
+        } catch (err) {
+          console.error(`❌ [BINCHECK] Failed to fetch country page for ${countrySlug}:`, err.message);
+        }
+      }
+      
+      console.log(`[BINCHECK] Found ${allBankLinks.length} total bank pages to scrape.`);
+      BinService.syncStatus.total = allBankLinks.length;
+      
+      let count = 0;
+      let inserted = 0;
+      
+      const findCountryCodeByName = (countryName) => {
+        const norm = countryName.toLowerCase().trim();
+        for (const [code, meta] of Object.entries(COUNTRY_META)) {
+          if (meta.name.toLowerCase() === norm) {
+            return code;
+          }
+        }
+        const commonCodes = {
+          'afghanistan': 'AF', 'albania': 'AL', 'algeria': 'DZ', 'american samoa': 'AS', 'andorra': 'AD',
+          'angola': 'AO', 'anguilla': 'AI', 'antigua and barbuda': 'AG', 'argentina': 'AR', 'armenia': 'AM',
+          'aruba': 'AW', 'australia': 'AU', 'austria': 'AT', 'azerbaijan': 'AZ', 'bahamas': 'BS',
+          'bahrain': 'BH', 'bangladesh': 'BD', 'barbados': 'BB', 'belarus': 'BY', 'belgium': 'BE',
+          'belize': 'BZ', 'benin': 'BJ', 'bermuda': 'BM', 'bhutan': 'BT', 'bolivia': 'BO',
+          'bosnia and herzegovina': 'BA', 'botswana': 'BW', 'brazil': 'BR', 'brunei': 'BN', 'bulgaria': 'BG',
+          'burkina faso': 'BF', 'burundi': 'BI', 'cambodia': 'KH', 'cameroon': 'CM', 'canada': 'CA',
+          'cape verde': 'CV', 'cayman islands': 'KY', 'central african republic': 'CF', 'chad': 'TD', 'chile': 'CL',
+          'china': 'CN', 'colombia': 'CO', 'comoros': 'KM', 'congo': 'CG', 'cook islands': 'CK',
+          'costa rica': 'CR', 'croatia': 'HR', 'cuba': 'CU', 'cyprus': 'CY', 'czech republic': 'CZ',
+          'denmark': 'DK', 'djibouti': 'DJ', 'dominica': 'DM', 'dominican republic': 'DO', 'ecuador': 'EC',
+          'egypt': 'EG', 'el salvador': 'SV', 'estonia': 'EE', 'ethiopia': 'ET', 'fiji': 'FJ',
+          'finland': 'FI', 'france': 'FR', 'gabon': 'GA', 'gambia': 'GM', 'georgia': 'GE',
+          'germany': 'DE', 'ghana': 'GH', 'gibraltar': 'GI', 'greece': 'GR', 'grenada': 'GD',
+          'guam': 'GU', 'guatemala': 'GT', 'guernsey': 'GG', 'guinea': 'GN', 'guyana': 'GY',
+          'haiti': 'HT', 'honduras': 'HN', 'hong kong': 'HK', 'hungary': 'HU', 'iceland': 'IS',
+          'india': 'IN', 'indonesia': 'ID', 'iran': 'IR', 'iraq': 'IQ', 'ireland': 'IE',
+          'israel': 'IL', 'italy': 'IT', 'jamaica': 'JM', 'japan': 'JP', 'jersey': 'JE',
+          'jordan': 'JO', 'kazakhstan': 'KZ', 'kenya': 'KE', 'kuwait': 'KW', 'kyrgyzstan': 'KG',
+          'latvia': 'LV', 'lebanon': 'LB', 'lesotho': 'LS', 'liberia': 'LR', 'libya': 'LY',
+          'liechtenstein': 'LI', 'lithuania': 'LT', 'luxembourg': 'LU', 'macao': 'MO', 'macau': 'MO',
+          'madagascar': 'MG', 'malawi': 'MW', 'malaysia': 'MY', 'maldives': 'MV', 'mali': 'ML',
+          'malta': 'MT', 'mauritania': 'MR', 'mauritius': 'MU', 'mexico': 'MX', 'monaco': 'MC',
+          'mongolia': 'MN', 'montenegro': 'ME', 'montserrat': 'MS', 'morocco': 'MA', 'mozambique': 'MZ',
+          'myanmar': 'MM', 'namibia': 'NA', 'nepal': 'NP', 'netherlands': 'NL', 'new zealand': 'NZ',
+          'nicaragua': 'NI', 'niger': 'NE', 'nigeria': 'NG', 'norway': 'NO', 'oman': 'OM',
+          'pakistan': 'PK', 'palestine': 'PS', 'panama': 'PA', 'papua new guinea': 'PG', 'paraguay': 'PY',
+          'peru': 'PE', 'philippines': 'PH', 'poland': 'PL', 'portugal': 'PT', 'puerto rico': 'PR',
+          'qatar': 'QA', 'romania': 'RO', 'russian federation': 'RU', 'rwanda': 'RW', 'samoa': 'WS',
+          'san marino': 'SM', 'saudi arabia': 'SA', 'senegal': 'SN', 'serbia': 'RS', 'seychelles': 'SC',
+          'sierra leone': 'SL', 'singapore': 'SG', 'slovakia': 'SK', 'slovenia': 'SI', 'somalia': 'SO',
+          'south africa': 'ZA', 'spain': 'ES', 'sri lanka': 'LK', 'sudan': 'SD', 'suriname': 'SR',
+          'swaziland': 'SZ', 'sweden': 'SE', 'switzerland': 'CH', 'syria': 'SY', 'taiwan': 'TW',
+          'tajikistan': 'TJ', 'tanzania': 'TZ', 'thailand': 'TH', 'togo': 'TG', 'tonga': 'TO',
+          'trinidad and tobago': 'TT', 'tunisia': 'TN', 'turkey': 'TR', 'turkmenistan': 'TM', 'uganda': 'UG',
+          'ukraine': 'UA', 'united arab emirates': 'AE', 'united kingdom': 'GB', 'united states': 'US',
+          'uruguay': 'UY', 'uzbekistan': 'UZ', 'vanuatu': 'VU', 'venezuela': 'VE', 'viet nam': 'VN',
+          'vietnam': 'VN', 'yemen': 'YE', 'zambia': 'ZM', 'zimbabwe': 'ZW'
+        };
+        for (const [name, code] of Object.entries(commonCodes)) {
+          if (norm.includes(name)) return code;
+        }
+        return null;
+      };
+      
+      for (let i = 0; i < allBankLinks.length; i++) {
+        const { bankLink, countryName, countrySlug } = allBankLinks[i];
+        const bankUrl = `https://bincheck.it${bankLink}`;
+        const prefixToRemove = `${countrySlug}-`;
+        const rawBankName = bankLink.split('/bank/')[1] || '';
+        const cleanRawBankName = rawBankName.startsWith(prefixToRemove) 
+          ? rawBankName.slice(prefixToRemove.length) 
+          : rawBankName;
+        const bankName = cleanRawBankName
+          .split('-')
+          .map(w => w.toUpperCase())
+          .join(' ');
+        
+        console.log(`[BINCHECK] [${i + 1}/${allBankLinks.length}] Fetching bank: ${bankName} (${countryName})...`);
+        
+        try {
+          const bankRes = await axios.get(bankUrl, {
+            headers: {
+              'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            }
+          });
+          
+          const bankHtml = bankRes.data;
+          const binRegex = /\/bin\/(\d{6,8})/g;
+          let binMatch;
+          const bins = [];
+          while ((binMatch = binRegex.exec(bankHtml)) !== null) {
+            bins.push(binMatch[1]);
+          }
+          
+          const uniqueBins = [...new Set(bins)];
+          
+          await this.db.run('BEGIN TRANSACTION');
+          for (const bin of uniqueBins) {
+            const scheme = bin.startsWith('4') ? 'visa' : (bin.startsWith('5') ? 'mastercard' : (bin.startsWith('3') ? 'amex' : 'unknown'));
+            const type = bin.startsWith('4') || bin.startsWith('6') ? 'debit' : 'credit';
+            const category = 'STANDARD';
+            const source = 'BINCHECK_IT_SCRAPE';
+            
+            // INSERT OR IGNORE preserves the existing database records intact
+            const res = await this.db.run(`
+              INSERT OR IGNORE INTO bins (bin, scheme, type, category, issuer, country, source)
+              VALUES (?, ?, ?, ?, ?, ?, ?)
+            `, [bin, scheme, type, category, bankName, countryName, source]);
+            
+            if (res.changes > 0) {
+              inserted++;
+              
+              if (supabase) {
+                try {
+                  const { data: existingSupa } = await supabase
+                     .from('bins')
+                     .select('bin')
+                     .eq('bin', bin)
+                     .single();
+                     
+                  if (!existingSupa) {
+                    const countryCode = findCountryCodeByName(countryName);
+                    await supabase.from('bins').insert({
+                      bin,
+                      bin_length: bin.length,
+                      scheme,
+                      type,
+                      category,
+                      issuer: bankName,
+                      country_name: countryName,
+                      country_code: countryCode,
+                      source
+                    });
+                  }
+                } catch (supaErr) {
+                  // ignore Supabase errors
+                }
+              }
+            }
+          }
+          await this.db.run('COMMIT');
+          
+        } catch (bankErr) {
+          console.warn(`[BINCHECK] Failed to scrape ${bankName}:`, bankErr.message);
+        }
+        
+        count++;
+        BinService.syncStatus.processed = count;
+        
+        // Polite delay of 500ms between bank pages
+        await new Promise(r => setTimeout(r, 500));
+      }
+      
+      BinService.syncStatus.isSyncing = false;
+      BinService.syncStatus.lastSync = new Date();
+      console.log(`✅ [BINCHECK] Sync Complete! ${inserted} new BINs added.`);
+      return { success: true, inserted, total: allBankLinks.length };
+      
+    } catch (err) {
+      BinService.syncStatus.isSyncing = false;
+      BinService.syncStatus.error = err.message;
+      console.error('❌ [BINCHECK] Scraper Sync Error:', err.message);
+      throw err;
+    }
   }
 }
 

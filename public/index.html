@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AOU BIN Check Developer Portal</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+  <style>
+    /* Client specific styling additions */
+    .auth-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      max-width: 500px;
+      margin: 80px auto;
+      padding: 40px;
+    }
+    .auth-title {
+      font-size: 28px;
+      font-weight: 800;
+      margin-bottom: 16px;
+      background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .auth-desc {
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.6;
+      margin-bottom: 32px;
+    }
+    .btn-google {
+      background-color: #ffffff;
+      color: #1f2937;
+      font-weight: 700;
+      border: 1px solid #e5e7eb;
+      padding: 14px 28px;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      border-radius: 12px;
+    }
+    .btn-google:hover {
+      background-color: #f9fafb;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(255, 255, 255, 0.15);
+    }
+    .btn-mock {
+      background-color: rgba(255, 255, 255, 0.03);
+      color: var(--text-muted);
+      border: 1px dashed var(--panel-border);
+      padding: 10px 20px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 10px;
+      margin-top: 16px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-mock:hover {
+      background-color: rgba(255, 255, 255, 0.07);
+      color: #fff;
+    }
+    .user-profile {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .user-info {
+      text-align: right;
+    }
+    .user-name {
+      font-weight: 600;
+      font-size: 14px;
+    }
+    .user-email {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+    .btn-signout {
+      background-color: rgba(239, 68, 68, 0.1);
+      color: #fca5a5;
+      border: 1px solid rgba(239, 68, 68, 0.2);
+      font-size: 11px;
+      padding: 6px 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-signout:hover {
+      background-color: rgba(239, 68, 68, 0.2);
+    }
+    .progress-bar-container {
+      background-color: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--panel-border);
+      height: 24px;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+      margin: 16px 0;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
+      transition: width 0.4s ease;
+      width: 0%;
+    }
+    .progress-text {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      font-weight: 800;
+      color: #fff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    }
+    .restriction-pill {
+      background-color: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--panel-border);
+      padding: 12px 16px;
+      border-radius: 12px;
+      font-size: 13px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .restriction-label {
+      font-weight: 700;
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+    .restriction-value {
+      font-family: var(--font-mono);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="background-grid"></div>
+  <div class="blur-glow"></div>
+
+  <header class="app-header">
+    <div class="header-logo">
+      <span class="logo-icon">⭐</span>
+      <h1 class="logo-text">AOU BIN Check</h1>
+      <span class="badge">Developer Portal</span>
+    </div>
+    <div class="auth-user-header hidden" id="user-header-block">
+      <div class="user-profile">
+        <div class="user-info">
+          <div class="user-name" id="profile-name">Client User</div>
+          <div class="user-email" id="profile-email">user@domain.com</div>
+        </div>
+        <button class="btn-signout" id="btn-signout">Sign Out</button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Login Area -->
+  <div class="card glass-panel auth-container" id="auth-panel">
+    <div class="logo-icon" style="font-size: 48px; margin-bottom: 20px;">🔑</div>
+    <h2 class="auth-title">Get 10 Free BIN Searches</h2>
+    <p class="auth-desc">Sign in with Google to automatically generate your API secret key, access the client dashboard, and get 10 free API search credits instantly.</p>
+    
+    <button class="btn-google" id="btn-google-login">
+      <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/button-google.svg" alt="Google Logo" width="18">
+      Sign in with Google
+    </button>
+    
+    <button class="btn-mock" id="btn-mock-login">
+      ⚙️ Simulate Sign-In (Mock Test)
+    </button>
+  </div>
+
+  <!-- Client Dashboard (Hidden until logged in) -->
+  <main class="app-layout hidden" id="dashboard-panel">
+    <!-- Left Column: API Key and Balance Details -->
+    <section class="column-ops">
+      <!-- Credentials Card -->
+      <div class="card glass-panel">
+        <h2 class="card-title"><span class="title-icon">🔑</span> Your Credentials</h2>
+        <div class="form-grid">
+          <div class="input-group">
+            <label>API Secret Key</label>
+            <div class="curl-code">
+              <code id="client-key-text" style="color: #fff;">AOU-SECRET-PENDING</code>
+              <button class="btn-copy-small" onclick="copyClientKey()">Copy</button>
+            </div>
+          </div>
+          <div class="input-group">
+            <label>Usage Balance (Free Credits)</label>
+            <div class="progress-bar-container">
+              <div class="progress-bar-fill" id="balance-fill"></div>
+              <div class="progress-text" id="balance-text">0 / 10</div>
+            </div>
+            <span style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
+              Need more queries? Contact your system Administrator to increase your search limits.
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Restrictions Card -->
+      <div class="card glass-panel">
+        <h2 class="card-title"><span class="title-icon">🛡️</span> Key Restrictions & Policies</h2>
+        <div class="form-grid" style="gap: 12px;">
+          <div class="restriction-pill">
+            <span class="restriction-label">Allowed Countries</span>
+            <span class="restriction-value" id="restrict-countries">*</span>
+          </div>
+          <div class="restriction-pill">
+            <span class="restriction-label">Allowed Card Brands</span>
+            <span class="restriction-value" id="restrict-schemes">*</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Right Column: API Testing Sandbox -->
+    <section class="column-manager">
+      <div class="card glass-panel full-height">
+        <h2 class="card-title"><span class="title-icon">🧪</span> Try the API (Live Sandbox)</h2>
+        <form id="sandbox-form" class="form-grid">
+          <div class="input-group">
+            <label for="sandbox-bin">Enter BIN or Card Number</label>
+            <input type="text" id="sandbox-bin" placeholder="e.g., 411111" required>
+          </div>
+          <button type="submit" class="btn btn-accent" style="width: auto; align-self: flex-start;">Send API Request</button>
+        </form>
+
+        <div class="curl-box hidden" id="curl-container">
+          <label>curl command</label>
+          <div class="curl-code">
+            <code id="curl-code">curl "http://localhost:3002/v1/411111?api_key=..."</code>
+            <button class="btn-copy-small" onclick="copyText('curl-code')">Copy</button>
+          </div>
+        </div>
+
+        <!-- Sandbox Virtual Card and Details Panel (from ISO 8583 simulator design) -->
+        <div id="sandbox-card-preview" class="hidden" style="margin-top: 24px;">
+          <!-- Virtual Card -->
+          <div id="virtual-card" class="virtual-card card-brand-generic">
+            <div class="card-glow"></div>
+            <div class="card-header">
+              <div class="card-chip">
+                <div class="chip-line"></div>
+                <div class="chip-line"></div>
+                <div class="chip-line"></div>
+              </div>
+              <div class="card-brand" id="card-brand-logo">NETWORK</div>
+            </div>
+            <div class="card-middle" style="margin-top: 24px; margin-bottom: 24px;">
+              <div class="card-number" id="card-number-text">4111 11XX XXXX XXXX</div>
+            </div>
+            <div class="card-footer">
+              <div class="card-bank" id="card-bank-name">ISSUER BANK</div>
+              <div class="card-type-category" id="card-type-category-text">DEBIT / CLASSIC</div>
+            </div>
+          </div>
+
+          <!-- Specs & Controls Grid -->
+          <div class="specs-grid">
+            <div class="spec-panel">
+              <h3 class="panel-section-title">Card Specifications</h3>
+              <div class="spec-row">
+                <span class="spec-label">Issuer</span>
+                <span class="spec-value" id="spec-issuer">--</span>
+              </div>
+              <div class="spec-divider"></div>
+              <div class="spec-row">
+                <span class="spec-label">Brand / Scheme</span>
+                <span class="spec-value" id="spec-scheme">--</span>
+              </div>
+              <div class="spec-divider"></div>
+              <div class="spec-row">
+                <span class="spec-label">Card Type</span>
+                <span class="spec-value" id="spec-type">--</span>
+              </div>
+              <div class="spec-divider"></div>
+              <div class="spec-row">
+                <span class="spec-label">Level / Category</span>
+                <span class="spec-value" id="spec-category">--</span>
+              </div>
+              <div class="spec-divider"></div>
+              <div class="spec-row">
+                <span class="spec-label">Country</span>
+                <span class="spec-value" id="spec-country">--</span>
+              </div>
+            </div>
+
+            <div class="spec-panel">
+              <h3 class="panel-section-title">Switching Parameters</h3>
+              <div class="spec-row">
+                <span class="spec-label">Domestic Optimized</span>
+                <span class="status-badge" id="spec-optimized" style="font-size:10px; font-weight:700;">N/A</span>
+              </div>
+              <div class="spec-divider"></div>
+              <div class="spec-row">
+                <span class="spec-label">EMV 3DS Support</span>
+                <span class="spec-value" style="color: var(--accent-secondary); font-weight: 700;">Verified Tier 1</span>
+              </div>
+              <div class="spec-divider"></div>
+              <div class="spec-row">
+                <span class="spec-label">Nafath MFA Capable</span>
+                <span class="status-badge" id="spec-mfa" style="font-size:10px; font-weight:700;">NO</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Raw Response Toggle -->
+          <button type="button" class="toggle-raw-btn" id="btn-toggle-raw" style="margin-bottom: 16px;">Show Raw Response (JSON)</button>
+        </div>
+
+        <div class="response-box hidden" id="response-container">
+          <label>Response Body</label>
+          <pre><code class="language-json" id="response-code">{}</code></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden">Copied to clipboard!</div>
+
+  <!-- Firebase CDN imports -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+
+    // Firebase configuration placeholder
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      storageBucket: "YOUR_STORAGE_BUCKET",
+      messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+      appId: "YOUR_APP_ID"
+    };
+
+    let auth = null;
+    let provider = null;
+
+    // Check if configuration is set
+    const isFirebaseConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY";
+
+    if (isFirebaseConfigured) {
+      try {
+        const app = initializeApp(firebaseConfig);
+        auth = getAuth(app);
+        provider = new GoogleAuthProvider();
+        console.log("🔥 Firebase initialized successfully.");
+      } catch (err) {
+        console.error("❌ Failed to initialize Firebase:", err.message);
+      }
+    } else {
+      console.warn("⚠️ Firebase is using placeholder config. Google Sign-In is simulated.");
+    }
+
+    // Expose to window for app.js integration
+    window.firebaseAuth = {
+      isConfigured: isFirebaseConfigured,
+      signIn: async () => {
+        if (!auth) throw new Error("Firebase auth not configured.");
+        const result = await signInWithPopup(auth, provider);
+        return {
+          uid: result.user.uid,
+          email: result.user.email,
+          displayName: result.user.displayName
+        };
+      },
+      signOut: async () => {
+        if (!auth) return;
+        await signOut(auth);
+      }
+    };
+  </script>
+  
+  <script src="app.js"></script>
+</body>
+</html>

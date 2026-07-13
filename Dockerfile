@@ -1,32 +1,21 @@
-# --- Stage 1: Build Frontend ---
-FROM node:18-alpine AS builder
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-RUN npm run build
-
-# --- Stage 2: Runtime ---
 FROM node:18-alpine
+
 WORKDIR /app
+
+# Copy dependency files
+COPY package*.json ./
 
 # Install production dependencies
-COPY package*.json ./
 RUN npm install --production
 
-# Copy built frontend and server
-COPY --from=builder /app/dist ./dist
+# Copy server code
 COPY server ./server
 
-# Persistent Data Setup
-RUN mkdir -p /app/data
-ENV DB_PATH=/app/data/bins.sqlite
-
-# Environment
-ENV PORT=5173
+# Environment configuration
+ENV PORT=3002
 ENV NODE_ENV=production
 
-EXPOSE 5173
-EXPOSE 8583
+EXPOSE 3002
 
+# Run server
 CMD ["node", "server/index.js"]

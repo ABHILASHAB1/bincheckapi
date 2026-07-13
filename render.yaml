@@ -1,7 +1,7 @@
 # render.yaml
 services:
   - type: web
-    name: mada-simulator
+    name: bin-check-api
     env: docker
     plan: starter # or free
     region: ohio # Change as needed
@@ -21,7 +21,3 @@ services:
     ports:
       - port: 3002
         protocol: TCP
-      - port: 8583
-        protocol: TCP # Note: Render Web Services primarily expose one HTTP port. 
-                      # For full TCP Switch access, a Render 'Background Worker' or 
-                      # a dedicated Private Service might be required for port 8583.

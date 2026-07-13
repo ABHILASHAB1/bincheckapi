@@ -6,12 +6,14 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 export async function setupDatabase() {
+  const dbFilename = process.env.DB_PATH || path.join(__dirname, 'bins.sqlite');
+  
   const db = await open({
-    filename: path.join(__dirname, 'bins.sqlite'),
+    filename: dbFilename,
     driver: sqlite3.Database
   });
 
-  // 1. Core Schema Setup (No tc_code dependencies yet)
+  // Core Schema Setup for Bins
   await db.exec(`
     CREATE TABLE IF NOT EXISTS bins (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -28,100 +30,53 @@ export async function setupDatabase() {
     CREATE UNIQUE INDEX IF NOT EXISTS idx_bin ON bins(bin);
     CREATE INDEX IF NOT EXISTS idx_issuer ON bins(issuer);
 
-    CREATE TABLE IF NOT EXISTS transactions (
+    CREATE TABLE IF NOT EXISTS api_keys (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      mti TEXT,
-      pan TEXT,
-      amount TEXT,
-      stan TEXT,
-      rrn TEXT,
-      proc_code TEXT,
-      resp_code TEXT,
-      raw_request TEXT,
-      raw_response TEXT,
-      parsed_request TEXT,
-      parsed_response TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE INDEX IF NOT EXISTS idx_tx_rrn ON transactions(rrn);
-    CREATE INDEX IF NOT EXISTS idx_tx_mti ON transactions(mti);
-
-    CREATE TABLE IF NOT EXISTS module_parameters (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      module_name TEXT NOT NULL,
-      operation_type TEXT,
-      parameters_json TEXT NOT NULL,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE INDEX IF NOT EXISTS idx_module_name ON module_parameters(module_name);
-
-    CREATE TABLE IF NOT EXISTS payments (
-      id TEXT PRIMARY KEY,
-      merchant_id TEXT,
-      amount INTEGER,
-      currency TEXT,
-      status TEXT,
-      transaction_type TEXT,
-      stan TEXT,
-      rrn TEXT,
-      auth_code TEXT,
-      response_code TEXT,
-      card_brand TEXT,
-      callback_url TEXT,
-      description TEXT,
-      metadata TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-    CREATE INDEX IF NOT EXISTS idx_payments_status ON payments(status);
-
-    CREATE TABLE IF NOT EXISTS tokens (
-      id TEXT PRIMARY KEY,
-      customer_id TEXT,
-      token TEXT UNIQUE,
-      masked_pan TEXT,
-      encrypted_pan TEXT,
-      expiry_month TEXT,
-      expiry_year TEXT,
-      scheme TEXT,
-      cardholder_name TEXT,
+      api_key TEXT UNIQUE NOT NULL,
+      client_name TEXT NOT NULL,
+      balance INTEGER DEFAULT 1000,
+      limit_queries INTEGER DEFAULT 1000,
+      expires_at DATETIME NOT NULL,
       status TEXT DEFAULT 'active',
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      allowed_countries TEXT DEFAULT '*',
+      allowed_schemes TEXT DEFAULT '*',
+      firebase_uid TEXT UNIQUE,
+      email TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
-
-    CREATE TABLE IF NOT EXISTS customers (
-      id TEXT PRIMARY KEY,
-      email TEXT UNIQUE,
-      name TEXT,
-      metadata TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS payouts (
-      id TEXT PRIMARY KEY,
-      merchant_id TEXT,
-      total_volume REAL,
-      total_fees REAL,
-      net_payout REAL,
-      currency TEXT,
-      status TEXT DEFAULT 'pending',
-      batch_id TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_api_key ON api_keys(api_key);
   `);
 
-  // 2. Forensic Migration: Add tc_code if missing
+  // Migrate existing databases if columns are missing
   try {
-    await db.exec("ALTER TABLE transactions ADD COLUMN tc_code TEXT;");
-    console.log("🛠️ [DB] Forensic Migration: tc_code column added.");
-  } catch (e) {
-    // Column likely already exists
-  }
+    await db.exec("ALTER TABLE api_keys ADD COLUMN allowed_countries TEXT DEFAULT '*';");
+  } catch (e) {}
+  try {
+    await db.exec("ALTER TABLE api_keys ADD COLUMN allowed_schemes TEXT DEFAULT '*';");
+  } catch (e) {}
+  try {
+    await db.exec("ALTER TABLE api_keys ADD COLUMN firebase_uid TEXT;");
+  } catch (e) {}
+  try {
+    await db.exec("CREATE UNIQUE INDEX IF NOT EXISTS idx_api_keys_firebase_uid ON api_keys(firebase_uid);");
+  } catch (e) {}
+  try {
+    await db.exec("ALTER TABLE api_keys ADD COLUMN email TEXT;");
+  } catch (e) {}
 
-  // 3. Post-Migration: Add forensic indexes
+  // Seed default AOU Client Key if missing
   try {
-    await db.exec("CREATE INDEX IF NOT EXISTS idx_tx_tc ON transactions(tc_code);");
+    const existing = await db.get('SELECT * FROM api_keys WHERE api_key = "AOU-SECRET-KEY-12345"');
+    if (!existing) {
+      await db.run(`
+        INSERT INTO api_keys (api_key, client_name, balance, limit_queries, expires_at, allowed_countries, allowed_schemes)
+        VALUES ('AOU-SECRET-KEY-12345', 'Client AOU', 50000, 50000, '2027-01-01 00:00:00', '*', '*')
+      `);
+      console.log('🌱 [DB] Seeding default Client AOU key successfully.');
+    }
   } catch (e) {
-    console.warn("⚠️ [DB] Forensic Indexing skipped (already exists or column missing).");
+    console.error('⚠️ [DB] Seeding api_keys failed:', e.message);
   }
 
   return db;
