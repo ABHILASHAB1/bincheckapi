@@ -410,6 +410,18 @@ app.delete('/api/keys/:id', authenticateAdmin, async (req, res) => {
   }
 });
 
+// GET /api/config/firebase - Expose Firebase client configurations to frontend
+app.get('/api/config/firebase', (req, res) => {
+  res.json({
+    apiKey: process.env.FIREBASE_API_KEY || process.env.apiKey || null,
+    authDomain: process.env.FIREBASE_AUTH_DOMAIN || process.env.authDomain || null,
+    projectId: process.env.FIREBASE_PROJECT_ID || process.env.projectId || null,
+    storageBucket: process.env.FIREBASE_STORAGE_BUCKET || process.env.storageBucket || null,
+    messagingSenderId: process.env.FIREBASE_MESSAGING_SENDER_ID || process.env.messagingSenderId || null,
+    appId: process.env.FIREBASE_APP_ID || process.env.appId || null
+  });
+});
+
 // Database count stats
 app.get('/api/bins/stats', async (req, res) => {
   try {
