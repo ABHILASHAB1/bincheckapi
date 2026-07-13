@@ -31,6 +31,14 @@ function init() {
     activeUser = JSON.parse(cachedUser);
     syncDashboardData();
   }
+  
+  // Check mock sign-in lock status
+  const mockTries = parseInt(localStorage.getItem('mock_signin_tries') || '0');
+  if (mockTries >= 2) {
+    btnMock.style.opacity = '0.5';
+    btnMock.style.cursor = 'not-allowed';
+    btnMock.textContent = "⚙️ Simulate Sign-In (Locked)";
+  }
 }
 
 // Perform session sign-in registration on the backend
@@ -150,6 +158,15 @@ btnGoogle.addEventListener('click', async () => {
 
 // Mock/Simulated Sign-In click (for fast testing)
 btnMock.addEventListener('click', async () => {
+  let mockTries = parseInt(localStorage.getItem('mock_signin_tries') || '0');
+  if (mockTries >= 2) {
+    showToast("Mock sign-in limit exceeded (Max 2 tries). Please use Google Sign-In.");
+    btnMock.style.opacity = '0.5';
+    btnMock.style.cursor = 'not-allowed';
+    btnMock.textContent = "⚙️ Simulate Sign-In (Locked)";
+    return;
+  }
+
   const email = prompt("Enter simulated email address:", "tester@aou.com");
   if (!email) return;
   const name = prompt("Enter simulated customer name:", "AOU Web Tester");
@@ -158,11 +175,40 @@ btnMock.addEventListener('click', async () => {
   // Generate deterministic UID based on email for testing session persistence
   const mockUid = "MOCK-UID-" + btoa(email).replace(/=/g, '').toUpperCase();
   
-  await registerSession({
-    uid: mockUid,
-    email: email,
-    displayName: name
-  });
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uid: mockUid,
+        email: email,
+        displayName: name
+      })
+    });
+    
+    if (res.ok) {
+      const data = await res.json();
+      activeUser = data.user;
+      localStorage.setItem('aou_user_session', JSON.stringify(activeUser));
+      
+      // Increment and persist tries counter
+      mockTries += 1;
+      localStorage.setItem('mock_signin_tries', mockTries);
+      
+      syncDashboardData();
+      showToast('Simulated login successful!');
+      
+      if (mockTries >= 2) {
+        btnMock.style.opacity = '0.5';
+        btnMock.style.cursor = 'not-allowed';
+        btnMock.textContent = "⚙️ Simulate Sign-In (Locked)";
+      }
+    } else {
+      showToast('Authentication failed.');
+    }
+  } catch (err) {
+    showToast('Failed to connect to authentication server.');
+  }
 });
 
 btnSignout.addEventListener('click', handleSignOut);
