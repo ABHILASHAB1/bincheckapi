@@ -6,6 +6,7 @@ import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { setupDatabase } from './db.js';
 import { BinService } from './binService.js';
+import { supabase } from './supabaseClient.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -31,37 +32,74 @@ async function init() {
     db = await setupDatabase();
     binService = new BinService(db);
     console.log('✅ SQLite Database and BinService initialized successfully.');
+
+    // Seed default testing key to Supabase if missing
+    if (supabase) {
+      const { data: existing, error } = await supabase
+        .from('api_keys')
+        .select('*')
+        .eq('api_key', 'AOU-SECRET-KEY-12345')
+        .maybeSingle();
+
+      if (!existing && !error) {
+        const expiresAt = new Date();
+        expiresAt.setFullYear(expiresAt.getFullYear() + 2); // 2 years expiry
+
+        const { error: seedErr } = await supabase.from('api_keys').insert([{
+          api_key: 'AOU-SECRET-KEY-12345',
+          client_name: 'Client AOU',
+          balance: 50000,
+          limit_queries: 50000,
+          expires_at: expiresAt.toISOString(),
+          allowed_countries: '*',
+          allowed_schemes: '*'
+        }]);
+
+        if (seedErr) {
+          console.warn('⚠️ Seeding default AOU key on Supabase failed:', seedErr.message);
+        } else {
+          console.log('🌱 [Supabase] Seeded default Client AOU key successfully.');
+        }
+      }
+    } else {
+      console.warn('⚠️ Supabase not active. Cannot seed keys or validate cloud authentication.');
+    }
   } catch (err) {
     console.error('❌ Failed to initialize Database/BinService:', err.message);
   }
 }
 
-// API Key Authentication & Balance check middleware
+// API Key Authentication & Balance check middleware using Supabase Cloud
 async function authenticateApiKey(req, res, next) {
   const apiKey = req.query.api_key;
   
   if (!apiKey) {
-    // 422: API Key is missing
     return res.status(422).json({ error: 'API key is missing' });
   }
 
+  if (!supabase) {
+    return res.status(503).json({ error: 'Supabase Cloud Client not initialized' });
+  }
+
   try {
-    const keyData = await db.get('SELECT * FROM api_keys WHERE api_key = ?', [apiKey]);
-    if (!keyData) {
-      // 403: Invalid API Key
+    const { data: keyData, error } = await supabase
+      .from('api_keys')
+      .select('*')
+      .eq('api_key', apiKey)
+      .maybeSingle();
+
+    if (error || !keyData) {
       return res.status(403).json({ error: 'Invalid API Key' });
     }
 
     // Verify expiry and status
     const expiryDate = new Date(keyData.expires_at);
     if (expiryDate < new Date() || keyData.status !== 'active') {
-      // 401: Your balance is exhausted,or package expired
       return res.status(401).json({ error: 'Your balance is exhausted,or package expired' });
     }
 
     // Check query balance
     if (keyData.balance <= 0) {
-      // 401: Your balance is exhausted,or package expired
       return res.status(401).json({ error: 'Your balance is exhausted,or package expired' });
     }
 
@@ -141,9 +179,16 @@ app.get('/v1/:bin', authenticateApiKey, async (req, res) => {
       }
     }
 
-    // ── CHARGE CLIENT ──────────────────────────────────────────────────────
+    // ── CHARGE CLIENT ON SUPABASE ──────────────────────────────────────────
     // Decrement the balance now that lookup succeeded and policy validation passed
-    await db.run('UPDATE api_keys SET balance = balance - 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [keyData.id]);
+    const { error: updateErr } = await supabase
+      .from('api_keys')
+      .update({ balance: keyData.balance - 1, updated_at: new Date().toISOString() })
+      .eq('id', keyData.id);
+
+    if (updateErr) {
+      console.warn('⚠️ Failed to decrement balance on Supabase:', updateErr.message);
+    }
 
     res.json({
       result: 200,
@@ -163,6 +208,24 @@ app.get('/v1/:bin', authenticateApiKey, async (req, res) => {
   }
 });
 
+// ── KEY MANAGEMENT ENDPOINTS (SUPABASE CLOUD) ──────────────────────────────
+
+// GET /api/keys - Retrieve all API keys
+app.get('/api/keys', async (req, res) => {
+  if (!supabase) return res.status(503).json({ error: 'Supabase not initialized' });
+  try {
+    const { data, error } = await supabase
+      .from('api_keys')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    res.json(data || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST /api/auth/login - Firebase Google Auth Sign-In / Register
 app.post('/api/auth/login', async (req, res) => {
   const { uid, email, displayName } = req.body;
@@ -170,13 +233,19 @@ app.post('/api/auth/login', async (req, res) => {
     return res.status(400).json({ error: 'UID is required' });
   }
 
-  try {
-    if (!db) return res.status(503).json({ error: 'Database not initialized' });
+  if (!supabase) {
+    return res.status(503).json({ error: 'Supabase Cloud Client not initialized' });
+  }
 
+  try {
     // Check if user already exists
-    let user = await db.get('SELECT * FROM api_keys WHERE firebase_uid = ?', [uid]);
+    let { data: user, error } = await supabase
+      .from('api_keys')
+      .select('*')
+      .eq('firebase_uid', uid)
+      .maybeSingle();
     
-    if (!user) {
+    if (!user && !error) {
       // First time registration: generate API Key and give 10 free searches
       const hex = crypto.randomBytes(6).toString('hex').toUpperCase();
       const apiKey = `AOU-SECRET-${hex}`;
@@ -184,16 +253,26 @@ app.post('/api/auth/login', async (req, res) => {
       
       const expiryStr = new Date();
       expiryStr.setFullYear(expiryStr.getFullYear() + 1); // 1 year expiration
-      const expiresAt = expiryStr.toISOString().replace('T', ' ').substring(0, 19);
 
-      await db.run(
-        `INSERT INTO api_keys (api_key, client_name, balance, limit_queries, expires_at, allowed_countries, allowed_schemes, firebase_uid, email)
-         VALUES (?, ?, ?, ?, ?, '*', '*', ?, ?)`,
-        [apiKey, displayName || 'Web User', limit, limit, expiresAt, uid, email || '']
-      );
+      const { data: newUser, error: insertErr } = await supabase
+        .from('api_keys')
+        .insert([{
+          api_key: apiKey,
+          client_name: displayName || 'Web User',
+          balance: limit,
+          limit_queries: limit,
+          expires_at: expiryStr.toISOString(),
+          allowed_countries: '*',
+          allowed_schemes: '*',
+          firebase_uid: uid,
+          email: email || ''
+        }])
+        .select()
+        .single();
 
-      console.log(`🌱 [AUTH] Registered new Firebase user: ${displayName || email} with 10 free queries.`);
-      user = await db.get('SELECT * FROM api_keys WHERE firebase_uid = ?', [uid]);
+      if (insertErr) throw insertErr;
+      user = newUser;
+      console.log(`🌱 [SUPABASE] Registered new Firebase user: ${displayName || email} with 10 free queries.`);
     }
 
     res.json({
@@ -206,24 +285,13 @@ app.post('/api/auth/login', async (req, res) => {
         balance: user.balance,
         limit_queries: user.limit_queries,
         expires_at: user.expires_at,
-        status: user.status
+        status: user.status,
+        allowed_countries: user.allowed_countries,
+        allowed_schemes: user.allowed_schemes
       }
     });
   } catch (err) {
     console.error('❌ [AUTH LOGIN ERROR]:', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// ── KEY MANAGEMENT ENDPOINTS ──────────────────────────────────────────────
-
-// GET /api/keys - Retrieve all API keys
-app.get('/api/keys', async (req, res) => {
-  try {
-    if (!db) return res.status(503).json({ error: 'Database not initialized' });
-    const rows = await db.all('SELECT * FROM api_keys ORDER BY created_at DESC');
-    res.json(rows);
-  } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
@@ -235,28 +303,35 @@ app.post('/api/keys', async (req, res) => {
     return res.status(400).json({ error: 'Client name is required' });
   }
   
+  if (!supabase) return res.status(503).json({ error: 'Supabase not initialized' });
+
   const limit = parseInt(limit_queries) || 50000;
   const months = parseInt(expires_months) || 12;
   const countries = (allowed_countries || '*').trim();
   const schemes = (allowed_schemes || '*').trim();
   
-  // Generate secure API key: AOU-SECRET-[12-char hex]
   const hex = crypto.randomBytes(6).toString('hex').toUpperCase();
   const apiKey = `AOU-SECRET-${hex}`;
   
   try {
-    if (!db) return res.status(503).json({ error: 'Database not initialized' });
-    
     const expiryStr = new Date();
     expiryStr.setMonth(expiryStr.getMonth() + months);
-    const expiresAt = expiryStr.toISOString().replace('T', ' ').substring(0, 19);
     
-    await db.run(
-      'INSERT INTO api_keys (api_key, client_name, balance, limit_queries, expires_at, allowed_countries, allowed_schemes) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [apiKey, client_name, limit, limit, expiresAt, countries, schemes]
-    );
-    
-    const newKey = await db.get('SELECT * FROM api_keys WHERE api_key = ?', [apiKey]);
+    const { data: newKey, error } = await supabase
+      .from('api_keys')
+      .insert([{
+        api_key: apiKey,
+        client_name,
+        balance: limit,
+        limit_queries: limit,
+        expires_at: expiryStr.toISOString(),
+        allowed_countries: countries,
+        allowed_schemes: schemes
+      }])
+      .select()
+      .single();
+      
+    if (error) throw error;
     res.status(201).json(newKey);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -268,39 +343,39 @@ app.patch('/api/keys/:id', async (req, res) => {
   const { id } = req.params;
   const { status, top_up_balance, allowed_countries, allowed_schemes, balance, limit_queries } = req.body;
   
+  if (!supabase) return res.status(503).json({ error: 'Supabase not initialized' });
+
   try {
-    if (!db) return res.status(503).json({ error: 'Database not initialized' });
+    const updates = {};
     
-    const keyData = await db.get('SELECT * FROM api_keys WHERE id = ?', [id]);
-    if (!keyData) {
-      return res.status(404).json({ error: 'API Key not found' });
-    }
-    
-    if (status !== undefined) {
-      await db.run('UPDATE api_keys SET status = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [status, id]);
-    }
+    if (status !== undefined) updates.status = status;
     
     if (top_up_balance !== undefined) {
-      await db.run('UPDATE api_keys SET balance = balance + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [parseInt(top_up_balance), id]);
+      // Query current balance to increment relatively
+      const { data: keyData, error: fetchErr } = await supabase
+        .from('api_keys')
+        .select('balance')
+        .eq('id', id)
+        .single();
+      if (fetchErr) throw fetchErr;
+      updates.balance = (keyData?.balance || 0) + parseInt(top_up_balance);
     }
 
-    if (balance !== undefined) {
-      await db.run('UPDATE api_keys SET balance = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [parseInt(balance), id]);
-    }
-
-    if (limit_queries !== undefined) {
-      await db.run('UPDATE api_keys SET limit_queries = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [parseInt(limit_queries), id]);
-    }
-
-    if (allowed_countries !== undefined) {
-      await db.run('UPDATE api_keys SET allowed_countries = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [allowed_countries.trim(), id]);
-    }
-
-    if (allowed_schemes !== undefined) {
-      await db.run('UPDATE api_keys SET allowed_schemes = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?', [allowed_schemes.trim(), id]);
-    }
+    if (balance !== undefined) updates.balance = parseInt(balance);
+    if (limit_queries !== undefined) updates.limit_queries = parseInt(limit_queries);
+    if (allowed_countries !== undefined) updates.allowed_countries = allowed_countries.trim();
+    if (allowed_schemes !== undefined) updates.allowed_schemes = allowed_schemes.trim();
     
-    const updated = await db.get('SELECT * FROM api_keys WHERE id = ?', [id]);
+    updates.updated_at = new Date().toISOString();
+    
+    const { data: updated, error } = await supabase
+      .from('api_keys')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+      
+    if (error) throw error;
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -310,9 +385,14 @@ app.patch('/api/keys/:id', async (req, res) => {
 // DELETE /api/keys/:id - Revoke API Key
 app.delete('/api/keys/:id', async (req, res) => {
   const { id } = req.params;
+  if (!supabase) return res.status(503).json({ error: 'Supabase not initialized' });
   try {
-    if (!db) return res.status(503).json({ error: 'Database not initialized' });
-    await db.run('DELETE FROM api_keys WHERE id = ?', [id]);
+    const { error } = await supabase
+      .from('api_keys')
+      .delete()
+      .eq('id', id);
+      
+    if (error) throw error;
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
