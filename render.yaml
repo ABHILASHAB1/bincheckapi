@@ -3,7 +3,7 @@ services:
   - type: web
     name: bin-check-api
     env: docker
-    plan: starter # or free
+    plan: free
     region: ohio # Change as needed
     dockerfilePath: ./Dockerfile
     healthCheckPath: /health
@@ -12,12 +12,6 @@ services:
         value: production
       - key: PORT
         value: 3002
-      - key: DB_PATH
-        value: /opt/render/project/data/bins.sqlite
-    disk:
-      name: data
-      mountPath: /opt/render/project/data
-      sizeGB: 1
     ports:
       - port: 3002
         protocol: TCP

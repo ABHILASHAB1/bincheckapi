@@ -1,4 +1,4 @@
-FROM node:18-alpine
+FROM node:18-slim
 
 WORKDIR /app
 
@@ -7,6 +7,9 @@ COPY package*.json ./
 
 # Install production dependencies
 RUN npm install --production
+
+# Copy portal UI static files
+COPY public ./public
 
 # Copy server code
 COPY server ./server
