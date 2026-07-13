@@ -1,6 +1,7 @@
 import sqlite3 from 'sqlite3';
 import { open } from 'sqlite';
 import path from 'path';
+import fs from 'fs';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -8,6 +9,12 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export async function setupDatabase() {
   const dbFilename = process.env.DB_PATH || path.join(__dirname, 'bins.sqlite');
   
+  // Ensure the parent directory of the database exists
+  const dbDir = path.dirname(dbFilename);
+  if (!fs.existsSync(dbDir)) {
+    fs.mkdirSync(dbDir, { recursive: true });
+  }
+
   const db = await open({
     filename: dbFilename,
     driver: sqlite3.Database
