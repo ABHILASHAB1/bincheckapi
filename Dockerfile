@@ -13,6 +13,7 @@ RUN npm install --production --build-from-source=sqlite3
 
 # Copy portal UI static files
 COPY *.html ./
+COPY public ./public
 
 # Copy server code
 COPY server ./server

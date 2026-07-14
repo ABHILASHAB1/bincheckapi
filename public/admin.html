@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AOU BIN Check Admin Console</title>
+  <link rel="stylesheet" href="style.css">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    .search-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .search-input {
+      flex: 1;
+      background-color: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--panel-border);
+      color: var(--text-main);
+      border-radius: 12px;
+      padding: 12px 16px;
+      font-family: var(--font-sans);
+      font-size: 13px;
+    }
+    .search-input:focus {
+      outline: none;
+      border-color: var(--accent-primary);
+    }
+    .user-id-badge {
+      font-family: var(--font-mono);
+      font-size: 9px;
+      background-color: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--panel-border);
+      padding: 2px 6px;
+      border-radius: 6px;
+      color: #cbd5e1;
+      display: inline-block;
+      margin-top: 4px;
+      max-width: 140px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .text-email {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-weight: normal;
+      margin-top: 2px;
+    }
+    .btn-adjust {
+      background-color: rgba(16, 185, 129, 0.15);
+      color: #a7f3d0;
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    .btn-adjust:hover {
+      background-color: rgba(16, 185, 129, 0.25);
+    }
+  </style>
+</head>
+<body>
+  <div class="background-grid"></div>
+  <div class="blur-glow"></div>
+
+  <header class="app-header">
+    <div class="header-logo">
+      <span class="logo-icon">⭐</span>
+      <h1 class="logo-text">AOU BIN Check</h1>
+      <span class="badge" style="background: linear-gradient(135deg, var(--accent-warning) 0%, var(--accent-danger) 100%);">Admin Control Console</span>
+    </div>
+    <div class="system-status" style="display: flex; align-items: center; gap: 20px;">
+      <button class="theme-toggle-btn" id="btn-theme-toggle">
+        <i data-lucide="moon" id="theme-btn-icon" style="width: 14px; height: 14px;"></i>
+        <span id="theme-btn-text">Dark Mode</span>
+      </button>
+      <a href="/" style="color: var(--text-muted); font-size: 12px; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 6px;">
+        <span>🏠</span> View Client Portal
+      </a>
+      <button class="btn-copy-small" id="btn-admin-signout" style="background-color: rgba(239, 68, 68, 0.1); color: #fca5a5; border-color: rgba(239, 68, 68, 0.2); padding: 6px 12px; font-weight:600;">🔒 Sign Out</button>
+    </div>
+  </header>
+
+  <main class="app-layout" style="grid-template-columns: 380px 1fr;">
+    <!-- Left Column: Manual Key Generator -->
+    <section class="column-ops">
+      <div class="card glass-panel">
+        <h2 class="card-title"><span class="title-icon">🔑</span> Issue Manual Key</h2>
+        <form id="key-form" class="form-grid">
+          <div class="input-group">
+            <label for="client-name">Customer/Client Name</label>
+            <input type="text" id="client-name" placeholder="e.g., Enterprise Client A" required>
+          </div>
+          <div class="input-group">
+            <label for="query-limit">Query/Request Limit</label>
+            <input type="number" id="query-limit" value="50000" placeholder="e.g., 50000" min="10" required>
+          </div>
+          <div class="input-group">
+            <label for="duration">Duration</label>
+            <select id="duration">
+              <option value="1">1 Month</option>
+              <option value="3">3 Months</option>
+              <option value="12" selected>1 Year</option>
+            </select>
+          </div>
+          <div class="input-group">
+            <label for="allowed-countries">Allowed Countries (comma-separated)</label>
+            <input type="text" id="allowed-countries" value="*" placeholder="e.g., SAUDI ARABIA, POLAND (or * for all)">
+          </div>
+          <div class="input-group">
+            <label for="allowed-schemes">Allowed Card Brands (comma-separated)</label>
+            <input type="text" id="allowed-schemes" value="*" placeholder="e.g., visa, mastercard (or * for all)">
+          </div>
+          <button type="submit" class="btn btn-primary">Generate API Key</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- Right Column: API Keys Manager & Balance Adjustment -->
+    <section class="column-manager">
+      <div class="card glass-panel full-height">
+        <div class="card-header-flex" style="margin-bottom: 16px;">
+          <h2 class="card-title"><span class="title-icon">📊</span> Manage Web Users & API Keys</h2>
+          <button class="btn btn-icon" id="btn-refresh" title="Refresh list">🔄</button>
+        </div>
+
+        <!-- Filter Row -->
+        <div class="search-row">
+          <input type="text" class="search-input" id="search-filter" placeholder="Search by Client Name, Email, or Firebase User ID...">
+        </div>
+
+        <div class="table-container">
+          <table class="keys-table" id="keys-table">
+            <thead>
+              <tr>
+                <th>Customer / User ID</th>
+                <th>API Key</th>
+                <th>Balance</th>
+                <th>Limit</th>
+                <th>Expires</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="loading-row">
+                <td colspan="7">Loading customers...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" class="toast hidden">Copied to clipboard!</div>
+
+  <!-- Secure Login Lock Overlay -->
+  <div id="admin-lock-screen" class="lock-screen-overlay">
+    <div class="lock-card glass-panel">
+      <div class="lock-header">
+        <span class="lock-icon">🔒</span>
+        <h2 class="lock-title">Elevated Access</h2>
+        <p class="lock-subtitle">Restricted Repository Management</p>
+      </div>
+      <form id="lock-form" class="form-grid">
+        <div class="input-group">
+          <label for="admin-pin">Admin Passcode</label>
+          <input type="password" id="admin-pin" placeholder="••••••••" required style="text-align: center; font-size: 18px; letter-spacing: 2px;">
+        </div>
+        <div id="lock-error" class="lock-error-msg hidden">Invalid Admin Passcode</div>
+        <button type="submit" class="btn btn-primary" style="margin-top: 10px; width: 100%;">Unlock Directory</button>
+      </form>
+    </div>
+  </div>
+
+  <script src="admin.js"></script>
+</body>
+</html>

@@ -28,11 +28,6 @@ app.use(express.json());
 // Serve static portal UI
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Redirect root to Remitwise
-app.get('/', (req, res) => {
-  res.redirect('/send_money.html');
-});
-
 // Explicitly serve HTML files from the root directory for easy testing
 app.get('/send_money.html', (req, res) => {
   res.sendFile(path.join(__dirname, '../send_money.html'));
