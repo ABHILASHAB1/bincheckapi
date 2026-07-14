@@ -6,6 +6,10 @@ import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { setupDatabase } from './db.js';
 import { BinService } from './binService.js';
+import { initTelegramBot } from './telegramBot.js';
+import { initRemittanceDB, getLiveRates, upsertFXRate } from './remittanceDB.js';
+import { calculateNetPayout } from './payoutEngine.js';
+import { generateMarketPulse } from './anithaAI.js';
 import { supabase } from './supabaseClient.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -24,8 +28,50 @@ app.use(express.json());
 // Serve static portal UI
 app.use(express.static(path.join(__dirname, '../public')));
 
+// Explicitly serve HTML files from the root directory for easy testing
+app.get('/send_money.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '../send_money.html'));
+});
+app.get('/test_remittance.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '../test_remittance.html'));
+});
+app.get('/test_admin.html', (req, res) => {
+  res.sendFile(path.join(__dirname, '../test_admin.html'));
+});
+
 let db = null;
 let binService = null;
+
+const KSA_OFFSET_MS = 3 * 60 * 60 * 1000;
+
+function getKSAStartAndEnd(dateParam = null) {
+    let ksaDate;
+    if (dateParam) {
+        // Safe parsing of YYYY-MM-DD or MM/DD/YYYY to avoid local timezone offset shifts
+        let year, month, day;
+        if (dateParam.includes('-')) {
+            [year, month, day] = dateParam.split('-');
+        } else if (dateParam.includes('/')) {
+            [month, day, year] = dateParam.split('/');
+        }
+        
+        if (year && month && day) {
+            ksaDate = new Date(Date.UTC(parseInt(year), parseInt(month) - 1, parseInt(day), 0, 0, 0));
+        } else {
+            ksaDate = new Date(dateParam);
+            ksaDate.setUTCHours(0, 0, 0, 0);
+        }
+    } else {
+        ksaDate = new Date(Date.now() + KSA_OFFSET_MS);
+        ksaDate.setUTCHours(0, 0, 0, 0);
+    }
+    
+    // Convert back to UTC boundary
+    const startUTC = new Date(ksaDate.getTime() - KSA_OFFSET_MS);
+    const endUTC = new Date(startUTC.getTime() + (24 * 60 * 60 * 1000));
+    
+    return { startUTC, endUTC };
+}
 
 async function init() {
   try {
@@ -135,6 +181,317 @@ app.get('/v1/balance', authenticateApiKey, (req, res) => {
       expires: req.apiKeyData.expires_at
     }
   });
+});
+
+// ----------------------------------------------------
+// FX Rates (Remittance DB)
+// ----------------------------------------------------
+app.get('/api/fx-rates', async (req, res) => {
+  try {
+    const rates = await getLiveRates();
+    res.json(rates);
+  } catch (error) {
+    console.error('Error fetching FX rates:', error);
+    res.status(500).json({ error: 'Failed to fetch live FX rates' });
+  }
+});
+
+app.post('/api/fx-rates', express.json(), async (req, res) => {
+  const { pair, rate } = req.body;
+  if (!pair || !rate) return res.status(400).json({ error: 'Missing pair or rate' });
+  
+  try {
+    const success = await upsertFXRate(pair, parseFloat(rate));
+    if (success) {
+      res.json({ success: true, message: `Updated ${pair} to ${rate}` });
+    } else {
+      res.status(404).json({ error: 'Currency pair not found' });
+    }
+  } catch (error) {
+    console.error('Error updating FX rate:', error);
+    res.status(500).json({ error: 'Failed to update FX rate' });
+  }
+});
+
+app.post('/api/payout-calculator', express.json(), (req, res) => {
+  const { baseAmount, pair, spread, flatCommission } = req.body;
+  
+  if (!baseAmount || !pair) return res.status(400).json({ error: 'Missing baseAmount or pair' });
+
+  // In a real app, you would fetch the live rate from DB here for strict security.
+  // We'll trust the requested rate if provided, or fallback to the DB rate.
+  getLiveRates().then(rates => {
+    const fx = rates.find(r => r.pair === pair);
+    if (!fx) return res.status(404).json({ error: 'Pair not found' });
+    
+    try {
+      const breakdown = calculateNetPayout(
+        baseAmount, 
+        fx.rate, 
+        spread ?? fx.spread, 
+        flatCommission ?? 50
+      );
+      breakdown.updatedAt = fx.updated_at; // Pass timestamp to frontend
+      res.json(breakdown);
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+});
+
+app.get('/api/market-pulse', async (req, res) => {
+  try {
+    const pulse = await generateMarketPulse();
+    res.json({ pulse });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch Anitha AI Market Pulse' });
+  }
+});
+
+// GET /api/currencies - Fetch distinct bases and targets
+app.get('/api/currencies', async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).json({ error: 'Supabase not initialized' });
+    const { data, error } = await supabase.from('bank_fx_rates').select('base_currency, target_currency');
+    if (error) throw error;
+    
+    const bases = [...new Set(data.map(d => d.base_currency))].filter(Boolean);
+    const targets = [...new Set(data.map(d => d.target_currency))].filter(Boolean);
+    
+    res.json({ bases, targets });
+  } catch (e) {
+    console.error('Error fetching currencies:', e);
+    res.status(500).json({ error: 'Failed to fetch currencies' });
+  }
+});
+
+// GET /api/providers/:base/:target - Fetch live provider rates
+app.get('/api/providers/:base/:target', async (req, res) => {
+  try {
+    const base = req.params.base.toUpperCase();
+    const target = req.params.target.toUpperCase();
+    if (!supabase) return res.status(503).json({ error: 'Supabase not initialized' });
+
+    const { startUTC } = getKSAStartAndEnd();
+
+    const { data, error } = await supabase
+        .from('bank_fx_rates')
+        .select('*')
+        .eq('base_currency', base)
+        .eq('target_currency', target)
+        .gte('updated_at', startUTC.toISOString())
+        .order('updated_at', { ascending: false })
+        .limit(20);
+
+    if (error) throw error;
+    
+    const uniqueProviders = [];
+    const seenBanks = new Set();
+    for (const row of (data || [])) {
+        if (!seenBanks.has(row.bank_name)) {
+            seenBanks.add(row.bank_name);
+            uniqueProviders.push(row);
+        }
+    }
+    
+    uniqueProviders.sort((a, b) => b.buy_rate - a.buy_rate);
+    res.json(uniqueProviders);
+  } catch (e) {
+    console.error('Error fetching providers:', e);
+    res.status(500).json({ error: 'Failed to fetch providers' });
+  }
+});
+
+// GET /api/rates/historical/:base/:target - Fetch best rate for a specific date
+app.get('/api/rates/historical/:base/:target', async (req, res) => {
+  try {
+    const base = req.params.base.toUpperCase();
+    const target = req.params.target.toUpperCase();
+    const targetDateStr = req.query.date;
+    
+    console.log(`[Historical API] Requested base=${base}, target=${target}, date=${targetDateStr}`);
+    
+    // Quick validation
+    if (!targetDateStr || targetDateStr.length < 4) {
+      console.log('[Historical API] Invalid date format');
+      return res.status(400).json({ error: 'Invalid date format' });
+    }
+    
+    if (!supabase) return res.status(503).json({ error: 'Supabase not initialized' });
+
+    // Use KSA helper to get the UTC boundaries for that specific KSA date
+    const { startUTC, endUTC } = getKSAStartAndEnd(targetDateStr);
+    console.log(`[Historical API] Calculated boundaries: start=${startUTC.toISOString()}, end=${endUTC.toISOString()}`);
+
+    // Fetch rates for that specific day
+    const { data, error } = await supabase
+        .from('bank_fx_rates')
+        .select('buy_rate')
+        .eq('base_currency', base)
+        .eq('target_currency', target)
+        .gte('updated_at', startUTC.toISOString())
+        .lt('updated_at', endUTC.toISOString());
+        
+    if (error) {
+      console.error('[Historical API] Supabase error:', error);
+      throw error;
+    }
+
+    if (data && data.length > 0) {
+        const bestRate = Math.max(...data.map(r => r.buy_rate));
+        console.log(`[Historical API] Found best rate: ${bestRate}`);
+        res.json({ rate: bestRate, found: true });
+    } else {
+        console.log('[Historical API] No records found for this date block');
+        res.json({ rate: 0, found: false });
+    }
+  } catch (e) {
+    console.error('[Historical API] Internal Error:', e);
+    res.status(500).json({ error: 'Failed to fetch historical rates' });
+  }
+});
+
+// GET /api/trends/:base/all - Fetch trends for all available targets against a base
+app.get('/api/trends/:base/all', async (req, res) => {
+  try {
+    const base = req.params.base.toUpperCase();
+    if (!supabase) return res.status(503).json({ error: 'Supabase not initialized' });
+
+    // Use KSA helper to get the UTC boundaries for today
+    const { startUTC: todayStartUTC, endUTC: todayEndUTC } = getKSAStartAndEnd();
+
+    // Calculate yesterday boundaries (shift KSA start by 24h)
+    const yesterdayStartUTC = new Date(todayStartUTC.getTime() - (24 * 60 * 60 * 1000));
+    const yesterdayEndUTC = todayStartUTC;
+
+    // Fetch today's rates
+    const { data: todayData, error: todayError } = await supabase
+        .from('bank_fx_rates')
+        .select('target_currency, buy_rate')
+        .eq('base_currency', base)
+        .gte('updated_at', todayStartUTC.toISOString())
+        .lt('updated_at', todayEndUTC.toISOString());
+        
+    if (todayError) throw todayError;
+
+    // Fetch yesterday's rates
+    const { data: yesterdayData, error: yesterdayError } = await supabase
+        .from('bank_fx_rates')
+        .select('target_currency, buy_rate')
+        .eq('base_currency', base)
+        .gte('updated_at', yesterdayStartUTC.toISOString())
+        .lt('updated_at', yesterdayEndUTC.toISOString());
+        
+    if (yesterdayError) throw yesterdayError;
+
+    // Group by target
+    const todayByTarget = {};
+    for (const r of (todayData || [])) {
+        if (!todayByTarget[r.target_currency]) todayByTarget[r.target_currency] = [];
+        todayByTarget[r.target_currency].push(r.buy_rate);
+    }
+    
+    const yesterdayByTarget = {};
+    for (const r of (yesterdayData || [])) {
+        if (!yesterdayByTarget[r.target_currency]) yesterdayByTarget[r.target_currency] = [];
+        yesterdayByTarget[r.target_currency].push(r.buy_rate);
+    }
+
+    const allTargets = new Set([...Object.keys(todayByTarget), ...Object.keys(yesterdayByTarget)]);
+    const results = [];
+
+    for (const target of allTargets) {
+        let growth = 0;
+        let bestToday = 0;
+        
+        const tRates = todayByTarget[target];
+        const yRates = yesterdayByTarget[target];
+        
+        if (tRates && tRates.length > 0) {
+            bestToday = Math.max(...tRates);
+        }
+        
+        if (tRates && tRates.length > 0 && yRates && yRates.length > 0) {
+            const bestYesterday = Math.max(...yRates);
+            if (bestYesterday > 0) {
+                growth = ((bestToday - bestYesterday) / bestYesterday) * 100;
+            }
+        }
+        
+        if (bestToday > 0 || (yRates && yRates.length > 0)) {
+           results.push({
+               target_currency: target,
+               rate: bestToday > 0 ? bestToday.toFixed(2) : Math.max(...yRates).toFixed(2),
+               growthPercentage: Math.abs(growth).toFixed(2),
+               trend: growth >= 0 ? 'up' : 'down'
+           });
+        }
+    }
+
+    results.sort((a, b) => a.target_currency.localeCompare(b.target_currency));
+
+    res.json(results);
+  } catch (e) {
+    console.error('Error fetching all trends:', e);
+    res.status(500).json({ error: 'Failed to fetch all trends' });
+  }
+});
+
+// GET /api/trends/:base/:target - Fetch trend from yesterday
+app.get('/api/trends/:base/:target', async (req, res) => {
+  try {
+    const base = req.params.base.toUpperCase();
+    const target = req.params.target.toUpperCase();
+    if (!supabase) return res.status(503).json({ error: 'Supabase not initialized' });
+
+    // Use KSA helper to get the UTC boundaries for today
+    const { startUTC: todayStartUTC, endUTC: todayEndUTC } = getKSAStartAndEnd();
+
+    // Calculate yesterday boundaries (shift KSA start by 24h)
+    const yesterdayStartUTC = new Date(todayStartUTC.getTime() - (24 * 60 * 60 * 1000));
+    const yesterdayEndUTC = todayStartUTC;
+
+    // Fetch today's rates
+    const { data: todayData, error: todayError } = await supabase
+        .from('bank_fx_rates')
+        .select('buy_rate')
+        .eq('base_currency', base)
+        .eq('target_currency', target)
+        .gte('updated_at', todayStartUTC.toISOString())
+        .lt('updated_at', todayEndUTC.toISOString());
+        
+    if (todayError) throw todayError;
+
+    // Fetch yesterday's rates
+    const { data: yesterdayData, error: yesterdayError } = await supabase
+        .from('bank_fx_rates')
+        .select('buy_rate')
+        .eq('base_currency', base)
+        .eq('target_currency', target)
+        .gte('updated_at', yesterdayStartUTC.toISOString())
+        .lt('updated_at', yesterdayEndUTC.toISOString());
+        
+    if (yesterdayError) throw yesterdayError;
+
+    let growth = 0;
+    
+    if (todayData && todayData.length > 0 && yesterdayData && yesterdayData.length > 0) {
+        const bestToday = Math.max(...todayData.map(r => r.buy_rate));
+        const bestYesterday = Math.max(...yesterdayData.map(r => r.buy_rate));
+        
+        if (bestYesterday > 0) {
+            growth = ((bestToday - bestYesterday) / bestYesterday) * 100;
+        }
+    }
+
+    res.json({ 
+        growthPercentage: Math.abs(growth).toFixed(2), 
+        trend: growth >= 0 ? 'up' : 'down'
+    });
+  } catch (e) {
+    console.error('Error fetching trends:', e);
+    res.status(500).json({ error: 'Failed to fetch trends' });
+  }
 });
 
 // GET /v1/{bin} - Swagger BIN Lookup API with search filtering restrictions
@@ -435,5 +792,8 @@ app.get('/api/bins/stats', async (req, res) => {
 
 app.listen(port, async () => {
   await init();
+  // Initialize Telegram Bot & FX Engine
+  await initTelegramBot();
+  await initRemittanceDB();
   console.log(`🚀 BIN Check API Server listening on port ${port}`);
 });

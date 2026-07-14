@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remitwise App</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              background: '#FDFAFF',
+              primary: '#0262A8',
+              cardBg: '#F7F4FA',
+              textPrimary: '#1E1428',
+              textSecondary: '#8B749B',
+              brandPurple: '#422864',
+              accentPurple: '#EAE2F6',
+              success: '#00A36C'
+            },
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    
+    <style>
+      body {
+        margin: 0;
+        background-color: #f0f0f0;
+        font-family: 'Inter', sans-serif;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+      }
+      .mobile-container {
+        width: 375px;
+        height: 812px;
+        background-color: #FDFAFF;
+        border-radius: 40px;
+        box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+      }
+      /* Hide scrollbar */
+      .no-scrollbar::-webkit-scrollbar { display: none; }
+      .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+      const { useState, useEffect } = React;
+
+      const Icon = ({ name, size = 20, className = "" }) => (
+        <i data-lucide={name} style={{ width: size, height: size }} className={className}></i>
+      );
+
+      function RemitwiseApp() {
+        const [sendAmount, setSendAmount] = useState('1000.00');
+        const [midRate, setMidRate] = useState(56.42);
+        const [providers, setProviders] = useState([]);
+        const [baseCurrency, setBaseCurrency] = useState('SAR');
+        const [targetCurrency, setTargetCurrency] = useState('PHP');
+        const [availableBases, setAvailableBases] = useState(['SAR', 'USD']);
+        const [availableTargets, setAvailableTargets] = useState(['PHP', 'INR', 'PKR', 'EGP']);
+        const [trendGrowth, setTrendGrowth] = useState({ percentage: '0.24', trend: 'up' });
+        const [currentTab, setCurrentTab] = useState('home');
+        const [allTrends, setAllTrends] = useState([]);
+        
+        // Calculator State
+        const [calcAmount, setCalcAmount] = useState('100.00');
+        const [calcBase, setCalcBase] = useState('SAR');
+        const [calcTarget, setCalcTarget] = useState('INR');
+        const [calcFee, setCalcFee] = useState('0');
+        const [calcDate, setCalcDate] = useState(new Date().toISOString().split('T')[0]);
+        const [calcResult, setCalcResult] = useState(null);
+
+        const handleCalculate = async () => {
+          try {
+            // Fetch historical best rate
+            const histRes = await fetch(`/api/rates/historical/${calcBase}/${calcTarget}?date=${encodeURIComponent(calcDate)}`);
+            const histData = await histRes.json();
+            
+            // Fetch current best rate
+            const currRes = await fetch(`/api/providers/${calcBase}/${calcTarget}`);
+            const currData = await currRes.json();
+            const currentBestRate = currData && currData.length > 0 ? currData[0].buy_rate : 0;
+            
+            const amount = parseFloat(calcAmount) || 0;
+            const feeRaw = calcFee.replace('%', '');
+            const feeAmount = (amount * (parseFloat(feeRaw) || 0)) / 100;
+            const finalAmount = amount - feeAmount;
+
+            let isProfit = false;
+            let difference = 0;
+            
+            if (histData.found && currentBestRate > 0) {
+              const histTargetValue = finalAmount * histData.rate;
+              const currTargetValue = finalAmount * currentBestRate;
+              difference = currTargetValue - histTargetValue;
+              isProfit = difference >= 0;
+            }
+
+            setCalcResult({
+              found: histData.found,
+              historicalRate: histData.rate,
+              currentRate: currentBestRate,
+              finalAmount,
+              transactionAmount: finalAmount * histData.rate,
+              isProfit,
+              profitAmount: Math.abs(difference)
+            });
+            setTimeout(() => lucide.createIcons(), 100);
+          } catch (error) {
+            console.error("Calculation failed", error);
+            setCalcResult({ error: "Failed to calculate rates." });
+          }
+        };
+
+        const getProviderBranding = (name) => {
+          const n = name.toLowerCase();
+          if (n.includes('wise')) return { bg: '#00B9FF', initials: 'W', text: 'text-white' };
+          if (n.includes('western union') || n.includes('wu')) return { bg: '#FFD100', initials: 'WU', text: 'text-black' };
+          if (n.includes('stc')) return { bg: '#4F46E5', initials: 'STC', text: 'text-white' };
+          if (n.includes('al rajhi')) return { bg: '#1E3A8A', initials: 'AR', text: 'text-white' };
+          if (n.includes('enjaz')) return { bg: '#DC2626', initials: 'ENJ', text: 'text-white' };
+          return { bg: '#9CA3AF', initials: name.substring(0, 2).toUpperCase(), text: 'text-white' };
+        };
+        
+        // Fetch available bases and targets (with polling)
+        useEffect(() => {
+          const fetchCurrencies = () => {
+            fetch('/api/currencies')
+              .then(res => res.json())
+              .then(data => {
+                if (data.bases) {
+                  // Only update if changed to avoid unnecessary re-renders
+                  setAvailableBases(prev => JSON.stringify(prev) !== JSON.stringify(data.bases) ? data.bases : prev);
+                }
+                if (data.targets) {
+                  setAvailableTargets(prev => JSON.stringify(prev) !== JSON.stringify(data.targets) ? data.targets : prev);
+                }
+              })
+              .catch(console.error);
+          };
+          
+          fetchCurrencies();
+          const interval = setInterval(fetchCurrencies, 5000);
+          return () => clearInterval(interval);
+        }, []);
+
+        // Fetch live rates and trends when currency pair changes (with polling)
+        useEffect(() => {
+          const fetchData = () => {
+            fetch(`/api/providers/${baseCurrency}/${targetCurrency}`)
+              .then(res => res.json())
+              .then(data => {
+                if (data && data.length > 0) {
+                  setProviders(data);
+                  setMidRate(data[0].buy_rate); 
+                } else {
+                  setProviders([]);
+                  setMidRate(0);
+                }
+                setTimeout(() => lucide.createIcons(), 100);
+              })
+              .catch(err => {
+                console.error(err);
+                setProviders([]);
+              });
+
+            fetch(`/api/trends/${baseCurrency}/${targetCurrency}`)
+              .then(res => res.json())
+              .then(data => {
+                if (data) {
+                  setTrendGrowth({ percentage: data.growthPercentage, trend: data.trend });
+                }
+              })
+              .catch(console.error);
+          };
+
+          fetchData();
+          const interval = setInterval(fetchData, 5000); // Live poll every 5s
+          return () => clearInterval(interval);
+        }, [baseCurrency, targetCurrency]);
+
+        // Fetch all trends when on the trends tab
+        useEffect(() => {
+          if (currentTab !== 'trends') return;
+          const fetchAllTrends = () => {
+            fetch(`/api/trends/${baseCurrency}/all`)
+              .then(res => res.json())
+              .then(data => {
+                setAllTrends(data || []);
+                setTimeout(() => lucide.createIcons(), 100);
+              })
+              .catch(console.error);
+          };
+          fetchAllTrends();
+          const interval = setInterval(fetchAllTrends, 5000);
+          return () => clearInterval(interval);
+        }, [currentTab, baseCurrency]);
+
+        return (
+          <div className="mobile-container">
+            
+            {/* Top Navbar */}
+            <div className="pt-12 pb-4 px-6 flex justify-between items-center bg-background z-10 relative">
+              <div className="flex items-center space-x-4">
+                <Icon name="menu" size={24} className="text-textPrimary" />
+                <span className="text-xl font-medium text-textPrimary tracking-tight">Remitwise</span>
+              </div>
+              <div className="flex items-center space-x-4">
+                <Icon name="search" size={20} className="text-textPrimary" />
+                <div className="w-8 h-8 rounded-full bg-accentPurple flex items-center justify-center text-xs font-bold text-brandPurple">
+                  JD
+                </div>
+              </div>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="flex-1 overflow-y-auto no-scrollbar px-6 pb-24 relative z-0">
+              
+              {currentTab === 'home' && (
+                <>
+                  {/* Mid Market Rate Card */}
+              <div className="bg-primary rounded-3xl p-6 text-white mb-6 shadow-lg shadow-primary/20 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-[30px] transform translate-x-10 -translate-y-10 pointer-events-none"></div>
+                <div className="flex justify-between items-start relative z-10">
+                  <div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-white/80 mb-1">Current Mid-Market Rate</div>
+                    <div className="flex items-baseline space-x-2">
+                      <span className="text-4xl font-black">{midRate.toFixed(2)}</span>
+                      <span className="text-sm font-bold text-white/80">{targetCurrency}</span>
+                    </div>
+                    <div className={`flex items-center mt-2 text-xs font-semibold ${trendGrowth.trend === 'down' ? 'text-red-400' : 'text-[#66FF99]'}`}>
+                      <Icon name={trendGrowth.trend === 'down' ? 'trending-down' : 'trending-up'} size={14} className="mr-1" />
+                      {trendGrowth.trend === 'down' ? '-' : '+'}{trendGrowth.percentage}% <span className="text-white/60 ml-1 font-normal">vs yesterday</span>
+                    </div>
+                  </div>
+                  <button className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
+                    <Icon name="refresh-cw" size={18} className="text-white" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Conversion Module */}
+              <div className="relative mb-8">
+                {/* Swap Button (Floating) */}
+                <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 w-8 h-8 bg-accentPurple rounded-full flex items-center justify-center border-4 border-background shadow-sm">
+                  <Icon name="arrow-up-down" size={14} className="text-brandPurple" />
+                </div>
+
+                <div className="bg-cardBg rounded-3xl p-5 mb-2">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1">You Send</div>
+                      <input 
+                        type="text" 
+                        value={sendAmount}
+                        onChange={(e) => setSendAmount(e.target.value)}
+                        className="bg-transparent text-xl font-bold text-textPrimary focus:outline-none w-32"
+                      />
+                    </div>
+                    <div className="bg-white rounded-xl px-1 py-1 flex items-center shadow-sm border border-black/5">
+                      <select 
+                        value={baseCurrency}
+                        onChange={(e) => setBaseCurrency(e.target.value)}
+                        className="bg-transparent text-sm font-bold text-textPrimary focus:outline-none cursor-pointer appearance-none px-2"
+                      >
+                        {availableBases.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                      <Icon name="chevron-down" size={14} className="text-textSecondary mr-1" />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-cardBg rounded-3xl p-5">
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <div className="text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1">They Receive</div>
+                      <div className="text-xl font-bold text-textPrimary">
+                        {((parseFloat(sendAmount) || 0) * midRate).toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                      </div>
+                    </div>
+                    <div className="bg-white rounded-xl px-1 py-1 flex items-center shadow-sm border border-black/5">
+                      <select 
+                        value={targetCurrency}
+                        onChange={(e) => setTargetCurrency(e.target.value)}
+                        className="bg-transparent text-sm font-bold text-textPrimary focus:outline-none cursor-pointer appearance-none px-2"
+                      >
+                        {availableTargets.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                      <Icon name="chevron-down" size={14} className="text-textSecondary mr-1" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Top Rate Providers */}
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xs font-bold text-brandPurple uppercase tracking-widest">Top Rate Providers</h3>
+                  <span className="text-[10px] font-bold text-brandPurple/60 uppercase tracking-widest">View All</span>
+                </div>
+
+                <div className="space-y-3">
+                  {providers.map((p, idx) => {
+                    const branding = getProviderBranding(p.bank_name);
+                    const isBest = idx === 0;
+                    
+                    return (
+                      <div key={idx} className="bg-white rounded-[1.5rem] p-4 flex items-center justify-between border border-black/5 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center space-x-4">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl ${branding.text}`} style={{ backgroundColor: branding.bg }}>
+                            {branding.initials}
+                          </div>
+                          <div>
+                            <div className="font-bold text-textPrimary text-sm">{p.bank_name}</div>
+                            <div className="text-[10px] text-textSecondary mt-0.5">
+                              Fee: {p.fee || '$0.00'} • Est: {isBest ? 'Fast' : '1-2 days'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-textPrimary text-sm">{p.buy_rate.toFixed(2)} {targetCurrency}</div>
+                          <div className={`text-[9px] font-bold uppercase tracking-wider mt-0.5 ${p.badgeClass || (isBest ? 'text-success' : 'text-textSecondary')}`}>
+                            {p.badge || (isBest ? 'Best Overall' : 'Standard')}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+                </>
+              )}
+
+              {currentTab === 'trends' && (
+                <div className="space-y-6 animate-fadeIn">
+                  <div className="flex justify-between items-center mb-2">
+                    <h2 className="text-xl font-bold text-textPrimary">Market Trends</h2>
+                    <div className="bg-white rounded-xl px-2 py-1 flex items-center shadow-sm border border-black/5">
+                      <span className="text-[10px] font-bold text-textSecondary uppercase tracking-widest mr-2">Base:</span>
+                      <select 
+                        value={baseCurrency}
+                        onChange={(e) => setBaseCurrency(e.target.value)}
+                        className="bg-transparent text-sm font-bold text-textPrimary focus:outline-none cursor-pointer appearance-none pr-1"
+                      >
+                        {availableBases.map(c => <option key={c} value={c}>{c}</option>)}
+                      </select>
+                      <Icon name="chevron-down" size={14} className="text-textSecondary" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {!Array.isArray(allTrends) || allTrends.length === 0 ? (
+                      <div className="text-center py-10 text-textSecondary text-sm font-medium">No trend data available for today.</div>
+                    ) : (
+                      allTrends.map((t, idx) => (
+                        <div key={idx} className="bg-white rounded-[1.5rem] p-4 flex items-center justify-between border border-black/5 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)]">
+                          <div className="flex items-center space-x-4">
+                            <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl text-brandPurple bg-accentPurple">
+                              {t.target_currency}
+                            </div>
+                            <div>
+                              <div className="font-bold text-textPrimary text-sm">{baseCurrency} to {t.target_currency}</div>
+                              <div className={`flex items-center mt-0.5 text-[10px] font-bold uppercase tracking-wider ${t.trend === 'down' ? 'text-red-500' : 'text-success'}`}>
+                                <Icon name={t.trend === 'down' ? 'trending-down' : 'trending-up'} size={12} className="mr-1" />
+                                {t.trend === 'down' ? '-' : '+'}{t.growthPercentage}% <span className="text-textSecondary lowercase font-medium ml-1">vs yesterday</span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-bold text-textPrimary text-sm">{t.rate}</div>
+                            <div className="text-[9px] font-bold text-textSecondary uppercase tracking-wider mt-0.5">Top Rate</div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {currentTab === 'calculator' && (
+                <div className="space-y-6 animate-fadeIn">
+                  <h2 className="text-xl font-bold text-textPrimary">Calculator & Insights</h2>
+                  
+                  <div className="bg-white rounded-[2rem] p-5 border border-black/5 shadow-sm space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1">*From</label>
+                        <select 
+                          value={calcBase}
+                          onChange={(e) => setCalcBase(e.target.value)}
+                          className="w-full bg-transparent border border-black/10 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-brandPurple"
+                        >
+                          {availableBases.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1">*Amount</label>
+                        <input 
+                          type="number"
+                          value={calcAmount}
+                          onChange={(e) => setCalcAmount(e.target.value)}
+                          className="w-full bg-transparent border border-black/10 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-brandPurple"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1">*To</label>
+                        <select 
+                          value={calcTarget}
+                          onChange={(e) => setCalcTarget(e.target.value)}
+                          className="w-full bg-transparent border border-black/10 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-brandPurple"
+                        >
+                          {availableTargets.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1">*Bank Fee</label>
+                        <input 
+                          type="text"
+                          value={calcFee}
+                          onChange={(e) => setCalcFee(e.target.value)}
+                          className="w-full bg-transparent border border-black/10 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-brandPurple"
+                          placeholder="e.g. 2%"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1">Select Date of Transaction</label>
+                      <input 
+                        type="date"
+                        value={calcDate}
+                        onChange={(e) => setCalcDate(e.target.value)}
+                        className="w-full bg-transparent border border-black/10 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-brandPurple"
+                      />
+                    </div>
+
+                    <button 
+                      onClick={handleCalculate}
+                      className="mt-4 bg-textPrimary text-white font-bold text-sm px-6 py-2.5 rounded-full hover:bg-black transition-colors shadow-lg"
+                    >
+                      Calculate
+                    </button>
+                  </div>
+
+                  {calcResult && (
+                    <div className="bg-white rounded-[2rem] p-5 border border-black/5 shadow-sm space-y-4 animate-fadeIn">
+                      {calcResult.error ? (
+                        <div className="text-red-500 text-sm font-bold">Error: {calcResult.error}</div>
+                      ) : !calcResult.found ? (
+                        <div className="text-red-500 text-sm font-bold">No historical data found for this date.</div>
+                      ) : (
+                        <>
+                          <div>
+                            <div className="text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1">Historical Rate ({calcDate}):</div>
+                            <div className="text-sm font-bold text-textPrimary">
+                              1 {calcBase} = {calcResult.historicalRate.toFixed(4)} {calcTarget}
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <div className="text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1">Transaction Amount:</div>
+                            <div className="text-lg font-black text-brandPurple">
+                              {calcResult.finalAmount.toFixed(2)} {calcBase} = {calcResult.transactionAmount.toFixed(2)} {calcTarget}
+                            </div>
+                          </div>
+
+                          <div className={`mt-4 p-3 rounded-xl border ${calcResult.isProfit ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+                            <div className="flex items-center space-x-2 mb-1">
+                              <Icon name="bot" size={16} className={calcResult.isProfit ? 'text-green-600' : 'text-red-600'} />
+                              <span className={`text-xs font-bold uppercase tracking-widest ${calcResult.isProfit ? 'text-green-600' : 'text-red-600'}`}>
+                                AI Insight: {calcResult.isProfit ? 'Profit' : 'Loss'}
+                              </span>
+                            </div>
+                            <div className="text-xs font-medium text-textPrimary">
+                              {calcResult.isProfit 
+                                ? `By waiting to transact today at the current best rate of ${calcResult.currentRate.toFixed(4)}, you profit +${calcResult.profitAmount.toFixed(2)} ${calcTarget} compared to ${calcDate}.`
+                                : `The rate was better on ${calcDate}. If you transact today at ${calcResult.currentRate.toFixed(4)}, you lose -${calcResult.profitAmount.toFixed(2)} ${calcTarget}.`}
+                            </div>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
+            </div>
+
+            {/* Bottom Navigation */}
+            <div className="absolute bottom-0 left-0 right-0 h-20 bg-white border-t border-black/5 flex justify-around items-center px-2 z-20 rounded-b-[40px]">
+              <div 
+                className={`flex flex-col items-center justify-center space-y-1 cursor-pointer transition-all duration-200 ${currentTab === 'home' ? 'opacity-100' : 'opacity-50'}`}
+                onClick={() => setCurrentTab('home')}
+              >
+                <div className={`px-5 py-1.5 rounded-full ${currentTab === 'home' ? 'bg-accentPurple' : ''}`}>
+                  <Icon name="home" size={20} className={currentTab === 'home' ? 'text-brandPurple' : 'text-textPrimary'} />
+                </div>
+                <span className="text-[10px] font-bold text-textPrimary">Home</span>
+              </div>
+              
+              <div 
+                className={`flex flex-col items-center justify-center space-y-1 cursor-pointer transition-all duration-200 ${currentTab === 'trends' ? 'opacity-100' : 'opacity-50'}`}
+                onClick={() => setCurrentTab('trends')}
+              >
+                <div className={`px-5 py-1.5 rounded-full ${currentTab === 'trends' ? 'bg-accentPurple' : ''}`}>
+                  <Icon name="trending-up" size={20} className={currentTab === 'trends' ? 'text-brandPurple' : 'text-textPrimary'} />
+                </div>
+                <span className="text-[10px] font-medium text-textPrimary">Trends</span>
+              </div>
+
+              <div 
+                className={`flex flex-col items-center justify-center space-y-1 cursor-pointer transition-all duration-200 ${currentTab === 'calculator' ? 'opacity-100' : 'opacity-50'}`}
+                onClick={() => setCurrentTab('calculator')}
+              >
+                <div className={`px-5 py-1.5 rounded-full ${currentTab === 'calculator' ? 'bg-accentPurple' : ''}`}>
+                  <Icon name="calculator" size={20} className={currentTab === 'calculator' ? 'text-brandPurple' : 'text-textPrimary'} />
+                </div>
+                <span className="text-[10px] font-medium text-textPrimary">Calculator</span>
+              </div>
+
+              <div className="flex flex-col items-center justify-center space-y-1 opacity-50">
+                <div className="px-5 py-1.5">
+                  <Icon name="settings" size={20} className="text-textPrimary" />
+                </div>
+                <span className="text-[10px] font-medium text-textPrimary">Settings</span>
+              </div>
+            </div>
+            
+          </div>
+        );
+      }
+
+      const root = ReactDOM.createRoot(document.getElementById('root'));
+      root.render(<RemitwiseApp />);
+    </script>
+</body>
+</html>
