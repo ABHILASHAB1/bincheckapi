@@ -1,12 +1,15 @@
-FROM node:22-slim
+FROM node:22-bookworm
 
 WORKDIR /app
+
+# Install build tools for compiling sqlite3 native module
+RUN apt-get update && apt-get install -y python3 make g++ && rm -rf /var/lib/apt/lists/*
 
 # Copy dependency files
 COPY package*.json ./
 
-# Install production dependencies
-RUN npm install --production
+# Install production dependencies and compile sqlite3 from source
+RUN npm install --production --build-from-source=sqlite3
 
 # Copy portal UI static files
 COPY *.html ./
