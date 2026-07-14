@@ -15,6 +15,7 @@ const restrictSchemes = document.getElementById('restrict-schemes');
 const btnGoogle = document.getElementById('btn-google-login');
 const btnMock = document.getElementById('btn-mock-login');
 const btnSignout = document.getElementById('btn-signout');
+const btnThemeToggle = document.getElementById('btn-theme-toggle');
 
 const sandboxForm = document.getElementById('sandbox-form');
 const sandboxBin = document.getElementById('sandbox-bin');
@@ -23,6 +24,11 @@ const curlCode = document.getElementById('curl-code');
 const responseContainer = document.getElementById('response-container');
 const responseCode = document.getElementById('response-code');
 const toastElement = document.getElementById('toast');
+
+// Sandbox Export Actions
+const btnExportJson = document.getElementById('btn-export-json');
+const btnExportCsv = document.getElementById('btn-export-csv');
+const btnShareDetails = document.getElementById('btn-share-details');
 
 // Initialize portal authentication states
 function init() {
@@ -38,6 +44,33 @@ function init() {
     btnMock.style.opacity = '0.5';
     btnMock.style.cursor = 'not-allowed';
     btnMock.textContent = "⚙️ Simulate Sign-In (Locked)";
+  }
+
+  // Initialize theme
+  const savedTheme = localStorage.getItem('aou_theme') || 'dark';
+  if (savedTheme === 'light') {
+    document.body.classList.add('light-theme');
+    updateThemeUI('light');
+  } else {
+    document.body.classList.remove('light-theme');
+    updateThemeUI('dark');
+  }
+}
+
+function updateThemeUI(theme) {
+  const themeBtnIcon = document.getElementById('theme-btn-icon');
+  const themeBtnText = document.getElementById('theme-btn-text');
+  if (!themeBtnIcon || !themeBtnText) return;
+  
+  if (theme === 'light') {
+    themeBtnIcon.setAttribute('data-lucide', 'sun');
+    themeBtnText.textContent = 'Light Mode';
+  } else {
+    themeBtnIcon.setAttribute('data-lucide', 'moon');
+    themeBtnText.textContent = 'Dark Mode';
+  }
+  if (window.lucide) {
+    lucide.createIcons();
   }
 }
 
@@ -214,6 +247,7 @@ btnMock.addEventListener('click', async () => {
 btnSignout.addEventListener('click', handleSignOut);
 
 // Sandbox execution handler
+let lastLookupData = null;
 sandboxForm.addEventListener('submit', async (e) => {
   e.preventDefault();
   if (!activeUser) return;
@@ -225,20 +259,38 @@ sandboxForm.addEventListener('submit', async (e) => {
   curlCode.textContent = `curl "${url}"`;
   curlContainer.classList.remove('hidden');
   
-  // Hide previous card preview
-  document.getElementById('sandbox-card-preview').classList.add('hidden');
+  // Show preview immediately and add shimmers for loading state
+  const previewPanel = document.getElementById('sandbox-card-preview');
+  previewPanel.classList.remove('hidden');
   responseContainer.classList.add('hidden');
   document.getElementById('btn-toggle-raw').textContent = "Show Raw Response (JSON)";
+
+  const shimmerFields = [
+    document.getElementById('card-brand-logo'),
+    document.getElementById('card-number-text'),
+    document.getElementById('card-bank-name'),
+    document.getElementById('card-type-category-text'),
+    document.getElementById('spec-issuer'),
+    document.getElementById('spec-scheme'),
+    document.getElementById('spec-type'),
+    document.getElementById('spec-category'),
+    document.getElementById('spec-country')
+  ];
+  shimmerFields.forEach(el => el.classList.add('shimmer'));
   
   try {
     const res = await fetch(`/v1/${bin}?api_key=${apiKey}`);
     const payload = await res.json();
+    
+    // Remove shimmers
+    shimmerFields.forEach(el => el.classList.remove('shimmer'));
     
     // Display raw response code inside code tag
     responseCode.textContent = JSON.stringify(payload, null, 2);
 
     if (payload.result === 200 && payload.data) {
       const card = payload.data;
+      lastLookupData = card;
       
       // Update Virtual Card UI
       const vCard = document.getElementById('virtual-card');
@@ -287,16 +339,18 @@ sandboxForm.addEventListener('submit', async (e) => {
       mfaBadge.textContent = isMfaIssuer ? 'YES' : 'NO';
       mfaBadge.className = 'status-badge ' + (isMfaIssuer ? 'status-active' : 'status-suspended');
 
-      // Show Card Panel
-      document.getElementById('sandbox-card-preview').classList.remove('hidden');
     } else {
-      // Show raw JSON directly on error lookups (e.g. 403, 404, 422)
+      lastLookupData = null;
+      previewPanel.classList.add('hidden');
       responseContainer.classList.remove('hidden');
     }
 
     // Refresh balance progress bar immediately after query finishes
     await refreshBalance();
   } catch (err) {
+    shimmerFields.forEach(el => el.classList.remove('shimmer'));
+    lastLookupData = null;
+    previewPanel.classList.add('hidden');
     responseCode.textContent = JSON.stringify({ error: "Network lookup failed" }, null, 2);
     responseContainer.classList.remove('hidden');
   }
@@ -340,6 +394,92 @@ window.copyText = function(elementId) {
     });
   }
 };
+
+// Theme Switcher click listener
+if (btnThemeToggle) {
+  btnThemeToggle.addEventListener('click', () => {
+    const isLight = document.body.classList.toggle('light-theme');
+    const newTheme = isLight ? 'light' : 'dark';
+    localStorage.setItem('aou_theme', newTheme);
+    updateThemeUI(newTheme);
+  });
+}
+
+// Export JSON
+if (btnExportJson) {
+  btnExportJson.addEventListener('click', () => {
+    if (!lastLookupData) {
+      showToast("No active data to export.");
+      return;
+    }
+    const blob = new Blob([JSON.stringify(lastLookupData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bin_${lastLookupData.bin}_spec.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Exported JSON successfully!");
+  });
+}
+
+// Export CSV
+if (btnExportCsv) {
+  btnExportCsv.addEventListener('click', () => {
+    if (!lastLookupData) {
+      showToast("No active data to export.");
+      return;
+    }
+    const headers = ['BIN', 'Issuer', 'Scheme', 'Type', 'Category', 'Country', 'Domestic Optimized'];
+    const isSaudi = (lastLookupData.country || '').trim().toUpperCase() === 'SAUDI ARABIA';
+    const row = [
+      lastLookupData.bin,
+      `"${lastLookupData.issuer || 'N/A'}"`,
+      lastLookupData.scheme || 'N/A',
+      lastLookupData.type || 'N/A',
+      lastLookupData.category || 'N/A',
+      lastLookupData.country || 'N/A',
+      isSaudi ? 'ENABLED' : 'N/A'
+    ];
+    const csvContent = [headers.join(','), row.join(',')].join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `bin_${lastLookupData.bin}_spec.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast("Exported CSV successfully!");
+  });
+}
+
+// Share details link
+if (btnShareDetails) {
+  btnShareDetails.addEventListener('click', () => {
+    if (!lastLookupData) {
+      showToast("No active data to share.");
+      return;
+    }
+    const shareText = `BIN Lookup details for ${lastLookupData.bin}:\n` +
+      `- Issuer: ${lastLookupData.issuer || 'N/A'}\n` +
+      `- Brand: ${lastLookupData.scheme || 'N/A'}\n` +
+      `- Type: ${lastLookupData.type || 'N/A'}\n` +
+      `- Country: ${lastLookupData.country || 'N/A'}\n` +
+      `Checked via AOU BIN Check Portal.`;
+    navigator.clipboard.writeText(shareText).then(() => {
+      showToast("Copied card specs details to clipboard!");
+    });
+  });
+}
+
+// Initialize Lucide icons on start
+if (window.lucide) {
+  lucide.createIcons();
+}
 
 // Start
 init();

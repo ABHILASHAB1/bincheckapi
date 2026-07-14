@@ -106,7 +106,7 @@ function renderKeysTable() {
       : `<div class="user-id-badge" style="background-color: rgba(99, 102, 241, 0.05); color: #a5b4fc; border-color: rgba(99, 102, 241, 0.1);">Admin manual</div>`;
 
     tr.innerHTML = `
-      <td>
+      <td data-label="Client">
         <div style="font-weight: 600;">${key.client_name}</div>
         ${key.email ? `<div class="text-email">${key.email}</div>` : ''}
         ${userBadge}
@@ -114,17 +114,17 @@ function renderKeysTable() {
           🌍 ${key.allowed_countries} | 💳 ${key.allowed_schemes.toUpperCase()}
         </div>
       </td>
-      <td>
+      <td data-label="API Key">
         <div class="key-cell">
           <code class="key-text" id="key-${key.id}">${obscuredKey}</code>
           <button class="action-row-btn" onclick="copyTextToClipboard('${key.api_key}')" title="Copy to clipboard">📋</button>
         </div>
       </td>
-      <td style="font-family: var(--font-mono); font-weight: 600;">${key.balance.toLocaleString()}</td>
-      <td style="font-family: var(--font-mono); color: var(--text-muted);">${key.limit_queries.toLocaleString()}</td>
-      <td style="font-size: 11px; color: var(--text-muted);">${key.expires_at.split(' ')[0]}</td>
-      <td>${statusBadge}</td>
-      <td>
+      <td data-label="Balance" style="font-family: var(--font-mono); font-weight: 600;">${key.balance.toLocaleString()}</td>
+      <td data-label="Query Limit" style="font-family: var(--font-mono); color: var(--text-muted);">${key.limit_queries.toLocaleString()}</td>
+      <td data-label="Expires" style="font-size: 11px; color: var(--text-muted);">${key.expires_at.split(' ')[0]}</td>
+      <td data-label="Status">${statusBadge}</td>
+      <td data-label="Actions">
         <div class="action-group">
           <button class="btn btn-icon btn-toggle-suspend" onclick="toggleKeyStatus(${key.id}, '${key.status}')" title="${isSuspended ? 'Activate' : 'Suspend'} key">
             ${isSuspended ? '🟢' : '⏸️'}
@@ -359,6 +359,50 @@ searchFilterInput.addEventListener('input', applyFilter);
 
 // Sign Out click handler
 btnSignOut.addEventListener('click', handleSignOut);
+
+// Theme Switcher bindings
+const btnThemeToggle = document.getElementById('btn-theme-toggle');
+
+function updateThemeUI(theme) {
+  const themeBtnIcon = document.getElementById('theme-btn-icon');
+  const themeBtnText = document.getElementById('theme-btn-text');
+  if (!themeBtnIcon || !themeBtnText) return;
+  
+  if (theme === 'light') {
+    themeBtnIcon.setAttribute('data-lucide', 'sun');
+    themeBtnText.textContent = 'Light Mode';
+  } else {
+    themeBtnIcon.setAttribute('data-lucide', 'moon');
+    themeBtnText.textContent = 'Dark Mode';
+  }
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+}
+
+if (btnThemeToggle) {
+  btnThemeToggle.addEventListener('click', () => {
+    const isLight = document.body.classList.toggle('light-theme');
+    const newTheme = isLight ? 'light' : 'dark';
+    localStorage.setItem('aou_theme', newTheme);
+    updateThemeUI(newTheme);
+  });
+}
+
+// Init theme on load
+const savedTheme = localStorage.getItem('aou_theme') || 'dark';
+if (savedTheme === 'light') {
+  document.body.classList.add('light-theme');
+  updateThemeUI('light');
+} else {
+  document.body.classList.remove('light-theme');
+  updateThemeUI('dark');
+}
+
+// Initialize Lucide icons on start
+if (window.lucide) {
+  lucide.createIcons();
+}
 
 // Initial Load on page entry
 loadKeys();

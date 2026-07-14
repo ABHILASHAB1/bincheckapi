@@ -6,6 +6,7 @@
   <title>AOU BIN Check Admin Console</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     .search-row {
       display: flex;
@@ -68,6 +69,10 @@
       <span class="badge" style="background: linear-gradient(135deg, var(--accent-warning) 0%, var(--accent-danger) 100%);">Admin Control Console</span>
     </div>
     <div class="system-status" style="display: flex; align-items: center; gap: 20px;">
+      <button class="theme-toggle-btn" id="btn-theme-toggle">
+        <i data-lucide="moon" id="theme-btn-icon" style="width: 14px; height: 14px;"></i>
+        <span id="theme-btn-text">Dark Mode</span>
+      </button>
       <a href="/" style="color: var(--text-muted); font-size: 12px; font-weight: 600; text-decoration: none; display: flex; align-items: center; gap: 6px;">
         <span>🏠</span> View Client Portal
       </a>

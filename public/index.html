@@ -6,6 +6,7 @@
   <title>AOU BIN Check Developer Portal</title>
   <link rel="stylesheet" href="style.css">
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
   <style>
     /* Client specific styling additions */
     .auth-container {
@@ -152,13 +153,21 @@
       <h1 class="logo-text">AOU BIN Check</h1>
       <span class="badge">Developer Portal</span>
     </div>
-    <div class="auth-user-header hidden" id="user-header-block">
-      <div class="user-profile">
-        <div class="user-info">
-          <div class="user-name" id="profile-name">Client User</div>
-          <div class="user-email" id="profile-email">user@domain.com</div>
+    
+    <div style="display: flex; align-items: center; gap: 16px;">
+      <button class="theme-toggle-btn" id="btn-theme-toggle">
+        <i data-lucide="moon" id="theme-btn-icon" style="width: 14px; height: 14px;"></i>
+        <span id="theme-btn-text">Dark Mode</span>
+      </button>
+      
+      <div class="auth-user-header hidden" id="user-header-block">
+        <div class="user-profile">
+          <div class="user-info">
+            <div class="user-name" id="profile-name">Client User</div>
+            <div class="user-email" id="profile-email">user@domain.com</div>
+          </div>
+          <button class="btn-signout" id="btn-signout">Sign Out</button>
         </div>
-        <button class="btn-signout" id="btn-signout">Sign Out</button>
       </div>
     </div>
   </header>
@@ -268,6 +277,19 @@
               <div class="card-bank" id="card-bank-name">ISSUER BANK</div>
               <div class="card-type-category" id="card-type-category-text">DEBIT / CLASSIC</div>
             </div>
+          </div>
+
+          <!-- Card Actions Row -->
+          <div class="card-actions-row">
+            <button type="button" class="btn-export" id="btn-export-json" title="Export raw response as JSON file">
+              <i data-lucide="download" style="width: 12px; height: 12px;"></i> JSON
+            </button>
+            <button type="button" class="btn-export" id="btn-export-csv" title="Export card specifications as CSV">
+              <i data-lucide="file-spreadsheet" style="width: 12px; height: 12px;"></i> CSV
+            </button>
+            <button type="button" class="btn-export" id="btn-share-details" title="Copy sharing details link to clipboard">
+              <i data-lucide="share-2" style="width: 12px; height: 12px;"></i> Share
+            </button>
           </div>
 
           <!-- Specs & Controls Grid -->
