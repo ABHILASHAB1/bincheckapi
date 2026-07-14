@@ -9,7 +9,7 @@ COPY package*.json ./
 RUN npm install --production
 
 # Copy portal UI static files
-COPY public ./public
+COPY *.html ./
 
 # Copy server code
 COPY server ./server
