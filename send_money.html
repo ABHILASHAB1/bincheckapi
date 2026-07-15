@@ -81,6 +81,8 @@
         const [currentTab, setCurrentTab] = useState('home');
         const [allTrends, setAllTrends] = useState([]);
         const [showAllProviders, setShowAllProviders] = useState(false);
+        const [refreshTrigger, setRefreshTrigger] = useState(0);
+        const [isRefreshing, setIsRefreshing] = useState(false);
         
         // Calculator State
         const [calcAmount, setCalcAmount] = useState('100.00');
@@ -167,38 +169,38 @@
         // Fetch live rates and trends when currency pair changes (with polling)
         useEffect(() => {
           const fetchData = () => {
+            setIsRefreshing(true);
             const cb = Date.now();
-            fetch(`/api/providers/${baseCurrency}/${targetCurrency}?t=${cb}`)
-              .then(res => res.json())
-              .then(data => {
-                if (data && data.length > 0) {
-                  setProviders(data);
-                  setMidRate(data[0].buy_rate); 
-                } else {
-                  setProviders([]);
-                  setMidRate(0);
-                }
-                setTimeout(() => lucide.createIcons(), 100);
-              })
-              .catch(err => {
-                console.error(err);
+            
+            Promise.all([
+              fetch(`/api/providers/${baseCurrency}/${targetCurrency}?t=${cb}`).then(res => res.json()),
+              fetch(`/api/trends/${baseCurrency}/${targetCurrency}?t=${cb}`).then(res => res.json())
+            ])
+            .then(([providersData, trendsData]) => {
+              if (providersData && providersData.length > 0) {
+                setProviders(providersData);
+                setMidRate(providersData[0].buy_rate); 
+              } else {
                 setProviders([]);
-              });
-
-            fetch(`/api/trends/${baseCurrency}/${targetCurrency}?t=${cb}`)
-              .then(res => res.json())
-              .then(data => {
-                if (data) {
-                  setTrendGrowth({ percentage: data.growthPercentage, trend: data.trend });
-                }
-              })
-              .catch(console.error);
+                setMidRate(0);
+              }
+              
+              if (trendsData) {
+                setTrendGrowth({ percentage: trendsData.growthPercentage, trend: trendsData.trend });
+              }
+              
+              setTimeout(() => lucide.createIcons(), 100);
+            })
+            .catch(console.error)
+            .finally(() => {
+              setTimeout(() => setIsRefreshing(false), 500); // Minimum spin duration for UX
+            });
           };
 
           fetchData();
           const interval = setInterval(fetchData, 5000); // Live poll every 5s
           return () => clearInterval(interval);
-        }, [baseCurrency, targetCurrency]);
+        }, [baseCurrency, targetCurrency, refreshTrigger]);
 
         // Fetch all trends when on the trends tab
         useEffect(() => {
@@ -254,8 +256,12 @@
                       {trendGrowth.trend === 'down' ? '-' : '+'}{trendGrowth.percentage}% <span className="text-white/60 ml-1 font-normal">vs yesterday</span>
                     </div>
                   </div>
-                  <button className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors">
-                    <Icon name="refresh-cw" size={18} className="text-white" />
+                  <button 
+                    onClick={() => setRefreshTrigger(prev => prev + 1)}
+                    disabled={isRefreshing}
+                    className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors disabled:opacity-50"
+                  >
+                    <Icon name="refresh-cw" size={18} className={`text-white ${isRefreshing ? 'animate-spin' : ''}`} />
                   </button>
                 </div>
               </div>
