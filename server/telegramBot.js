@@ -86,6 +86,20 @@ export const initTelegramBot = async () => {
                     [newRate, trend, pair]
                 );
 
+                // ALSO update Supabase so Remitwise UI syncs immediately
+                if (supabase) {
+                    const [base, target] = pair.split('/');
+                    await supabase.from('bank_fx_rates').insert([{
+                        bank_name: 'Admin Override',
+                        base_currency: base,
+                        target_currency: target,
+                        buy_rate: newRate,
+                        sell_rate: newRate,
+                        transfer_type: 'international_transfer',
+                        updated_at: new Date().toISOString()
+                    }]);
+                }
+
                 bot.sendMessage(chatId, `✅ *FX Rate Manually Overridden*\n\n**${pair}** is now firmly set to \`${newRate.toFixed(4)}\`.\n\nThe simulation engine will now use this as the new market baseline.`, { parse_mode: 'Markdown' });
                 console.log(`[Telegram] Manual rate override by ${msg.from.username}: ${pair} -> ${newRate}`);
             } catch (err) {
