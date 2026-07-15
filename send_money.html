@@ -80,6 +80,7 @@
         const [trendGrowth, setTrendGrowth] = useState({ percentage: '0.24', trend: 'up' });
         const [currentTab, setCurrentTab] = useState('home');
         const [allTrends, setAllTrends] = useState([]);
+        const [showAllProviders, setShowAllProviders] = useState(false);
         
         // Calculator State
         const [calcAmount, setCalcAmount] = useState('100.00');
@@ -315,11 +316,18 @@
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-xs font-bold text-brandPurple uppercase tracking-widest">Top Rate Providers</h3>
-                  <span className="text-[10px] font-bold text-brandPurple/60 uppercase tracking-widest">View All</span>
+                  {providers.length > 3 && (
+                    <button 
+                      onClick={() => setShowAllProviders(true)} 
+                      className="text-[10px] font-bold text-brandPurple uppercase tracking-widest hover:opacity-80 transition-opacity"
+                    >
+                      View All ({providers.length})
+                    </button>
+                  )}
                 </div>
 
                 <div className="space-y-3">
-                  {providers.map((p, idx) => {
+                  {providers.slice(0, 3).map((p, idx) => {
                     const branding = getProviderBranding(p.bank_name);
                     const isBest = idx === 0;
                     
@@ -509,44 +517,86 @@
             </div>
 
             {/* Bottom Navigation */}
-            <div className="absolute bottom-0 left-0 right-0 h-20 bg-white border-t border-black/5 flex justify-around items-center px-2 z-20 rounded-b-[40px]">
-              <div 
-                className={`flex flex-col items-center justify-center space-y-1 cursor-pointer transition-all duration-200 ${currentTab === 'home' ? 'opacity-100' : 'opacity-50'}`}
+            <div className="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto bg-white/80 backdrop-blur-xl border-t border-black/5 px-6 py-4 flex justify-between items-center z-40 pb-safe">
+              <button 
                 onClick={() => setCurrentTab('home')}
+                className={`flex flex-col items-center space-y-1 transition-colors ${currentTab === 'home' ? 'text-textPrimary' : 'text-textSecondary hover:text-textPrimary/70'}`}
               >
-                <div className={`px-5 py-1.5 rounded-full ${currentTab === 'home' ? 'bg-accentPurple' : ''}`}>
-                  <Icon name="home" size={20} className={currentTab === 'home' ? 'text-brandPurple' : 'text-textPrimary'} />
+                <div className={`w-12 h-8 rounded-full flex items-center justify-center ${currentTab === 'home' ? 'bg-accentPurple text-brandPurple' : 'bg-transparent'}`}>
+                  <Icon name="home" size={20} className={currentTab === 'home' ? 'text-brandPurple' : ''} />
                 </div>
-                <span className="text-[10px] font-bold text-textPrimary">Home</span>
-              </div>
-              
-              <div 
-                className={`flex flex-col items-center justify-center space-y-1 cursor-pointer transition-all duration-200 ${currentTab === 'trends' ? 'opacity-100' : 'opacity-50'}`}
+                <span className="text-[10px] font-bold">Home</span>
+              </button>
+              <button 
                 onClick={() => setCurrentTab('trends')}
+                className={`flex flex-col items-center space-y-1 transition-colors ${currentTab === 'trends' ? 'text-textPrimary' : 'text-textSecondary hover:text-textPrimary/70'}`}
               >
-                <div className={`px-5 py-1.5 rounded-full ${currentTab === 'trends' ? 'bg-accentPurple' : ''}`}>
-                  <Icon name="trending-up" size={20} className={currentTab === 'trends' ? 'text-brandPurple' : 'text-textPrimary'} />
+                <div className={`w-12 h-8 rounded-full flex items-center justify-center ${currentTab === 'trends' ? 'bg-accentPurple text-brandPurple' : 'bg-transparent'}`}>
+                  <Icon name="trending-up" size={20} className={currentTab === 'trends' ? 'text-brandPurple' : ''} />
                 </div>
-                <span className="text-[10px] font-medium text-textPrimary">Trends</span>
-              </div>
-
-              <div 
-                className={`flex flex-col items-center justify-center space-y-1 cursor-pointer transition-all duration-200 ${currentTab === 'calculator' ? 'opacity-100' : 'opacity-50'}`}
+                <span className="text-[10px] font-bold">Trends</span>
+              </button>
+              <button 
                 onClick={() => setCurrentTab('calculator')}
+                className={`flex flex-col items-center space-y-1 transition-colors ${currentTab === 'calculator' ? 'text-textPrimary' : 'text-textSecondary hover:text-textPrimary/70'}`}
               >
-                <div className={`px-5 py-1.5 rounded-full ${currentTab === 'calculator' ? 'bg-accentPurple' : ''}`}>
-                  <Icon name="calculator" size={20} className={currentTab === 'calculator' ? 'text-brandPurple' : 'text-textPrimary'} />
+                <div className={`w-12 h-8 rounded-full flex items-center justify-center ${currentTab === 'calculator' ? 'bg-accentPurple text-brandPurple' : 'bg-transparent'}`}>
+                  <Icon name="calculator" size={20} className={currentTab === 'calculator' ? 'text-brandPurple' : ''} />
                 </div>
-                <span className="text-[10px] font-medium text-textPrimary">Calculator</span>
-              </div>
-
-              <div className="flex flex-col items-center justify-center space-y-1 opacity-50">
-                <div className="px-5 py-1.5">
-                  <Icon name="settings" size={20} className="text-textPrimary" />
+                <span className="text-[10px] font-bold">Calculator</span>
+              </button>
+              <button 
+                onClick={() => setCurrentTab('settings')}
+                className={`flex flex-col items-center space-y-1 transition-colors ${currentTab === 'settings' ? 'text-textPrimary' : 'text-textSecondary hover:text-textPrimary/70'}`}
+              >
+                <div className={`w-12 h-8 rounded-full flex items-center justify-center ${currentTab === 'settings' ? 'bg-accentPurple text-brandPurple' : 'bg-transparent'}`}>
+                  <Icon name="settings" size={20} className={currentTab === 'settings' ? 'text-brandPurple' : ''} />
                 </div>
-                <span className="text-[10px] font-medium text-textPrimary">Settings</span>
-              </div>
+                <span className="text-[10px] font-bold">Settings</span>
+              </button>
             </div>
+
+            {/* View All Providers Modal */}
+            {showAllProviders && (
+              <div className="fixed inset-0 bg-background z-50 flex flex-col animate-fadeIn max-w-[480px] mx-auto overflow-hidden">
+                <div className="pt-12 pb-4 px-6 flex items-center bg-white border-b border-black/5 relative z-10">
+                  <button onClick={() => setShowAllProviders(false)} className="mr-4 p-2 -ml-2 text-textPrimary hover:opacity-70 rounded-full hover:bg-black/5 transition-all">
+                    <Icon name="arrow-left" size={24} />
+                  </button>
+                  <div>
+                    <h2 className="text-xl font-bold text-textPrimary tracking-tight">All Partners</h2>
+                    <p className="text-[10px] font-bold text-textSecondary uppercase tracking-widest">{baseCurrency} to {targetCurrency}</p>
+                  </div>
+                </div>
+                <div className="flex-1 overflow-y-auto px-6 py-6 space-y-3 bg-background relative z-0 pb-24">
+                  {providers.map((p, idx) => {
+                    const branding = getProviderBranding(p.bank_name);
+                    const isBest = idx === 0;
+                    return (
+                      <div key={idx} className="bg-white rounded-[1.5rem] p-4 flex items-center justify-between border border-black/5 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)]">
+                        <div className="flex items-center space-x-4">
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl ${branding.text}`} style={{ backgroundColor: branding.bg }}>
+                            {branding.initials}
+                          </div>
+                          <div>
+                            <div className="font-bold text-textPrimary text-sm">{p.bank_name}</div>
+                            <div className="text-[10px] text-textSecondary mt-0.5">
+                              Fee: {p.fee || '$0.00'} • Est: {isBest ? 'Fast' : '1-2 days'}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <div className="font-bold text-textPrimary text-sm">{p.buy_rate.toFixed(2)} {targetCurrency}</div>
+                          <div className={`text-[9px] font-bold uppercase tracking-wider mt-0.5 ${p.badgeClass || (isBest ? 'text-success' : 'text-textSecondary')}`}>
+                            {p.badge || (isBest ? 'Best Overall' : 'Standard')}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             
           </div>
         );
