@@ -170,7 +170,7 @@ export const initTelegramBot = async () => {
                     const base64Image = Buffer.from(response.data, 'binary').toString('base64');
                     
                     // 3. Call Gemini Vision Model
-                    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+                    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
                     const prompt = `
 You are an expert financial Optical Character Recognition (OCR) system.
 Extract EVERY currency pair and its buy/sell rates from the provided image.
