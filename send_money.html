@@ -317,12 +317,12 @@
               <div>
                 <div className="flex justify-between items-center mb-4">
                   <h3 className="text-xs font-bold text-brandPurple uppercase tracking-widest">Top Rate Providers</h3>
-                  {providers.length > 3 && (
+                  {providers.length > 0 && (
                     <button 
                       onClick={() => setShowAllProviders(true)} 
                       className="text-[10px] font-bold text-brandPurple uppercase tracking-widest hover:opacity-80 transition-opacity"
                     >
-                      View All ({providers.length})
+                      View All {providers.length > 3 ? `(${providers.length})` : ''}
                     </button>
                   )}
                 </div>
