@@ -510,6 +510,78 @@ app.get('/api/trends/:base/:target', async (req, res) => {
   }
 });
 
+// GET /api/rates/chart/:base/:target - Fetch synthetic historical data for chart
+app.get('/api/rates/chart/:base/:target', async (req, res) => {
+  try {
+    const base = req.params.base.toUpperCase();
+    const target = req.params.target.toUpperCase();
+    
+    let days = 30;
+    if (req.query.days) {
+        days = parseInt(req.query.days);
+    } else if (req.query.from && req.query.to) {
+        const fromDate = new Date(req.query.from);
+        const toDate = new Date(req.query.to);
+        days = Math.max(1, Math.ceil((toDate - fromDate) / (1000 * 60 * 60 * 24)));
+    }
+    
+    // For demo purposes, we fetch the CURRENT live rate and generate synthetic history.
+    const { data: liveData } = await supabase
+        .from('bank_fx_rates')
+        .select('buy_rate')
+        .eq('base_currency', base)
+        .eq('target_currency', target)
+        .order('buy_rate', { ascending: false })
+        .limit(1);
+        
+    let currentRate = 25.54; // default fallback
+    if (liveData && liveData.length > 0) currentRate = liveData[0].buy_rate;
+
+    // Use a fixed hash to anchor the starting rate so it looks consistent across reloads
+    const baseHashStr = `${base}-${target}`;
+    let bHash = 0;
+    for (let j = 0; j < baseHashStr.length; j++) bHash = Math.imul(31, bHash) + baseHashStr.charCodeAt(j) | 0;
+    const initialOffset = ((Math.abs(bHash) % 100) / 100) * 0.04 - 0.02; // -2% to +2%
+    
+    let currentWalk = currentRate * (1 + initialOffset);
+    const chartData = [];
+    
+    // If a custom 'to' date is provided, use it. Otherwise use today.
+    let endDate = new Date();
+    if (req.query.to) {
+        endDate = new Date(req.query.to);
+    }
+    
+    for (let i = days; i >= 0; i--) {
+        const d = new Date(endDate);
+        d.setDate(d.getDate() - i);
+        
+        const seedStr = `${base}-${target}-${d.toISOString().split('T')[0]}`;
+        let hash = 0;
+        for (let j = 0; j < seedStr.length; j++) {
+            hash = Math.imul(31, hash) + seedStr.charCodeAt(j) | 0;
+        }
+        
+        // Fluctuate by -0.3% to +0.3% per day
+        const randomPercent = ((Math.abs(hash) % 100) / 100) * 0.006 - 0.003;
+        currentWalk = currentWalk * (1 + randomPercent);
+        
+        // Force the very last dot to exactly match the live rate if it ends on today
+        if (i === 0 && !req.query.to) currentWalk = currentRate; 
+        
+        chartData.push({
+            date: d.toISOString().split('T')[0],
+            rate: parseFloat(currentWalk.toFixed(4))
+        });
+    }
+
+    res.json(chartData);
+  } catch (e) {
+    console.error('Error fetching chart data:', e);
+    res.status(500).json({ error: 'Failed to fetch chart data' });
+  }
+});
+
 // GET /v1/{bin} - Swagger BIN Lookup API with search filtering restrictions
 app.get('/v1/:bin', authenticateApiKey, async (req, res) => {
   const binId = req.params.bin;
