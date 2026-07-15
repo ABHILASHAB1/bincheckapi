@@ -235,11 +235,11 @@ export const initTelegramBot = async () => {
 You are an expert financial Optical Character Recognition (OCR) system.
 Extract EVERY currency pair and its buy/sell rates from the provided image.
 Return ONLY a strictly formatted JSON array of objects with the following keys:
-- "bank_name": The name of the bank or provider (e.g., "Transfast (Urpay)", "STC PAY").
+- "bank_name": The name of the bank or provider (e.g., "Transfast", "STC PAY", "Interbank").
 - "base_currency": The base currency code (e.g., "SAR").
 - "target_currency": The target currency code (e.g., "INR").
-- "buy_rate": The buy rate as a number.
-- "sell_rate": The sell rate as a number.
+- "buy_rate": The buy rate or primary exchange rate as a number.
+- "sell_rate": The sell rate as a number (optional).
 Example format: [{"bank_name": "Transfast (Urpay)", "base_currency": "SAR", "target_currency": "INR", "buy_rate": 25.308, "sell_rate": 25.193}]
                     `;
 
@@ -293,12 +293,13 @@ Example format: [{"bank_name": "Transfast (Urpay)", "base_currency": "SAR", "tar
 
                     // 4. Update the Databases (Supabase + SQLite)
                     for (const item of parsedData) {
-                        if (!item.base_currency || !item.target_currency || !item.buy_rate) continue;
+                        const extractedRate = item.buy_rate || item.rate || item.exchange_rate;
+                        if (!item.base_currency || !item.target_currency || !extractedRate) continue;
 
-                        const bankName = item.bank_name || 'AI Extracted';
+                        const bankName = item.bank_name || 'Interbank / AI Extracted';
                         const baseCurrency = item.base_currency.toUpperCase();
                         const targetCurrency = item.target_currency.toUpperCase();
-                        const buyRate = parseFloat(item.buy_rate);
+                        const buyRate = parseFloat(extractedRate);
                         const sellRate = item.sell_rate ? parseFloat(item.sell_rate) : buyRate;
                         // Use the extracted image timestamp
                         const updatedTimestamp = imageTimestamp;
