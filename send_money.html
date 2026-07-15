@@ -167,7 +167,8 @@
         // Fetch live rates and trends when currency pair changes (with polling)
         useEffect(() => {
           const fetchData = () => {
-            fetch(`/api/providers/${baseCurrency}/${targetCurrency}`)
+            const cb = Date.now();
+            fetch(`/api/providers/${baseCurrency}/${targetCurrency}?t=${cb}`)
               .then(res => res.json())
               .then(data => {
                 if (data && data.length > 0) {
@@ -184,7 +185,7 @@
                 setProviders([]);
               });
 
-            fetch(`/api/trends/${baseCurrency}/${targetCurrency}`)
+            fetch(`/api/trends/${baseCurrency}/${targetCurrency}?t=${cb}`)
               .then(res => res.json())
               .then(data => {
                 if (data) {
@@ -203,7 +204,7 @@
         useEffect(() => {
           if (currentTab !== 'trends') return;
           const fetchAllTrends = () => {
-            fetch(`/api/trends/${baseCurrency}/all`)
+            fetch(`/api/trends/${baseCurrency}/all?t=${Date.now()}`)
               .then(res => res.json())
               .then(data => {
                 setAllTrends(data || []);
