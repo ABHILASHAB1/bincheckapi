@@ -332,7 +332,7 @@ Example format: [{"bank_name": "Transfast (Urpay)", "base_currency": "SAR", "tar
                                     buy_rate: buyRate,
                                     sell_rate: sellRate,
                                     updated_at: updatedTimestamp
-                                }], { onConflict: 'unique_bank_currency_pair' });
+                                }], { onConflict: 'bank_name,target_currency' });
                                 console.log(`[Supabase] Logged ${sqlitePair} into bank_fx_rates & fx_scan_rows`);
                             } catch (e) {
                                 console.error('[Supabase] Architectural Insert failed:', e);
