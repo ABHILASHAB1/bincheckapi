@@ -169,7 +169,14 @@ async function authenticateApiKey(req, res, next) {
 }
 
 // Health check endpoint
-app.get('/health', (req, res) => {
+app.get('/api/botstatus', (req, res) => {
+    res.json({
+        tokenExists: !!process.env.TELEGRAM_BOT_TOKEN,
+        geminiExists: !!process.env.GEMINI_API_KEY
+    });
+});
+
+app.get('/api/health', (req, res) => {
   res.json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
