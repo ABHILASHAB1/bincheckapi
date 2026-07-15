@@ -169,6 +169,40 @@ export const initTelegramBot = async () => {
                     const response = await axios.get(fileLink, { responseType: 'arraybuffer' });
                     const base64Image = Buffer.from(response.data, 'binary').toString('base64');
                     
+                    // --- SUPABASE STORAGE: Archive Screenshot ---
+                    let uploadedImageUrl = null;
+                    let scanId = null;
+                    if (supabase) {
+                        try {
+                            const fileName = `${Date.now()}_${chatId}.jpg`;
+                            const { error: storageError } = await supabase.storage
+                                .from('screenshots')
+                                .upload(fileName, response.data, {
+                                    contentType: 'image/jpeg',
+                                    upsert: false
+                                });
+                            
+                            if (!storageError) {
+                                const { data: publicUrlData } = supabase.storage.from('screenshots').getPublicUrl(fileName);
+                                uploadedImageUrl = publicUrlData.publicUrl;
+                            }
+                            
+                            // Create fx_scan session
+                            const { data: scanData, error: scanError } = await supabase.from('fx_scan').insert([{
+                                app_name: 'Telegram Bot',
+                                image_url: uploadedImageUrl,
+                                ocr_engine: 'gemini-1.5-flash',
+                                validation_status: 'pending'
+                            }]).select('id').single();
+                            
+                            if (!scanError && scanData) {
+                                scanId = scanData.id;
+                            }
+                        } catch (err) {
+                            console.error('Failed to create fx_scan record or upload image:', err.message);
+                        }
+                    }
+
                     // 3. Call Gemini Vision Model
                     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
                     const prompt = `
@@ -223,51 +257,63 @@ Example format: [{"bank_name": "Transfast (Urpay)", "base_currency": "SAR", "tar
                         // Use the extracted image timestamp
                         const updatedTimestamp = imageTimestamp;
 
-                        // --- SUPABASE AUDIT LOG (bank_fx_rates) ---
-                        if (supabase) {
-                            try {
-                                await supabase.from('bank_fx_rates').insert([{
-                                    bank_name: bankName,
-                                    base_currency: baseCurrency,
-                                    target_currency: targetCurrency,
-                                    buy_rate: buyRate,
-                                    sell_rate: sellRate,
-                                    transfer_type: 'international_transfer',
-                                    updated_at: updatedTimestamp
-                                }]);
-                                console.log(`[Supabase] Logged ${baseCurrency}/${targetCurrency} into bank_fx_rates`);
-                            } catch (e) {
-                                console.error('[Supabase] Insert failed:', e);
-                            }
-                        }
-
-                        // --- SQLITE LIVE SIMULATOR UPSERT ---
-                        const sqlitePair = `${baseCurrency}/${targetCurrency}`;
+                        const sqlitePair = `${baseCurrency}_${targetCurrency}`;
                         // Calculate a synthetic spread for the UI based on buy/sell difference
                         const syntheticSpread = (sellRate && sellRate !== buyRate) ? Math.abs((buyRate - sellRate) / buyRate) : 0.01;
                         // Use mid-rate for the primary display rate
                         const midRate = sellRate ? (buyRate + sellRate) / 2 : buyRate;
 
-                        const existing = await db.get('SELECT rate, spread FROM fx_rates WHERE pair = ?', [sqlitePair]);
+                        // --- SUPABASE ADVANCED ARCHITECTURE ---
+                        if (supabase) {
+                            try {
+                                // 1. Log Raw Extraction Row
+                                if (scanId) {
+                                    await supabase.from('fx_scan_rows').insert([{
+                                        scan_id: scanId,
+                                        provider: bankName,
+                                        rate: midRate,
+                                        updated_at_text: updatedTimestamp,
+                                        confidence: 99.0 // Stubbed for Gemini, will be dynamic for PaddleOCR later
+                                    }]);
+                                }
+
+                                // 2. Finalize into Master Audit Log (fx_history)
+                                await supabase.from('fx_history').insert([{
+                                    pair: sqlitePair,
+                                    rate: midRate,
+                                    provider: bankName,
+                                    spread_pc: syntheticSpread,
+                                    created_at: updatedTimestamp
+                                }]);
+                                console.log(`[Supabase] Logged ${sqlitePair} into fx_history & fx_scan_rows`);
+                            } catch (e) {
+                                console.error('[Supabase] Architectural Insert failed:', e);
+                            }
+                        }
+
+                        // --- SQLITE LIVE SIMULATOR UPSERT ---
+                        const sqlitePairDisplay = `${baseCurrency}/${targetCurrency}`;
+                        
+                        const existing = await db.get('SELECT rate, spread FROM fx_rates WHERE pair = ?', [sqlitePairDisplay]);
                         
                         if (!existing) {
                             // Insert new pair dynamically
                             await db.run(
                                 'INSERT INTO fx_rates (pair, rate, spread, trend, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)',
-                                [sqlitePair, midRate, syntheticSpread, 'stable']
+                                [sqlitePairDisplay, midRate, syntheticSpread, 'stable']
                             );
-                            successfulUpdates.push(`${sqlitePair}: \`${midRate.toFixed(4)}\` (NEW) via ${bankName}`);
+                            successfulUpdates.push(`${sqlitePairDisplay}: \`${midRate.toFixed(4)}\` (NEW) via ${bankName}`);
                         } else {
                             // Update existing pair
                             const trend = midRate > existing.rate ? 'up' : 'down';
                             await db.run(
                                 'UPDATE fx_rates SET rate = ?, spread = ?, trend = ?, updated_at = CURRENT_TIMESTAMP WHERE pair = ?',
-                                [midRate, syntheticSpread, trend, sqlitePair]
+                                [midRate, syntheticSpread, trend, sqlitePairDisplay]
                             );
-                            successfulUpdates.push(`${sqlitePair}: \`${midRate.toFixed(4)}\` via ${bankName}`);
+                            successfulUpdates.push(`${sqlitePairDisplay}: \`${midRate.toFixed(4)}\` via ${bankName}`);
                         }
                         
-                        console.log(`[Telegram AI] Extracted & Upserted ${sqlitePair} -> ${midRate}`);
+                        console.log(`[Telegram AI] Extracted & Upserted ${sqlitePairDisplay} -> ${midRate}`);
                     }
 
                     bot.sendMessage(chatId, `✅ *AI Enterprise Data Sync Successful*\n\n${successfulUpdates.join('\n')}\n\nBoth SQLite Simulation and Supabase Audit Log have been updated.`, { parse_mode: 'Markdown' });
