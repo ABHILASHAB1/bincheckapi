@@ -274,7 +274,7 @@ Example format: [{"bank_name": "Transfast (Urpay)", "base_currency": "SAR", "tar
                     
                 } catch (error) {
                     console.error('Error processing image with Gemini:', error);
-                    bot.sendMessage(chatId, '❌ AI Parsing Failed. Could not extract a valid currency pair and rate from the image.');
+                    bot.sendMessage(chatId, `❌ AI Parsing Failed.\n\nReason: ${error.message}\n\nCould not extract a valid currency pair and rate from the image.`);
                 }
             });
         }
