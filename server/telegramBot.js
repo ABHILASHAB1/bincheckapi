@@ -217,7 +217,7 @@ export const initTelegramBot = async () => {
                             const { data: scanData, error: scanError } = await supabase.from('fx_scan').insert([{
                                 app_name: 'Telegram Bot',
                                 image_url: uploadedImageUrl,
-                                ocr_engine: 'gemini-1.5-flash',
+                                ocr_engine: 'gemini',
                                 validation_status: 'pending'
                             }]).select('id').single();
                             
@@ -229,8 +229,8 @@ export const initTelegramBot = async () => {
                         }
                     }
 
-                    // 3. Call Gemini Vision Model
-                    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+                    // 3. Call Gemini Vision Model with Enterprise Fallback
+                    const fallbackModels = ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-2.0-flash", "gemini-2.5-pro"];
                     const prompt = `
 You are an expert financial Optical Character Recognition (OCR) system.
 Extract EVERY currency pair and its buy/sell rates from the provided image.
@@ -243,19 +243,39 @@ Return ONLY a strictly formatted JSON array of objects with the following keys:
 Example format: [{"bank_name": "Transfast (Urpay)", "base_currency": "SAR", "target_currency": "INR", "buy_rate": 25.308, "sell_rate": 25.193}]
                     `;
 
-                    const result = await model.generateContent([
-                        prompt,
-                        {
-                            inlineData: {
-                                data: base64Image,
-                                mimeType: "image/jpeg"
-                            }
+                    let result = null;
+                    let lastError = null;
+                    let successfulModel = null;
+
+                    for (const modelName of fallbackModels) {
+                        try {
+                            const model = genAI.getGenerativeModel({ model: modelName });
+                            result = await model.generateContent([
+                                prompt,
+                                {
+                                    inlineData: {
+                                        data: base64Image,
+                                        mimeType: "image/jpeg"
+                                    }
+                                }
+                            ], {
+                                generationConfig: {
+                                    responseMimeType: "application/json"
+                                }
+                            });
+                            
+                            successfulModel = modelName;
+                            console.log(`[Gemini] Successfully extracted using ${modelName}`);
+                            break; // Exit loop on success
+                        } catch (err) {
+                            console.warn(`[Gemini] ${modelName} failed (${err.message}). Trying next fallback...`);
+                            lastError = err;
                         }
-                    ], {
-                        generationConfig: {
-                            responseMimeType: "application/json"
-                        }
-                    });
+                    }
+
+                    if (!result) {
+                        throw lastError; // Throw the last encountered error if all fail
+                    }
                     
                     const responseText = result.response.text().replace(/\`\`\`json/g, '').replace(/\`\`\`/g, '').trim();
                     let parsedData = JSON.parse(responseText);
