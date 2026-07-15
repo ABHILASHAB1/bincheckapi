@@ -62,14 +62,34 @@ export const initTelegramBot = async () => {
         });
 
         // Admin command to manually override FX Rates
-        // Usage: /setrate SAR/INR 23.50
-        bot.onText(/\/setrate (.+) ([\d.]+)/, async (msg, match) => {
+        // Usage: /override SAR/INR 23.50
+        // Usage: /override SAR/INR 23.50 STC Pay 15-07-2026
+        bot.onText(/\/override ([a-zA-Z]{3})\/([a-zA-Z]{3}) ([\d.]+)(?:\s+(.+))?/i, async (msg, match) => {
             const chatId = msg.chat.id;
-            const pair = match[1].toUpperCase();
-            const newRate = parseFloat(match[2]);
+            const pair = `${match[1].toUpperCase()}/${match[2].toUpperCase()}`;
+            const newRate = parseFloat(match[3]);
+            let rawExtra = (match[4] || '').trim();
+
+            let provider = 'Admin Override';
+            let targetDate = new Date().toISOString();
+
+            const dateRegex = /\b(\d{2})-(\d{2})-(\d{4})\b$/;
+            const dateMatch = rawExtra.match(dateRegex);
+
+            if (dateMatch) {
+                const day = parseInt(dateMatch[1], 10);
+                const month = parseInt(dateMatch[2], 10) - 1;
+                const year = parseInt(dateMatch[3], 10);
+                targetDate = new Date(Date.UTC(year, month, day, 12, 0, 0)).toISOString();
+                rawExtra = rawExtra.replace(dateRegex, '').trim();
+            }
+
+            if (rawExtra) {
+                provider = rawExtra;
+            }
 
             if (isNaN(newRate)) {
-                return bot.sendMessage(chatId, '❌ Invalid rate format. Usage: `/setrate SAR/INR 22.50`', { parse_mode: 'Markdown' });
+                return bot.sendMessage(chatId, '❌ Invalid rate format. Usage: `/override SAR/INR 22.50 [Provider] [dd-mm-yyyy]`', { parse_mode: 'Markdown' });
             }
 
             try {
@@ -90,13 +110,13 @@ export const initTelegramBot = async () => {
                 if (supabase) {
                     const [base, target] = pair.split('/');
                     await supabase.from('bank_fx_rates').insert([{
-                        bank_name: 'Admin Override',
+                        bank_name: provider,
                         base_currency: base,
                         target_currency: target,
                         buy_rate: newRate,
                         sell_rate: newRate,
                         transfer_type: 'international_transfer',
-                        updated_at: new Date().toISOString()
+                        updated_at: targetDate
                     }]);
                 }
 
@@ -116,6 +136,19 @@ export const initTelegramBot = async () => {
             
             bot.on('photo', async (msg) => {
                 const chatId = msg.chat.id;
+                
+                // Extract date from caption if present (dd-mm-yyyy)
+                let imageTimestamp = new Date().toISOString();
+                if (msg.caption) {
+                    const captionRegex = /\b(\d{2})-(\d{2})-(\d{4})\b/;
+                    const match = msg.caption.match(captionRegex);
+                    if (match) {
+                        const day = parseInt(match[1], 10);
+                        const month = parseInt(match[2], 10) - 1;
+                        const year = parseInt(match[3], 10);
+                        imageTimestamp = new Date(Date.UTC(year, month, day, 12, 0, 0)).toISOString();
+                    }
+                }
                 
                 // Telegram sends multiple sizes; get the largest one
                 const highestResPhoto = msg.photo[msg.photo.length - 1];
@@ -181,7 +214,8 @@ Example format: [{"bank_name": "Transfast (Urpay)", "base_currency": "SAR", "tar
                         const targetCurrency = item.target_currency.toUpperCase();
                         const buyRate = parseFloat(item.buy_rate);
                         const sellRate = item.sell_rate ? parseFloat(item.sell_rate) : buyRate;
-                        const updatedTimestamp = new Date().toISOString();
+                        // Use the extracted image timestamp
+                        const updatedTimestamp = imageTimestamp;
 
                         // --- SUPABASE AUDIT LOG (bank_fx_rates) ---
                         if (supabase) {
