@@ -21,6 +21,12 @@ export const initTelegramBot = async () => {
         return;
     }
 
+    // Prevents 409 Conflict by stopping your local computer from stealing the bot connection
+    if (process.env.NODE_ENV !== 'production' && !process.env.RENDER) {
+        console.warn('⚠️ Running locally! Telegram Bot polling is DISABLED so the live Render server can work without interference.');
+        return;
+    }
+
     try {
         db = await open({
             filename: 'server/bins.sqlite',
