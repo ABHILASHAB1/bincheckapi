@@ -140,6 +140,32 @@ export const initTelegramBot = async () => {
         if (geminiApiKey) {
             genAI = new GoogleGenerativeAI(geminiApiKey);
             
+            bot.on('message', async (msg) => {
+                const chatId = msg.chat.id;
+
+                // --- NEW DIAGNOSTIC COMMAND: /models ---
+                if (msg.text && msg.text.startsWith('/models')) {
+                    try {
+                        bot.sendMessage(chatId, "🔍 Fetching available Gemini models for your API key...");
+                        
+                        // Unfortunately, the Node SDK doesn't expose listModels cleanly in all versions.
+                        // We will use raw fetch to call the REST API.
+                        const response = await axios.get(`https://generativelanguage.googleapis.com/v1beta/models?key=${geminiApiKey}`);
+                        const models = response.data.models;
+                        
+                        const generateContentModels = models
+                            .filter(m => m.supportedGenerationMethods.includes('generateContent'))
+                            .map(m => m.name.replace('models/', ''))
+                            .join('\n- ');
+
+                        bot.sendMessage(chatId, `✅ **Supported Models for generateContent:**\n\n- ${generateContentModels}`, { parse_mode: 'Markdown' });
+                    } catch (err) {
+                        bot.sendMessage(chatId, `❌ **Failed to fetch models:**\n${err.message}`);
+                    }
+                    return;
+                }
+            });
+
             bot.on('photo', async (msg) => {
                 const chatId = msg.chat.id;
                 
