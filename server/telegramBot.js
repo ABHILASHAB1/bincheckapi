@@ -324,15 +324,16 @@ Example format: [{"bank_name": "Transfast (Urpay)", "base_currency": "SAR", "tar
                                     }]);
                                 }
 
-                                // 2. Finalize into Master Audit Log (fx_history)
-                                await supabase.from('fx_history').insert([{
-                                    pair: sqlitePair,
-                                    rate: midRate,
-                                    provider: bankName,
-                                    spread_pc: syntheticSpread,
-                                    created_at: updatedTimestamp
+                                // 2. Finalize into Master Audit Log (bank_fx_rates)
+                                await supabase.from('bank_fx_rates').insert([{
+                                    bank_name: bankName,
+                                    base_currency: baseCurrency,
+                                    target_currency: targetCurrency,
+                                    buy_rate: buyRate,
+                                    sell_rate: sellRate,
+                                    updated_at: updatedTimestamp
                                 }]);
-                                console.log(`[Supabase] Logged ${sqlitePair} into fx_history & fx_scan_rows`);
+                                console.log(`[Supabase] Logged ${sqlitePair} into bank_fx_rates & fx_scan_rows`);
                             } catch (e) {
                                 console.error('[Supabase] Architectural Insert failed:', e);
                             }
