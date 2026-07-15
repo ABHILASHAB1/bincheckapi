@@ -363,7 +363,7 @@ Example format: [{"bank_name": "Transfast (Urpay)", "base_currency": "SAR", "tar
                         console.log(`[Telegram AI] Extracted & Upserted ${sqlitePairDisplay} -> ${midRate}`);
                     }
 
-                    bot.sendMessage(chatId, `✅ *AI Enterprise Data Sync Successful*\n\n${successfulUpdates.join('\n')}\n\nBoth SQLite Simulation and Supabase Audit Log have been updated.`, { parse_mode: 'Markdown' });
+                    bot.sendMessage(chatId, `✅ *AI Enterprise Data Sync Successful*\n_(Extracted via ${successfulModel})_\n\n${successfulUpdates.join('\n')}\n\nBoth SQLite Simulation and Supabase Audit Log have been updated.`, { parse_mode: 'Markdown' });
                     
                 } catch (error) {
                     console.error('Error processing image with Gemini:', error);
