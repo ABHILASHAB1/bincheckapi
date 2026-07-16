@@ -537,7 +537,7 @@
                                 Live Mid-Market Rate <div className="w-1.5 h-1.5 rounded-full bg-success ml-2 mr-1"></div> <span className="text-[10px] text-success tracking-widest uppercase">Live</span>
                             </div>
                             <div className="text-[42px] leading-none font-black text-textPrimary tracking-tight">
-                                {selectedTrend.rate.toFixed(5)}
+                                {(selectedTrend.mid_rate || selectedTrend.rate).toFixed(5)}
                             </div>
                         </div>
                         <div className="bg-[#F8F9FA] px-3 py-2 rounded-xl text-right border border-black/5 shadow-sm">
@@ -682,7 +682,7 @@
                               <div className="flex items-center text-xs font-bold text-textSecondary">
                                   Buy Rate <div className="w-1.5 h-1.5 rounded-full bg-success ml-2"></div>
                               </div>
-                              <div className="text-sm font-bold text-textPrimary">{(selectedTrend.rate + 0.00295).toFixed(5)}</div>
+                              <div className="text-sm font-bold text-textPrimary">{(selectedTrend.buy_rate || (selectedTrend.rate + 0.00295)).toFixed(5)}</div>
                           </div>
                           <div className="flex justify-between items-center">
                               <div className="flex items-center text-xs font-bold text-textPrimary">
@@ -690,14 +690,14 @@
                               </div>
                               <div className="flex items-center space-x-3">
                                   <div className="bg-purple-50 text-brandPurple px-2 py-0.5 rounded text-[9px] font-bold">You get this</div>
-                                  <div className="text-sm font-bold text-textPrimary">{selectedTrend.rate.toFixed(5)}</div>
+                                  <div className="text-sm font-bold text-textPrimary">{(selectedTrend.mid_rate || selectedTrend.rate).toFixed(5)}</div>
                               </div>
                           </div>
                           <div className="flex justify-between items-center">
                               <div className="flex items-center text-xs font-bold text-textSecondary">
                                   Sell Rate <div className="w-1.5 h-1.5 rounded-full bg-red-500 ml-2"></div>
                               </div>
-                              <div className="text-sm font-bold text-textPrimary">{(selectedTrend.rate - 0.00295).toFixed(5)}</div>
+                              <div className="text-sm font-bold text-textPrimary">{(selectedTrend.sell_rate || (selectedTrend.rate - 0.00295)).toFixed(5)}</div>
                           </div>
                       </div>
                   </div>
@@ -721,7 +721,7 @@
                           </div>
                           <div className="bg-white flex-1 rounded-[16px] p-3 border border-black/5 shadow-sm flex justify-between items-center">
                               <div>
-                                  <div className="text-base font-black text-textPrimary">{(selectedTrend.rate * 1000).toFixed(2)}</div>
+                                  <div className="text-base font-black text-textPrimary">{((selectedTrend.mid_rate || selectedTrend.rate) * 1000).toFixed(2)}</div>
                                   <div className="text-[10px] font-bold text-textSecondary mt-0.5">{selectedTrend.target}</div>
                               </div>
                               <div className="flex items-center space-x-1">

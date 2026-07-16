@@ -229,6 +229,71 @@ app.post('/api/fx-rates', express.json(), async (req, res) => {
   }
 });
 
+app.post('/api/ocr/ingest', express.json(), async (req, res) => {
+  try {
+    const { base_currency, rates } = req.body;
+    if (!base_currency || !Array.isArray(rates)) {
+        return res.status(400).json({ error: 'Invalid OCR payload' });
+    }
+
+    if (!supabase) {
+        return res.status(503).json({ error: 'Database connection not available' });
+    }
+
+    const insertedRows = [];
+    
+    for (const rateObj of rates) {
+        // Enforce the OCR Logic strictly
+        const ocr_rate = parseFloat(rateObj.sell_rate || rateObj.ocr_rate || rateObj.rate);
+        if (isNaN(ocr_rate) || ocr_rate <= 0) continue;
+        
+        // Calculations according to the prompt
+        const sell_rate = ocr_rate;
+        const mid_rate = parseFloat((sell_rate * 0.99).toFixed(5));
+        const buy_rate = parseFloat((sell_rate * 0.98).toFixed(5));
+        const target_currency = rateObj.currency;
+        
+        const row = {
+            bank_name: rateObj.source || 'OCR_Pipeline',
+            base_currency: base_currency.toUpperCase(),
+            target_currency: target_currency.toUpperCase(),
+            buy_rate: buy_rate,
+            sell_rate: sell_rate,
+            // mid_rate: mid_rate, // NOTE: Needs to be added via SQL in Supabase dashboard
+            transfer_type: 'international_transfer',
+            updated_at: new Date().toISOString()
+        };
+        
+        const { error: insertErr } = await supabase.from('bank_fx_rates').insert([row]);
+        if (insertErr) {
+            console.error('OCR DB Insert Error:', insertErr.message);
+        } else {
+            // Log to fx_history for the charts
+            const pair = `${row.base_currency}_${row.target_currency}`;
+            await supabase.from('fx_history').insert([{
+                pair: pair,
+                rate: buy_rate, // using buy rate for historical trend line
+                provider: row.bank_name,
+                spread_pct: 0
+            }]);
+        }
+        
+        insertedRows.push({
+            currency: target_currency,
+            buy_rate,
+            mid_rate,
+            sell_rate,
+            status: insertErr ? 'failed' : 'success'
+        });
+    }
+
+    res.json({ success: true, processed: insertedRows });
+  } catch (err) {
+    console.error('OCR Ingest Error:', err);
+    res.status(500).json({ error: 'Failed to process OCR payload' });
+  }
+});
+
 app.post('/api/payout-calculator', express.json(), (req, res) => {
   const { baseAmount, pair, spread, flatCommission } = req.body;
   
@@ -383,7 +448,7 @@ app.get('/api/trends/:base/all', async (req, res) => {
     // Fetch today's rates
     const { data: todayData, error: todayError } = await supabase
         .from('bank_fx_rates')
-        .select('target_currency, buy_rate')
+        .select('target_currency, buy_rate, sell_rate')
         .eq('base_currency', base)
         .gte('updated_at', todayStartUTC.toISOString())
         .lt('updated_at', todayEndUTC.toISOString());
@@ -404,7 +469,7 @@ app.get('/api/trends/:base/all', async (req, res) => {
     const todayByTarget = {};
     for (const r of (todayData || [])) {
         if (!todayByTarget[r.target_currency]) todayByTarget[r.target_currency] = [];
-        todayByTarget[r.target_currency].push(r.buy_rate);
+        todayByTarget[r.target_currency].push(r);
     }
     
     const yesterdayByTarget = {};
@@ -418,16 +483,19 @@ app.get('/api/trends/:base/all', async (req, res) => {
 
     for (const target of allTargets) {
         let growth = 0;
-        let bestToday = 0;
+        let bestTodayRow = null;
         
         const tRates = todayByTarget[target];
         const yRates = yesterdayByTarget[target];
         
         if (tRates && tRates.length > 0) {
-            bestToday = Math.max(...tRates);
+            // Find the object with the highest buy_rate
+            bestTodayRow = tRates.reduce((prev, current) => (prev.buy_rate > current.buy_rate) ? prev : current);
         }
         
-        if (tRates && tRates.length > 0 && yRates && yRates.length > 0) {
+        const bestToday = bestTodayRow ? bestTodayRow.buy_rate : 0;
+        
+        if (bestToday > 0 && yRates && yRates.length > 0) {
             const bestYesterday = Math.max(...yRates);
             if (bestYesterday > 0) {
                 growth = ((bestToday - bestYesterday) / bestYesterday) * 100;
@@ -435,9 +503,21 @@ app.get('/api/trends/:base/all', async (req, res) => {
         }
         
         if (bestToday > 0 || (yRates && yRates.length > 0)) {
+           // Base rate calculation on the highest today, or highest yesterday if today doesn't exist
+           const primaryBuyRate = bestToday > 0 ? bestToday : Math.max(...yRates);
+           
+           // If we have a real sell_rate from the DB, use it. Otherwise compute it backwards from buy_rate (buy = sell * 0.98 => sell = buy / 0.98)
+           const sell_rate = (bestTodayRow && bestTodayRow.sell_rate) ? bestTodayRow.sell_rate : (primaryBuyRate / 0.98);
+           
+           // Compute mid rate strictly as 99% of sell rate
+           const mid_rate = sell_rate * 0.99;
+           
            results.push({
                target_currency: target,
-               rate: bestToday > 0 ? bestToday.toFixed(2) : Math.max(...yRates).toFixed(2),
+               rate: parseFloat(primaryBuyRate.toFixed(5)), // Keep 'rate' as buy_rate for backwards compatibility
+               buy_rate: parseFloat(primaryBuyRate.toFixed(5)),
+               mid_rate: parseFloat(mid_rate.toFixed(5)),
+               sell_rate: parseFloat(sell_rate.toFixed(5)),
                growthPercentage: Math.abs(growth).toFixed(2),
                trend: growth >= 0 ? 'up' : 'down'
            });
