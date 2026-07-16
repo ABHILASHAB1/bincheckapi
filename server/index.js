@@ -517,15 +517,48 @@ app.get('/api/rates/chart/:base/:target', async (req, res) => {
     const target = req.params.target.toUpperCase();
     
     let days = 30;
-    if (req.query.days) {
-        days = parseInt(req.query.days);
-    } else if (req.query.from && req.query.to) {
-        const fromDate = new Date(req.query.from);
-        const toDate = new Date(req.query.to);
+    let fromDate = new Date();
+    let toDate = new Date();
+
+    if (req.query.from && req.query.to) {
+        fromDate = new Date(req.query.from);
+        toDate = new Date(req.query.to);
         days = Math.max(1, Math.ceil((toDate - fromDate) / (1000 * 60 * 60 * 24)));
+    } else if (req.query.days) {
+        days = parseInt(req.query.days);
+        fromDate.setDate(fromDate.getDate() - days);
     }
-    
-    // For demo purposes, we fetch the CURRENT live rate and generate synthetic history.
+    toDate.setHours(23, 59, 59, 999);
+
+    // 1. Try fetching real historical data from fx_history
+    const pairStr = `${base}_${target}`;
+    const { data: historyData, error: historyErr } = await supabase
+        .from('fx_history')
+        .select('created_at, rate')
+        .eq('pair', pairStr)
+        .gte('created_at', fromDate.toISOString())
+        .lte('created_at', toDate.toISOString())
+        .order('created_at', { ascending: true });
+
+    if (!historyErr && historyData && historyData.length > 0) {
+        // Group by day to smooth out the chart
+        const grouped = {};
+        for (const row of historyData) {
+            const dateStr = new Date(row.created_at).toISOString().split('T')[0];
+            if (!grouped[dateStr]) grouped[dateStr] = [];
+            grouped[dateStr].push(row.rate);
+        }
+        
+        const aggregatedData = Object.keys(grouped).sort().map(date => {
+            const rates = grouped[date];
+            const avg = rates.reduce((a, b) => a + b, 0) / rates.length;
+            return { date, rate: parseFloat(avg.toFixed(5)) };
+        });
+        
+        return res.json(aggregatedData);
+    }
+
+    // 2. Fallback to synthetic data generation if fx_history has no data for this range
     const { data: liveData } = await supabase
         .from('bank_fx_rates')
         .select('buy_rate')
@@ -571,7 +604,7 @@ app.get('/api/rates/chart/:base/:target', async (req, res) => {
         
         chartData.push({
             date: d.toISOString().split('T')[0],
-            rate: parseFloat(currentWalk.toFixed(4))
+            rate: parseFloat(currentWalk.toFixed(5))
         });
     }
 
