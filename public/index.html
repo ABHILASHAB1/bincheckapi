@@ -1,419 +1,442 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AOU BIN Check Developer Portal</title>
-  <link rel="stylesheet" href="style.css">
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
-  <script src="https://unpkg.com/lucide@latest"></script>
-  <style>
-    /* Client specific styling additions */
-    .auth-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      max-width: 500px;
-      margin: 80px auto;
-      padding: 40px;
-    }
-    .auth-title {
-      font-size: 28px;
-      font-weight: 800;
-      margin-bottom: 16px;
-      background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .auth-desc {
-      color: var(--text-muted);
-      font-size: 15px;
-      line-height: 1.6;
-      margin-bottom: 32px;
-    }
-    .btn-google {
-      background-color: #ffffff;
-      color: #1f2937;
-      font-weight: 700;
-      border: 1px solid #e5e7eb;
-      padding: 14px 28px;
-      display: inline-flex;
-      align-items: center;
-      gap: 12px;
-      border-radius: 12px;
-    }
-    .btn-google:hover {
-      background-color: #f9fafb;
-      transform: translateY(-2px);
-      box-shadow: 0 4px 20px rgba(255, 255, 255, 0.15);
-    }
-    .btn-mock {
-      background-color: rgba(255, 255, 255, 0.03);
-      color: var(--text-muted);
-      border: 1px dashed var(--panel-border);
-      padding: 10px 20px;
-      font-size: 11px;
-      font-weight: 600;
-      border-radius: 10px;
-      margin-top: 16px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .btn-mock:hover {
-      background-color: rgba(255, 255, 255, 0.07);
-      color: #fff;
-    }
-    .user-profile {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-    .user-info {
-      text-align: right;
-    }
-    .user-name {
-      font-weight: 600;
-      font-size: 14px;
-    }
-    .user-email {
-      font-size: 11px;
-      color: var(--text-muted);
-    }
-    .btn-signout {
-      background-color: rgba(239, 68, 68, 0.1);
-      color: #fca5a5;
-      border: 1px solid rgba(239, 68, 68, 0.2);
-      font-size: 11px;
-      padding: 6px 12px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .btn-signout:hover {
-      background-color: rgba(239, 68, 68, 0.2);
-    }
-    .progress-bar-container {
-      background-color: rgba(0, 0, 0, 0.3);
-      border: 1px solid var(--panel-border);
-      height: 24px;
-      border-radius: 12px;
-      overflow: hidden;
-      position: relative;
-      margin: 16px 0;
-    }
-    .progress-bar-fill {
-      height: 100%;
-      background: linear-gradient(90deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
-      transition: width 0.4s ease;
-      width: 0%;
-    }
-    .progress-text {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      font-weight: 800;
-      color: #fff;
-      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
-    }
-    .restriction-pill {
-      background-color: rgba(255, 255, 255, 0.02);
-      border: 1px solid var(--panel-border);
-      padding: 12px 16px;
-      border-radius: 12px;
-      font-size: 13px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .restriction-label {
-      font-weight: 700;
-      color: var(--text-muted);
-      font-size: 11px;
-      text-transform: uppercase;
-    }
-    .restriction-value {
-      font-family: var(--font-mono);
-      font-weight: 600;
-    }
-  </style>
-</head>
-<body>
-  <div class="background-grid"></div>
-  <div class="blur-glow"></div>
-
-  <header class="app-header">
-    <div class="header-logo">
-      <span class="logo-icon">⭐</span>
-      <h1 class="logo-text">AOU BIN Check</h1>
-      <span class="badge">Developer Portal</span>
-    </div>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RemitWise | Global Financial Intelligence</title>
     
-    <div style="display: flex; align-items: center; gap: 16px;">
-      <button class="theme-toggle-btn" id="btn-theme-toggle">
-        <i data-lucide="moon" id="theme-btn-icon" style="width: 14px; height: 14px;"></i>
-        <span id="theme-btn-text">Dark Mode</span>
-      </button>
-      
-      <div class="auth-user-header hidden" id="user-header-block">
-        <div class="user-profile">
-          <div class="user-info">
-            <div class="user-name" id="profile-name">Client User</div>
-            <div class="user-email" id="profile-email">user@domain.com</div>
-          </div>
-          <button class="btn-signout" id="btn-signout">Sign Out</button>
-        </div>
-      </div>
-    </div>
-  </header>
-
-  <!-- Login Area -->
-  <div class="card glass-panel auth-container" id="auth-panel">
-    <div class="logo-icon" style="font-size: 48px; margin-bottom: 20px;">🔑</div>
-    <h2 class="auth-title">Get 10 Free BIN Searches</h2>
-    <p class="auth-desc">Sign in with Google to automatically generate your API secret key, access the client dashboard, and get 10 free API search credits instantly.</p>
+    <!-- Fonts: Satoshi (Sans) + Newsreader (Serif) -->
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,400&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap" rel="stylesheet">
     
-    <button class="btn-google" id="btn-google-login" style="display: flex; align-items: center; justify-content: center; gap: 10px;">
-      <svg aria-hidden="true" width="18" height="18" viewBox="0 0 18 18" style="flex-shrink:0;">
-        <path fill="#4285F4" d="M17.64 9.2c0-.63-.06-1.25-.16-1.84H9v3.47h4.84a4.14 4.14 0 0 1-1.8 2.71v2.26h2.91c1.71-1.57 2.69-3.89 2.69-6.6z"/>
-        <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.2l-2.91-2.26a5.41 5.41 0 0 1-8.09-2.85h-3v2.33A9 9 0 0 0 9 18z"/>
-        <path fill="#FBBC05" d="M3.96 10.69a5.4 5.4 0 0 1 0-3.38V4.98h-3a9 9 0 0 0 0 8.04l3-2.33z"/>
-        <path fill="#EA4335" d="M9 3.58c1.32 0 2.5.45 3.44 1.35L15 2.1A9 9 0 0 0 1.96 4.98l3 2.33A5.41 5.41 0 0 1 9 3.58z"/>
-      </svg>
-      <span>Sign in with Google</span>
-    </button>
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
     
-    <button class="btn-mock" id="btn-mock-login">
-      ⚙️ Simulate Sign-In (Mock Test)
-    </button>
-  </div>
-
-  <!-- Client Dashboard (Hidden until logged in) -->
-  <main class="app-layout hidden" id="dashboard-panel">
-    <!-- Left Column: API Key and Balance Details -->
-    <section class="column-ops">
-      <!-- Credentials Card -->
-      <div class="card glass-panel">
-        <h2 class="card-title"><span class="title-icon">🔑</span> Your Credentials</h2>
-        <div class="form-grid">
-          <div class="input-group">
-            <label>API Secret Key</label>
-            <div class="curl-code">
-              <code id="client-key-text" style="color: #fff;">AOU-SECRET-PENDING</code>
-              <button class="btn-copy-small" onclick="copyClientKey()">Copy</button>
-            </div>
-          </div>
-          <div class="input-group">
-            <label>Usage Balance (Free Credits)</label>
-            <div class="progress-bar-container">
-              <div class="progress-bar-fill" id="balance-fill"></div>
-              <div class="progress-text" id="balance-text">0 / 10</div>
-            </div>
-            <span style="font-size: 11px; color: var(--text-muted); line-height: 1.4;">
-              Need more queries? Contact your system Administrator to increase your search limits.
-            </span>
-          </div>
-        </div>
-      </div>
-
-      <!-- Restrictions Card -->
-      <div class="card glass-panel">
-        <h2 class="card-title"><span class="title-icon">🛡️</span> Key Restrictions & Policies</h2>
-        <div class="form-grid" style="gap: 12px;">
-          <div class="restriction-pill">
-            <span class="restriction-label">Allowed Countries</span>
-            <span class="restriction-value" id="restrict-countries">*</span>
-          </div>
-          <div class="restriction-pill">
-            <span class="restriction-label">Allowed Card Brands</span>
-            <span class="restriction-value" id="restrict-schemes">*</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- Right Column: API Testing Sandbox -->
-    <section class="column-manager">
-      <div class="card glass-panel full-height">
-        <h2 class="card-title"><span class="title-icon">🧪</span> Try the API (Live Sandbox)</h2>
-        <form id="sandbox-form" class="form-grid">
-          <div class="input-group">
-            <label for="sandbox-bin">Enter BIN or Card Number</label>
-            <input type="text" id="sandbox-bin" placeholder="e.g., 411111" required>
-          </div>
-          <button type="submit" class="btn btn-accent" style="width: auto; align-self: flex-start;">Send API Request</button>
-        </form>
-
-        <div class="curl-box hidden" id="curl-container">
-          <label>curl command</label>
-          <div class="curl-code">
-            <code id="curl-code">curl "http://localhost:3002/v1/411111?api_key=..."</code>
-            <button class="btn-copy-small" onclick="copyText('curl-code')">Copy</button>
-          </div>
-        </div>
-
-        <!-- Sandbox Virtual Card and Details Panel (from ISO 8583 simulator design) -->
-        <div id="sandbox-card-preview" class="hidden" style="margin-top: 24px;">
-          <!-- Virtual Card -->
-          <div id="virtual-card" class="virtual-card card-brand-generic">
-            <div class="card-glow"></div>
-            <div class="card-header">
-              <div class="card-chip">
-                <div class="chip-line"></div>
-                <div class="chip-line"></div>
-                <div class="chip-line"></div>
-              </div>
-              <div class="card-brand" id="card-brand-logo">NETWORK</div>
-            </div>
-            <div class="card-middle" style="margin-top: 24px; margin-bottom: 24px;">
-              <div class="card-number" id="card-number-text">4111 11XX XXXX XXXX</div>
-            </div>
-            <div class="card-footer">
-              <div class="card-bank" id="card-bank-name">ISSUER BANK</div>
-              <div class="card-type-category" id="card-type-category-text">DEBIT / CLASSIC</div>
-            </div>
-          </div>
-
-          <!-- Card Actions Row -->
-          <div class="card-actions-row">
-            <button type="button" class="btn-export" id="btn-export-json" title="Export raw response as JSON file">
-              <i data-lucide="download" style="width: 12px; height: 12px;"></i> JSON
-            </button>
-            <button type="button" class="btn-export" id="btn-export-csv" title="Export card specifications as CSV">
-              <i data-lucide="file-spreadsheet" style="width: 12px; height: 12px;"></i> CSV
-            </button>
-            <button type="button" class="btn-export" id="btn-share-details" title="Copy sharing details link to clipboard">
-              <i data-lucide="share-2" style="width: 12px; height: 12px;"></i> Share
-            </button>
-          </div>
-
-          <!-- Specs & Controls Grid -->
-          <div class="specs-grid">
-            <div class="spec-panel">
-              <h3 class="panel-section-title">Card Specifications</h3>
-              <div class="spec-row">
-                <span class="spec-label">Issuer</span>
-                <span class="spec-value" id="spec-issuer">--</span>
-              </div>
-              <div class="spec-divider"></div>
-              <div class="spec-row">
-                <span class="spec-label">Brand / Scheme</span>
-                <span class="spec-value" id="spec-scheme">--</span>
-              </div>
-              <div class="spec-divider"></div>
-              <div class="spec-row">
-                <span class="spec-label">Card Type</span>
-                <span class="spec-value" id="spec-type">--</span>
-              </div>
-              <div class="spec-divider"></div>
-              <div class="spec-row">
-                <span class="spec-label">Level / Category</span>
-                <span class="spec-value" id="spec-category">--</span>
-              </div>
-              <div class="spec-divider"></div>
-              <div class="spec-row">
-                <span class="spec-label">Country</span>
-                <span class="spec-value" id="spec-country">--</span>
-              </div>
-            </div>
-
-            <div class="spec-panel">
-              <h3 class="panel-section-title">Switching Parameters</h3>
-              <div class="spec-row">
-                <span class="spec-label">Domestic Optimized</span>
-                <span class="status-badge" id="spec-optimized" style="font-size:10px; font-weight:700;">N/A</span>
-              </div>
-              <div class="spec-divider"></div>
-              <div class="spec-row">
-                <span class="spec-label">EMV 3DS Support</span>
-                <span class="spec-value" style="color: var(--accent-secondary); font-weight: 700;">Verified Tier 1</span>
-              </div>
-              <div class="spec-divider"></div>
-              <div class="spec-row">
-                <span class="spec-label">Nafath MFA Capable</span>
-                <span class="status-badge" id="spec-mfa" style="font-size:10px; font-weight:700;">NO</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Raw Response Toggle -->
-          <button type="button" class="toggle-raw-btn" id="btn-toggle-raw" style="margin-bottom: 16px;">Show Raw Response (JSON)</button>
-        </div>
-
-        <div class="response-box hidden" id="response-container">
-          <label>Response Body</label>
-          <pre><code class="language-json" id="response-code">{}</code></pre>
-        </div>
-      </div>
-    </section>
-  </main>
-
-  <div id="toast" class="toast hidden">Copied to clipboard!</div>
-
-  <!-- Firebase CDN imports -->
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getAuth, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-
-    let auth = null;
-    let provider = null;
-
-    // Define fallback stub so window properties exist immediately
-    window.firebaseAuth = {
-      isConfigured: false,
-      signIn: async () => { throw new Error("Firebase auth not configured."); },
-      signOut: async () => {}
-    };
-
-    async function initFirebase() {
-      try {
-        const res = await fetch('/api/config/firebase');
-        const config = await res.json();
-        
-        if (config.apiKey && config.apiKey !== "YOUR_API_KEY" && !config.apiKey.includes("YOUR_")) {
-          // Clean null/undefined/empty string properties to avoid Firebase SDK validation crashes
-          const cleanConfig = {};
-          for (const [key, val] of Object.entries(config)) {
-            if (val !== null && val !== undefined && val !== "") {
-              cleanConfig[key] = val;
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Satoshi', 'sans-serif'],
+                        serif: ['Newsreader', 'serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        deep: '#030305',
+                        surface: '#0A0A0E',
+                        border: '#1E1E24',
+                        terminal: '#00FF66',
+                        offwhite: '#EAEAEA',
+                    },
+                    animation: {
+                        'marquee': 'marquee 25s linear infinite',
+                        'marquee-fast': 'marquee 15s linear infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        marquee: {
+                            '0%': { transform: 'translateX(0%)' },
+                            '100%': { transform: 'translateX(-100%)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
             }
-          }
-          
-          const app = initializeApp(cleanConfig);
-          auth = getAuth(app);
-          provider = new GoogleAuthProvider();
-          
-          window.firebaseAuth.isConfigured = true;
-          window.firebaseAuth.signIn = async () => {
-            if (!auth) throw new Error("Firebase auth not configured.");
-            const result = await signInWithPopup(auth, provider);
-            return {
-              uid: result.user.uid,
-              email: result.user.email,
-              displayName: result.user.displayName
-            };
-          };
-          window.firebaseAuth.signOut = async () => {
-            if (!auth) return;
-            await signOut(auth);
-          };
-          console.log("🔥 Firebase initialized dynamically from server config.");
-        } else {
-          console.warn("⚠️ Firebase is using placeholder config. Google Sign-In is simulated.");
         }
-      } catch (err) {
-        console.error("❌ Failed to initialize Firebase:", err.message);
-      }
-    }
+    </script>
 
-    initFirebase();
-  </script>
-  
-  <script src="app.js"></script>
+    <style>
+        body {
+            background-color: #030305;
+            color: #EAEAEA;
+            overflow-x: hidden;
+        }
+
+        /* Ticker styling */
+        .ticker-wrap {
+            overflow: hidden;
+            white-space: nowrap;
+            border-top: 1px solid rgba(0, 255, 102, 0.2);
+            border-bottom: 1px solid rgba(0, 255, 102, 0.2);
+            background: rgba(0, 255, 102, 0.02);
+            display: flex;
+        }
+
+        .ticker-content {
+            display: inline-flex;
+            white-space: nowrap;
+            will-change: transform;
+        }
+
+        /* Bento Grid Hover Effects */
+        .bento-card {
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .bento-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 1;
+        }
+
+        .bento-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255,255,255,0.2);
+            box-shadow: 0 20px 40px -20px rgba(0,0,0,0.5);
+        }
+
+        .bento-card:hover::before {
+            opacity: 1;
+        }
+
+        /* Editorial Serif Polish */
+        .editorial {
+            font-family: 'Newsreader', serif;
+            letter-spacing: -0.02em;
+        }
+
+        /* Glass Nav */
+        nav {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* CRT Scanline Effect Overlay (Subtle) */
+        .scanlines::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 50;
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+            opacity: 0.15;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-terminal selection:text-black">
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 bg-deep/80">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-12">
+                <a href="/" class="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                    <i class="ph-fill ph-planet text-terminal text-3xl"></i>
+                    RemitWise
+                </a>
+                
+                <div class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
+                    <a href="#products" class="hover:text-white transition-colors flex items-center gap-1">Products <i class="ph ph-caret-down text-xs"></i></a>
+                    <a href="#" class="hover:text-white transition-colors">Business</a>
+                    <a href="#" class="hover:text-white transition-colors">Developers</a>
+                    <a href="#" class="hover:text-white transition-colors">Pricing</a>
+                    <a href="#" class="hover:text-white transition-colors">Resources</a>
+                </div>
+            </div>
+
+            <div class="hidden md:flex items-center gap-6 text-sm font-medium">
+                <a href="#" class="text-gray-400 hover:text-white transition-colors">Sign In</a>
+                <a href="/send_money" class="bg-white text-black px-5 py-2.5 rounded-full hover:bg-gray-200 transition-colors flex items-center gap-2">
+                    Open App <i class="ph-bold ph-arrow-right"></i>
+                </a>
+            </div>
+            
+            <!-- Mobile Menu Toggle -->
+            <button class="md:hidden text-white text-2xl">
+                <i class="ph ph-list"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- The Wildcard: Live Ticker at the absolute top under Nav -->
+    <div class="ticker-wrap pt-20 pb-0">
+        <div class="ticker-content animate-marquee text-[10px] font-mono text-terminal/80 tracking-widest py-1.5 uppercase flex gap-12">
+            <span>LIVE INTELLIGENCE FEED</span>
+            <span>AED/INR: 22.754</span>
+            <span>SAR/INR: 22.281</span>
+            <span>BIN: 411111 [VISA/CREDIT/US]</span>
+            <span>EUR/USD: 1.084</span>
+            <span>SYS_STATUS: OPTIMAL</span>
+            <span>LIVE INTELLIGENCE FEED</span>
+            <span>AED/INR: 22.754</span>
+            <span>SAR/INR: 22.281</span>
+            <span>BIN: 411111 [VISA/CREDIT/US]</span>
+            <span>EUR/USD: 1.084</span>
+            <span>SYS_STATUS: OPTIMAL</span>
+        </div>
+        <div class="ticker-content animate-marquee text-[10px] font-mono text-terminal/80 tracking-widest py-1.5 uppercase flex gap-12" aria-hidden="true">
+            <span>LIVE INTELLIGENCE FEED</span>
+            <span>AED/INR: 22.754</span>
+            <span>SAR/INR: 22.281</span>
+            <span>BIN: 411111 [VISA/CREDIT/US]</span>
+            <span>EUR/USD: 1.084</span>
+            <span>SYS_STATUS: OPTIMAL</span>
+            <span>LIVE INTELLIGENCE FEED</span>
+            <span>AED/INR: 22.754</span>
+            <span>SAR/INR: 22.281</span>
+            <span>BIN: 411111 [VISA/CREDIT/US]</span>
+            <span>EUR/USD: 1.084</span>
+            <span>SYS_STATUS: OPTIMAL</span>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="relative pt-24 pb-32 overflow-hidden border-b border-white/5">
+        <!-- Abstract glowing background -->
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-terminal/5 rounded-full blur-[120px] pointer-events-none"></div>
+        <div class="absolute top-0 right-0 w-1/3 h-1/3 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+        <div class="max-w-7xl mx-auto px-6 relative z-10">
+            <div class="flex flex-col lg:flex-row items-center gap-16">
+                
+                <!-- Left: Typography & Copy -->
+                <div class="w-full lg:w-1/2 space-y-8">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-terminal/30 bg-terminal/5 text-terminal text-xs font-mono tracking-wide">
+                        <span class="w-2 h-2 rounded-full bg-terminal animate-pulse"></span>
+                        SYSTEMS ONLINE
+                    </div>
+                    
+                    <h1 class="text-5xl md:text-7xl font-light text-white leading-[1.1] tracking-tight">
+                        Global Financial <br />
+                        <span class="editorial text-6xl md:text-8xl italic text-gray-300">Intelligence.</span>
+                    </h1>
+                    
+                    <p class="text-lg md:text-xl text-gray-400 max-w-lg leading-relaxed font-light">
+                        Compare exchange rates, verify card BINs, analyze global currencies, and execute international transfers—from one unified terminal.
+                    </p>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4 pt-4">
+                        <a href="/send_money" class="bg-white text-black px-8 py-4 rounded-xl hover:bg-gray-200 transition-colors font-bold flex items-center justify-center gap-2">
+                            Compare Live Rates <i class="ph-bold ph-arrow-up-right"></i>
+                        </a>
+                        <a href="#products" class="bg-surface border border-border text-white px-8 py-4 rounded-xl hover:bg-border transition-colors font-medium flex items-center justify-center gap-2">
+                            Explore Tools
+                        </a>
+                    </div>
+                    
+                    <div class="pt-8 flex items-center gap-4 text-sm text-gray-500">
+                        <div class="flex -space-x-2">
+                            <div class="w-8 h-8 rounded-full bg-gray-800 border-2 border-deep"></div>
+                            <div class="w-8 h-8 rounded-full bg-gray-700 border-2 border-deep"></div>
+                            <div class="w-8 h-8 rounded-full bg-gray-600 border-2 border-deep"></div>
+                        </div>
+                        <p>Trusted by <strong class="text-gray-300">10,000+</strong> global businesses & developers.</p>
+                    </div>
+                </div>
+
+                <!-- Right: Visual Terminal Simulation -->
+                <div class="w-full lg:w-1/2 relative animate-float">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-terminal/20 to-blue-500/20 rounded-2xl blur-lg"></div>
+                    <div class="relative bg-surface border border-border rounded-2xl p-6 shadow-2xl scanlines overflow-hidden">
+                        
+                        <!-- Terminal Header -->
+                        <div class="flex items-center justify-between border-b border-border pb-4 mb-4">
+                            <div class="flex gap-2">
+                                <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
+                                <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+                                <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
+                            </div>
+                            <div class="text-[10px] font-mono text-gray-500 tracking-widest uppercase">remitwise_core.exe</div>
+                        </div>
+                        
+                        <!-- Terminal Content -->
+                        <div class="font-mono text-xs md:text-sm space-y-3 text-gray-400">
+                            <p class="text-terminal">~$ connect_gateway --region=global</p>
+                            <p>> Initializing routing matrix...</p>
+                            <p>> Fetching live FX margins (SAR/INR) ... <span class="text-white">SUCCESS</span></p>
+                            <p>> Validating Card BIN [411111] ... <span class="text-white">VALID: VISA CREDIT</span></p>
+                            
+                            <div class="mt-6 p-4 border border-terminal/20 bg-terminal/5 rounded text-terminal">
+                                <div class="flex justify-between items-end mb-2">
+                                    <span class="text-gray-400 text-[10px] uppercase tracking-widest">Optimal Route Found</span>
+                                    <span class="text-lg font-bold">22.840</span>
+                                </div>
+                                <div class="w-full bg-terminal/20 h-1 rounded overflow-hidden">
+                                    <div class="w-[85%] h-full bg-terminal"></div>
+                                </div>
+                            </div>
+
+                            <p class="animate-pulse">_</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- The Features Matrix (Bento Grid) -->
+    <section id="products" class="py-32 bg-deep relative">
+        <div class="max-w-7xl mx-auto px-6">
+            
+            <div class="mb-16 md:mb-24 max-w-2xl">
+                <h2 class="text-sm font-mono text-terminal tracking-widest uppercase mb-4">Infrastructure</h2>
+                <h3 class="text-4xl md:text-5xl font-light text-white leading-tight">
+                    One platform. <br />
+                    <span class="editorial italic text-gray-400">Total global control.</span>
+                </h3>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                <!-- Card 1: Send Money (Large) -->
+                <a href="/send_money" class="bento-card col-span-1 md:col-span-2 lg:col-span-2 bg-surface border border-border rounded-3xl p-8 md:p-12 flex flex-col justify-between group h-[400px]">
+                    <div class="z-10 relative">
+                        <div class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center mb-6 text-black group-hover:scale-110 transition-transform">
+                            <i class="ph-fill ph-paper-plane-right text-2xl"></i>
+                        </div>
+                        <h4 class="text-2xl md:text-3xl font-medium text-white mb-3">Send Money Globally</h4>
+                        <p class="text-gray-400 max-w-md font-light">Execute international transfers with institutional-grade exchange rates. Compare real-time provider margins before you send.</p>
+                    </div>
+                    
+                    <div class="z-10 relative flex items-center text-sm font-bold text-white mt-8 group-hover:text-terminal transition-colors">
+                        Start Transfer <i class="ph-bold ph-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                    
+                    <!-- Decorative Graphic -->
+                    <div class="absolute bottom-0 right-0 w-2/3 h-2/3 bg-gradient-to-tl from-white/5 to-transparent rounded-tl-full pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                </a>
+
+                <!-- Card 2: BIN Checker -->
+                <a href="/bincheck" class="bento-card col-span-1 bg-surface border border-border rounded-3xl p-8 flex flex-col justify-between group h-[400px]">
+                    <div class="z-10 relative">
+                        <div class="w-12 h-12 bg-terminal/10 border border-terminal/30 rounded-2xl flex items-center justify-center mb-6 text-terminal group-hover:bg-terminal group-hover:text-black transition-colors">
+                            <i class="ph-fill ph-credit-card text-2xl"></i>
+                        </div>
+                        <h4 class="text-xl md:text-2xl font-medium text-white mb-3">BIN Intelligence</h4>
+                        <p class="text-gray-400 text-sm font-light">Instantly verify card networks, issuer banks, and country of origin using the first 6 digits.</p>
+                    </div>
+                    
+                    <div class="z-10 relative flex items-center text-sm font-bold text-gray-300 mt-8 group-hover:text-white transition-colors">
+                        Lookup a BIN <i class="ph-bold ph-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                </a>
+
+                <!-- Card 3: Exchange Rates -->
+                <a href="/exchange-rates" class="bento-card col-span-1 bg-surface border border-border rounded-3xl p-8 flex flex-col justify-between group h-[300px]">
+                    <div class="z-10 relative">
+                        <div class="w-12 h-12 bg-blue-500/10 border border-blue-500/30 rounded-2xl flex items-center justify-center mb-6 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                            <i class="ph-fill ph-chart-line-up text-2xl"></i>
+                        </div>
+                        <h4 class="text-xl font-medium text-white mb-3">Live FX Dashboard</h4>
+                        <p class="text-gray-400 text-sm font-light">Monitor mid-market rates and actual remittance sell rates in real-time.</p>
+                    </div>
+                </a>
+
+                <!-- Card 4: Compare Providers -->
+                <a href="/compare" class="bento-card col-span-1 bg-surface border border-border rounded-3xl p-8 flex flex-col justify-between group h-[300px]">
+                    <div class="z-10 relative">
+                        <div class="w-12 h-12 bg-orange-500/10 border border-orange-500/30 rounded-2xl flex items-center justify-center mb-6 text-orange-400 group-hover:bg-orange-500 group-hover:text-white transition-colors">
+                            <i class="ph-fill ph-scales text-2xl"></i>
+                        </div>
+                        <h4 class="text-xl font-medium text-white mb-3">Provider Comparison</h4>
+                        <p class="text-gray-400 text-sm font-light">See hidden markups and true costs across top remittance platforms before you commit.</p>
+                    </div>
+                </a>
+
+                <!-- Card 5: Currency Converter -->
+                <a href="/currency-converter" class="bento-card col-span-1 md:col-span-2 lg:col-span-1 bg-surface border border-border rounded-3xl p-8 flex flex-col justify-between group h-[300px]">
+                    <div class="z-10 relative">
+                        <div class="w-12 h-12 bg-purple-500/10 border border-purple-500/30 rounded-2xl flex items-center justify-center mb-6 text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                            <i class="ph-fill ph-arrows-left-right text-2xl"></i>
+                        </div>
+                        <h4 class="text-xl font-medium text-white mb-3">Currency Converter</h4>
+                        <p class="text-gray-400 text-sm font-light">Instantly convert between 150+ global fiat currencies using live institutional data.</p>
+                    </div>
+                </a>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Bottom CTA -->
+    <section class="py-32 border-t border-white/5 relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent to-terminal/5 pointer-events-none"></div>
+        <div class="max-w-4xl mx-auto px-6 text-center relative z-10">
+            <h2 class="editorial italic text-5xl md:text-7xl text-white mb-8">Ready to route?</h2>
+            <p class="text-gray-400 text-lg md:text-xl font-light mb-10 max-w-2xl mx-auto">
+                Stop guessing on exchange rates and card routing. Get institutional transparency on your very next transaction.
+            </p>
+            <a href="/send_money" class="inline-flex items-center gap-3 bg-white text-black px-10 py-5 rounded-full font-bold hover:scale-105 transition-transform">
+                Open The Platform <i class="ph-bold ph-arrow-right"></i>
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-surface border-t border-border pt-20 pb-10">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-10 mb-16">
+                
+                <div class="col-span-2 lg:col-span-2">
+                    <a href="/" class="text-2xl font-black tracking-tight text-white flex items-center gap-2 mb-6">
+                        <i class="ph-fill ph-planet text-terminal text-2xl"></i>
+                        RemitWise
+                    </a>
+                    <p class="text-gray-500 text-sm font-light max-w-xs">
+                        Global Financial Intelligence for Smarter International Payments. Built for transparency.
+                    </p>
+                </div>
+
+                <div>
+                    <h5 class="text-white font-medium mb-4">Products</h5>
+                    <ul class="space-y-3 text-sm text-gray-500">
+                        <li><a href="/send_money" class="hover:text-white transition-colors">Send Money</a></li>
+                        <li><a href="/bincheck" class="hover:text-white transition-colors">BIN Checker</a></li>
+                        <li><a href="/exchange-rates" class="hover:text-white transition-colors">Exchange Rates</a></li>
+                        <li><a href="/currency-converter" class="hover:text-white transition-colors">Currency Converter</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="text-white font-medium mb-4">Company</h5>
+                    <ul class="space-y-3 text-sm text-gray-500">
+                        <li><a href="/about" class="hover:text-white transition-colors">About Us</a></li>
+                        <li><a href="/services" class="hover:text-white transition-colors">Services</a></li>
+                        <li><a href="/partners" class="hover:text-white transition-colors">Partners</a></li>
+                        <li><a href="/contact" class="hover:text-white transition-colors">Contact</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="text-white font-medium mb-4">Legal</h5>
+                    <ul class="space-y-3 text-sm text-gray-500">
+                        <li><a href="/privacy" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="/terms" class="hover:text-white transition-colors">Terms of Service</a></li>
+                        <li><a href="/faq" class="hover:text-white transition-colors">FAQ</a></li>
+                    </ul>
+                </div>
+
+            </div>
+
+            <div class="border-t border-border pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-600">
+                <p>&copy; 2026 RemitWise. All rights reserved.</p>
+                <div class="flex gap-4">
+                    <a href="#" class="hover:text-white transition-colors"><i class="ph-fill ph-twitter-logo text-xl"></i></a>
+                    <a href="#" class="hover:text-white transition-colors"><i class="ph-fill ph-github-logo text-xl"></i></a>
+                    <a href="#" class="hover:text-white transition-colors"><i class="ph-fill ph-linkedin-logo text-xl"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
 </body>
 </html>
