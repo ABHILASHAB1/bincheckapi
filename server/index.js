@@ -320,6 +320,26 @@ app.get('/v1/balance', authenticateApiKey, (req, res) => {
 });
 
 // ----------------------------------------------------
+// Admin - View Tracked Users
+// ----------------------------------------------------
+app.get('/api/admin/tracked-users', async (req, res) => {
+  try {
+    if (!supabase) return res.status(503).json({ error: 'DB not connected' });
+    const { data: users, error } = await supabase
+      .from('tracked_users')
+      .select('*')
+      .order('last_seen_at', { ascending: false })
+      .limit(50);
+      
+    if (error) throw error;
+    res.json(users);
+  } catch (err) {
+    console.error('Failed to fetch tracked users:', err);
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// ----------------------------------------------------
 // FX Rates (Remittance DB)
 // ----------------------------------------------------
 app.get('/api/fx-rates', async (req, res) => {

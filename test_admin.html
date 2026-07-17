@@ -37,16 +37,30 @@
         const [selectedPair, setSelectedPair] = useState('SAR/INR');
         const [overrideRate, setOverrideRate] = useState('');
         const [statusMsg, setStatusMsg] = useState('');
+        const [adminTab, setAdminTab] = useState('market'); // 'market' or 'analytics'
+        const [trackedUsers, setTrackedUsers] = useState([]);
 
         const fetchRates = async () => {
           try {
-            const res = await fetch('http://localhost:3002/api/fx-rates');
+            const res = await fetch('/api/fx-rates');
             if (res.ok) {
               const data = await res.json();
               if (data && data.length > 0) setFxRates(data);
             }
           } catch (err) {
             console.error('Failed to fetch FX rates from backend:', err);
+          }
+        };
+
+        const fetchAnalytics = async () => {
+          try {
+            const res = await fetch('/api/admin/tracked-users');
+            if (res.ok) {
+              const data = await res.json();
+              setTrackedUsers(data);
+            }
+          } catch(err) {
+            console.error('Failed to fetch analytics', err);
           }
         };
 
@@ -57,8 +71,16 @@
         }, []);
 
         useEffect(() => {
+          if (adminTab === 'analytics') {
+            fetchAnalytics();
+            const interval = setInterval(fetchAnalytics, 5000);
+            return () => clearInterval(interval);
+          }
+        }, [adminTab]);
+
+        useEffect(() => {
           lucide.createIcons();
-        }, [fxRates, selectedPair, statusMsg]);
+        }, [fxRates, selectedPair, statusMsg, adminTab, trackedUsers]);
 
         const handleForceUpdate = async () => {
           if (!overrideRate || isNaN(parseFloat(overrideRate))) {
@@ -67,7 +89,7 @@
           }
 
           try {
-            const res = await fetch('http://localhost:3002/api/fx-rates', {
+            const res = await fetch('/api/fx-rates', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ pair: selectedPair, rate: parseFloat(overrideRate) })
@@ -108,61 +130,143 @@
                   </p>
                 </div>
               </div>
+              <div className="flex space-x-2">
+                <button 
+                  onClick={() => setAdminTab('market')}
+                  className={`px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-widest rounded-xl transition-all ${adminTab === 'market' ? 'bg-rose-600/20 text-rose-400 border border-rose-500/50' : 'bg-black/40 text-gray-500 border border-white/5 hover:bg-white/5'}`}
+                >
+                  Market Controller
+                </button>
+                <button 
+                  onClick={() => setAdminTab('analytics')}
+                  className={`px-4 py-2 font-mono text-[11px] font-bold uppercase tracking-widest rounded-xl transition-all ${adminTab === 'analytics' ? 'bg-purple-600/20 text-purple-400 border border-purple-500/50' : 'bg-black/40 text-gray-500 border border-white/5 hover:bg-white/5'}`}
+                >
+                  User Analytics
+                </button>
+              </div>
             </div>
 
-            <div className="flex-1 relative z-10 overflow-hidden flex flex-col items-center justify-center">
+            <div className="flex-1 relative z-10 overflow-auto flex flex-col items-center pt-8 pb-16 no-scrollbar">
               
-              <div className="w-full max-w-2xl bg-black/40 border border-white/10 rounded-2xl p-8 flex flex-col space-y-8 shadow-2xl">
-                <div className="flex items-center justify-between border-b border-white/5 pb-4">
-                  <h2 className="text-lg font-black text-gray-400 uppercase tracking-widest flex items-center">
-                    <Icon name="terminal" size={20} className="mr-3 text-rose-400" /> Force Market Update
-                  </h2>
-                </div>
-                
-                <div className="space-y-6">
-                  {/* Select Pair */}
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">Select Currency Pair</label>
-                    <select 
-                      value={selectedPair}
-                      onChange={(e) => setSelectedPair(e.target.value)}
-                      className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-xl font-mono text-white focus:outline-none focus:border-rose-500 transition-colors cursor-pointer appearance-none"
-                    >
-                      {fxRates.map(fx => (
-                        <option key={fx.pair} value={fx.pair}>{fx.pair} (Current: {fx.rate.toFixed(4)})</option>
-                      ))}
-                    </select>
+              {adminTab === 'market' && (
+                <div className="w-full max-w-2xl bg-black/40 border border-white/10 rounded-2xl p-8 flex flex-col space-y-8 shadow-2xl">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-4">
+                    <h2 className="text-lg font-black text-gray-400 uppercase tracking-widest flex items-center">
+                      <Icon name="terminal" size={20} className="mr-3 text-rose-400" /> Force Market Update
+                    </h2>
                   </div>
-
-                  {/* Input Rate */}
-                  <div>
-                    <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">New Base Rate</label>
-                    <input 
-                      type="number" 
-                      step="0.0001"
-                      placeholder="e.g. 23.5000"
-                      value={overrideRate}
-                      onChange={(e) => setOverrideRate(e.target.value)}
-                      className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-2xl font-mono text-white focus:outline-none focus:border-rose-500 transition-colors"
-                    />
-                  </div>
-
-                  {/* Submit Button */}
-                  <button 
-                    onClick={handleForceUpdate}
-                    className="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-4 rounded-xl uppercase tracking-widest transition-colors flex items-center justify-center shadow-[0_0_20px_rgba(225,29,72,0.4)]"
-                  >
-                    <Icon name="zap" size={20} className="mr-2" />
-                    Force Market Inject
-                  </button>
-
-                  {statusMsg && (
-                    <div className="p-4 rounded-xl bg-black/50 border border-white/10 text-center text-sm font-mono text-white">
-                      {statusMsg}
+                  
+                  <div className="space-y-6">
+                    {/* Select Pair */}
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">Select Currency Pair</label>
+                      <select 
+                        value={selectedPair}
+                        onChange={(e) => setSelectedPair(e.target.value)}
+                        className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-xl font-mono text-white focus:outline-none focus:border-rose-500 transition-colors cursor-pointer appearance-none"
+                      >
+                        {fxRates.map(fx => (
+                          <option key={fx.pair} value={fx.pair}>{fx.pair} (Current: {fx.rate.toFixed(4)})</option>
+                        ))}
+                      </select>
                     </div>
-                  )}
+
+                    {/* Input Rate */}
+                    <div>
+                      <label className="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-2 block">New Base Rate</label>
+                      <input 
+                        type="number" 
+                        step="0.0001"
+                        placeholder="e.g. 23.5000"
+                        value={overrideRate}
+                        onChange={(e) => setOverrideRate(e.target.value)}
+                        className="w-full bg-black/50 border border-white/10 rounded-xl p-4 text-2xl font-mono text-white focus:outline-none focus:border-rose-500 transition-colors"
+                      />
+                    </div>
+
+                    {/* Submit Button */}
+                    <button 
+                      onClick={handleForceUpdate}
+                      className="w-full bg-rose-600 hover:bg-rose-500 text-white font-bold py-4 rounded-xl uppercase tracking-widest transition-colors flex items-center justify-center shadow-[0_0_20px_rgba(225,29,72,0.4)]"
+                    >
+                      <Icon name="zap" size={20} className="mr-2" />
+                      Force Market Inject
+                    </button>
+
+                    {statusMsg && (
+                      <div className="p-4 rounded-xl bg-black/50 border border-white/10 text-center text-sm font-mono text-white">
+                        {statusMsg}
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {adminTab === 'analytics' && (
+                <div className="w-full max-w-6xl bg-black/40 border border-white/10 rounded-2xl p-8 shadow-2xl overflow-hidden">
+                  <div className="flex items-center justify-between border-b border-white/5 pb-4 mb-6">
+                    <h2 className="text-lg font-black text-purple-400 uppercase tracking-widest flex items-center">
+                      <Icon name="users" size={20} className="mr-3 text-purple-400" /> Active Users & Activity
+                    </h2>
+                    <div className="text-[10px] font-bold text-gray-500 uppercase tracking-widest">
+                      {trackedUsers.length} Users Tracked
+                    </div>
+                  </div>
+                  
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-white/5 text-[10px] text-gray-500 uppercase tracking-widest font-mono">
+                          <th className="p-4 font-bold">Fingerprint</th>
+                          <th className="p-4 font-bold">Device & OS</th>
+                          <th className="p-4 font-bold">Pref Pair</th>
+                          <th className="p-4 font-bold">Time Spent Per Tab</th>
+                          <th className="p-4 font-bold text-right">Total Visits</th>
+                          <th className="p-4 font-bold text-right">Last Seen</th>
+                        </tr>
+                      </thead>
+                      <tbody className="text-sm font-medium text-gray-300">
+                        {trackedUsers.map(user => (
+                          <tr key={user.id} className="border-b border-white/5 hover:bg-white/[0.02] transition-colors">
+                            <td className="p-4 font-mono text-xs text-purple-400/80">
+                              {user.fingerprint.substring(0, 12)}...
+                            </td>
+                            <td className="p-4">
+                              <div className="flex items-center space-x-2">
+                                <Icon name={user.device_type === 'Mobile' ? 'smartphone' : 'monitor'} size={14} className="text-gray-500" />
+                                <span>{user.browser} / {user.os}</span>
+                              </div>
+                            </td>
+                            <td className="p-4 font-black text-gray-100">
+                              {user.preferred_base || '-'} <span className="text-gray-600">→</span> {user.preferred_target || '-'}
+                            </td>
+                            <td className="p-4">
+                              <div className="flex flex-wrap gap-2">
+                                {Object.entries(user.time_spent_by_tab || {}).map(([tab, time]) => (
+                                  <div key={tab} className="text-[10px] px-2 py-1 bg-white/5 rounded font-mono border border-white/5">
+                                    <span className="text-gray-500">{tab}:</span> <span className="text-green-400">{time}s</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </td>
+                            <td className="p-4 text-right font-black font-mono">
+                              {user.total_visits}
+                            </td>
+                            <td className="p-4 text-right text-xs text-gray-500">
+                              {new Date(user.last_seen_at).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                        {trackedUsers.length === 0 && (
+                          <tr>
+                            <td colSpan="6" className="p-8 text-center text-gray-500 font-mono text-sm">No user activity recorded yet.</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         );
