@@ -25,11 +25,14 @@
                     },
                     colors: {
                         bgMain: '#FFFFFF',
-                        textPrimary: '#111111',
-                        textMuted: '#777777',
-                        textLightMuted: '#9A9A9A',
-                        divider: '#DADADA',
-                        cardSurface: '#E9ECF3',
+                        bgSecondary: '#F8FAFC',
+                        textPrimary: '#0F172A',
+                        textMuted: '#334155',
+                        textLightMuted: '#64748B',
+                        divider: '#E2E8F0',
+                        cardSurface: 'rgba(255, 255, 255, 0.88)',
+                        accentBlue: '#2563EB',
+                        secondaryBlue: '#1D4ED8',
                     },
                     maxWidth: {
                         'canvas': '1440px',
@@ -43,7 +46,7 @@
     <style>
         body {
             background-color: #FFFFFF;
-            color: #111111;
+            color: #0F172A;
             font-family: 'Inter', sans-serif;
             overflow-x: hidden;
         }
@@ -80,12 +83,12 @@
             transform: translateY(-50%);
             width: 8px;
             height: 2px;
-            background-color: #111111;
+            background-color: #0F172A;
         }
 
         /* Accordion Custom */
-        .accordion-active { border-bottom: 1px solid #DADADA; }
-        .accordion-inactive { border-bottom: 1px solid #DADADA; color: #9A9A9A; }
+        .accordion-active { border-bottom: 1px solid #E2E8F0; }
+        .accordion-inactive { border-bottom: 1px solid #E2E8F0; color: #9A9A9A; }
     </style>
 </head>
 <body class="antialiased mx-auto max-w-canvas relative">
@@ -95,7 +98,7 @@
         <div class="max-w-container mx-auto px-[60px] h-full flex justify-between items-center">
             
             <!-- Left: Logo Crest -->
-            <div class="w-12 h-12 bg-textPrimary text-white rounded-xl flex items-center justify-center">
+            <div class="w-12 h-12 bg-accentBlue text-white rounded-xl flex items-center justify-center">
                 <i class="ph-fill ph-planet text-2xl"></i>
             </div>
 
@@ -105,7 +108,7 @@
             </div>
 
             <!-- Right: CTA -->
-            <a href="/send_money" class="h-[36px] px-[18px] py-[10px] border border-[#E5E5E5] rounded-full text-[12px] font-semibold tracking-[0.08em] uppercase text-textPrimary bg-bgMain hover:bg-gray-50 flex items-center justify-center transition-colors z-50">
+            <a href="/send_money" class="h-[36px] px-[18px] py-[10px] border border-[#E5E5E5] rounded-full text-[12px] font-semibold tracking-[0.08em] uppercase text-textPrimary bg-bgSecondary hover:bg-divider flex items-center justify-center transition-colors z-50">
                 GET STARTED
             </a>
         </div>
@@ -116,7 +119,7 @@
         <div class="max-w-container mx-auto px-[60px] h-full relative">
             
             <!-- Background Typography (z-10) -->
-            <div class="absolute top-[120px] left-1/2 -translate-x-1/2 z-10 font-heading font-black text-textPrimary hero-numeral opacity-10 pointer-events-none select-none">
+            <div class="absolute top-[120px] left-1/2 -translate-x-1/2 z-10 font-heading font-black text-accentBlue hero-numeral opacity-[0.03] pointer-events-none select-none">
                 ISO
             </div>
 
@@ -175,9 +178,9 @@
                     <div class="text-[14px] text-textMuted font-normal">Hidden FX Markups</div>
                 </div>
 
-                <a href="/send_money" class="mt-4 h-[40px] w-fit px-[16px] border border-textPrimary rounded-[6px] text-[12px] font-bold tracking-[0.10em] uppercase text-textPrimary flex items-center gap-[10px] hover:bg-gray-50 transition-colors">
+                <a href="/send_money" class="mt-4 h-[40px] w-fit px-[16px] border border-divider rounded-[6px] text-[12px] font-bold tracking-[0.10em] uppercase text-textPrimary hover:text-accentBlue flex items-center gap-[10px] hover:bg-bgSecondary transition-colors">
                     EXPLORE NOW
-                    <div class="w-[18px] h-[18px] border border-textPrimary rounded-[4px] flex items-center justify-center">
+                    <div class="w-[18px] h-[18px] border border-divider rounded-[4px] flex items-center justify-center">
                         <i class="ph-bold ph-arrow-right text-[10px]"></i>
                     </div>
                 </a>
@@ -206,7 +209,7 @@
                 
                 <!-- Active Row -->
                 <div class="flex items-center gap-[18px] min-h-[56px] border-b border-divider">
-                    <div class="w-[32px] h-[32px] bg-textPrimary rounded-full flex items-center justify-center text-white">
+                    <div class="w-[32px] h-[32px] bg-accentBlue rounded-full flex items-center justify-center text-white">
                         <i class="ph-bold ph-plus text-[16px]"></i>
                     </div>
                     <div class="font-heading text-[20px] font-bold text-textPrimary">Send Money Globally</div>
@@ -280,7 +283,7 @@
             </div>
 
             <!-- See More Button -->
-            <a href="/send_money" class="w-[120px] h-[40px] bg-textPrimary text-white rounded-[6px] text-[12px] font-bold tracking-[0.12em] uppercase flex items-center justify-center hover:bg-gray-800 transition-colors mt-[48px]">
+            <a href="/send_money" class="w-[120px] h-[40px] bg-accentBlue text-white rounded-[6px] text-[12px] font-bold tracking-[0.12em] uppercase flex items-center justify-center hover:bg-gray-800 transition-colors mt-[48px]">
                 SEE MORE
             </a>
 
@@ -301,7 +304,7 @@
                 Stop guessing on exchange rates and card routing. Get institutional transparency on your very next transaction.
             </p>
 
-            <a href="/send_money" class="mt-[18px] w-auto h-[40px] px-8 bg-textPrimary text-white rounded-[6px] text-[12px] font-bold tracking-[0.12em] uppercase flex items-center justify-center hover:bg-gray-800 transition-colors">
+            <a href="/send_money" class="mt-[18px] w-auto h-[40px] px-8 bg-accentBlue text-white rounded-[6px] text-[12px] font-bold tracking-[0.12em] uppercase flex items-center justify-center hover:bg-gray-800 transition-colors">
                 OPEN PLATFORM
             </a>
 
@@ -312,7 +315,7 @@
     <footer class="w-full pt-[72px] pb-[48px] bg-bgMain relative overflow-hidden">
         
         <!-- Watermark -->
-        <div class="absolute bottom-[-10px] left-1/2 -translate-x-1/2 z-0 font-heading font-extrabold text-[clamp(100px,20vw,220px)] text-black opacity-5 pointer-events-none select-none">
+        <div class="absolute bottom-[-10px] left-1/2 -translate-x-1/2 z-0 font-heading font-extrabold text-[clamp(100px,20vw,220px)] text-accentBlue opacity-5 pointer-events-none select-none">
             REMITWISE
         </div>
 
