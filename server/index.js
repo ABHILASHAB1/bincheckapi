@@ -59,8 +59,15 @@ app.get('/test_admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, '../test_admin.html'));
 });
 
+// Dedicated Static Pages
+app.get('/about', (req, res) => res.sendFile(path.join(__dirname, '../public/about.html')));
+app.get('/contact', (req, res) => res.sendFile(path.join(__dirname, '../public/contact.html')));
+
+// Permanent Redirects
+app.get('/services', (req, res) => res.redirect(301, '/#services'));
+
 // Catch-all for upcoming portal pages
-const comingSoonRoutes = ['/faq', '/terms', '/privacy', '/contact', '/partners', '/services', '/about', '/currency-converter', '/compare'];
+const comingSoonRoutes = ['/faq', '/terms', '/privacy', '/partners', '/currency-converter', '/compare'];
 app.get(comingSoonRoutes, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/coming_soon.html'));
 });
