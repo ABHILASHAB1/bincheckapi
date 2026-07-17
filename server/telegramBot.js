@@ -67,10 +67,12 @@ export const initTelegramBot = async () => {
 
         // Intercept Replies for Live Support Chat
         bot.on('message', (msg) => {
-            // Check if this is a reply to an existing message from the bot
-            if (msg.reply_to_message && msg.reply_to_message.text && msg.reply_to_message.text.includes('TicketID:')) {
-                // Extract TicketID
-                const match = msg.reply_to_message.text.match(/TicketID:\s*([A-Za-z0-9-]+)/);
+            // Log for debugging if it's a reply
+            if (msg.reply_to_message && msg.reply_to_message.text) {
+                console.log("[Telegram] Intercepted reply to:", msg.reply_to_message.text.substring(0, 50));
+                
+                // Match the ticket ID anywhere in the replied message (e.g., TKT-1A2B3C4D)
+                const match = msg.reply_to_message.text.match(/(TKT-[A-Z0-9]+)/);
                 if (match && match[1]) {
                     const ticketId = match[1];
                     const session = activeSupportSessions.get(ticketId);
