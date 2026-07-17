@@ -513,6 +513,11 @@ _${contactData.message}_
     }
 };
 
+const sanitize = (text) => {
+    if (!text) return '';
+    return text.replace(/[_*`\[\]]/g, ' '); // Strip markdown control chars
+};
+
 export const broadcastSupportBotAlert = async (ticketId, supportData) => {
     if (!bot || !db) return;
 
@@ -524,12 +529,12 @@ export const broadcastSupportBotAlert = async (ticketId, supportData) => {
 🎧 *Customer Support Bot Message*
 *TicketID:* \`${ticketId}\`
 
-• *Name:* \`${supportData.name}\`
-• *Email:* \`${supportData.email}\`
-• *Phone:* \`${supportData.phone}\`
-• *Subject:* \`${supportData.subject}\`
+• *Name:* \`${sanitize(supportData.name)}\`
+• *Email:* \`${sanitize(supportData.email)}\`
+• *Phone:* \`${sanitize(supportData.phone)}\`
+• *Subject:* \`${sanitize(supportData.subject)}\`
 • *Message:* 
-_${supportData.message}_
+"${sanitize(supportData.message)}"
 
 _(Reply to this exact message to chat directly with the user)_
         `;
@@ -552,10 +557,10 @@ export const broadcastSupportBotReply = async (ticketId, text, userName) => {
         if (subscribers.length === 0) return;
 
         const message = `
-💬 *Reply from ${userName}*
+💬 *Reply from ${sanitize(userName)}*
 *TicketID:* \`${ticketId}\`
 
-_${text}_
+"${sanitize(text)}"
 
 _(Reply to this message to continue the chat)_
         `;
