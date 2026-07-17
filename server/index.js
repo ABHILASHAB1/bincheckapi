@@ -1387,6 +1387,18 @@ app.post('/api/analytics/track', async (req, res) => {
 });
 import { runFullScraper } from './swiftScraper.js';
 import { runProviderScraper } from './providerScraper.js';
+import { broadcastSupportBotAlert } from './telegramBot.js';
+
+app.post('/api/support-bot', async (req, res) => {
+    try {
+        const data = req.body;
+        await broadcastSupportBotAlert(data);
+        res.json({ success: true, message: "Support ticket submitted successfully." });
+    } catch (e) {
+        console.error("Support bot routing error:", e);
+        res.status(500).json({ error: "Failed to route support ticket." });
+    }
+});
 
 app.listen(port, async () => {
   await init();

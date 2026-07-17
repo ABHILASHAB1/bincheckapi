@@ -459,3 +459,30 @@ _${contactData.message}_
         console.error('Error broadcasting contact alert:', err);
     }
 };
+
+export const broadcastSupportBotAlert = async (supportData) => {
+    if (!bot || !db) return;
+
+    try {
+        const subscribers = await db.all('SELECT chat_id FROM telegram_subscribers');
+        if (subscribers.length === 0) return;
+
+        const message = `
+🎧 *Customer Support Bot Message*
+• *Name:* \`${supportData.name}\`
+• *Email:* \`${supportData.email}\`
+• *Phone:* \`+966 ${supportData.phone}\`
+• *Subject:* \`${supportData.subject}\`
+• *Message:* 
+_${supportData.message}_
+        `;
+
+        for (const sub of subscribers) {
+            bot.sendMessage(sub.chat_id, message, { parse_mode: 'Markdown' }).catch(err => {
+                console.error(`Failed to send support bot alert to ${sub.chat_id}:`, err.message);
+            });
+        }
+    } catch (err) {
+        console.error('Error broadcasting support bot alert:', err);
+    }
+};

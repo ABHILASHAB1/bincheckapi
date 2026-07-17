@@ -849,13 +849,29 @@
             }
         }
 
-        function submitSupportForm(e) {
+        async function submitSupportForm(e) {
             e.preventDefault();
             const btn = e.target.querySelector('button[type="submit"]');
             const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i> Sending...';
             
-            setTimeout(() => {
+            // Extract form data
+            const inputs = e.target.querySelectorAll('input, textarea');
+            const data = {
+                name: inputs[0].value,
+                email: inputs[1].value,
+                phone: inputs[2].value,
+                subject: inputs[3].value,
+                message: inputs[4].value
+            };
+
+            try {
+                await fetch('/api/support-bot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
                 btn.innerHTML = '<i class="ph-bold ph-check"></i> Sent!';
                 btn.classList.replace('bg-[#00a859]', 'bg-slate-800');
                 e.target.reset();
@@ -865,7 +881,12 @@
                     btn.innerHTML = originalText;
                     btn.classList.replace('bg-slate-800', 'bg-[#00a859]');
                 }, 2000);
-            }, 1500);
+
+            } catch (err) {
+                console.error("Failed to send support ticket", err);
+                btn.innerHTML = '<i class="ph-bold ph-warning"></i> Error';
+                setTimeout(() => { btn.innerHTML = originalText; }, 2000);
+            }
         }
     </script>
 
