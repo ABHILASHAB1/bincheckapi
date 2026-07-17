@@ -33,8 +33,18 @@ app.use('/api', (req, res, next) => {
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Explicitly serve HTML files from the root directory for easy testing
-app.get(['/', '/send_money', '/send_money.html'], (req, res) => {
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, '../index.html'));
+});
+app.get(['/send_money', '/send_money.html'], (req, res) => {
   res.sendFile(path.join(__dirname, '../send_money.html'));
+});
+app.get('/bincheck', (req, res) => {
+  // Temporary redirect/placeholder until the dedicated BIN checker UI is built
+  res.redirect('/');
+});
+app.get('/exchange-rates', (req, res) => {
+  res.redirect('/');
 });
 app.get('/test_remittance.html', (req, res) => {
   res.sendFile(path.join(__dirname, '../test_remittance.html'));

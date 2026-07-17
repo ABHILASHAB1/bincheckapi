@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RemitWise | Global Financial Intelligence</title>
+    
+    <!-- Fonts: Satoshi (Sans) + Newsreader (Serif) -->
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,400&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Satoshi', 'sans-serif'],
+                        serif: ['Newsreader', 'serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        deep: '#030305',
+                        surface: '#0A0A0E',
+                        border: '#1E1E24',
+                        terminal: '#00FF66',
+                        offwhite: '#EAEAEA',
+                    },
+                    animation: {
+                        'marquee': 'marquee 25s linear infinite',
+                        'marquee-fast': 'marquee 15s linear infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        marquee: {
+                            '0%': { transform: 'translateX(0%)' },
+                            '100%': { transform: 'translateX(-100%)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #030305;
+            color: #EAEAEA;
+            overflow-x: hidden;
+        }
+
+        /* Ticker styling */
+        .ticker-wrap {
+            overflow: hidden;
+            white-space: nowrap;
+            border-top: 1px solid rgba(0, 255, 102, 0.2);
+            border-bottom: 1px solid rgba(0, 255, 102, 0.2);
+            background: rgba(0, 255, 102, 0.02);
+            display: flex;
+        }
+
+        .ticker-content {
+            display: inline-flex;
+            white-space: nowrap;
+            will-change: transform;
+        }
+
+        /* Bento Grid Hover Effects */
+        .bento-card {
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .bento-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(180deg, rgba(255,255,255,0.03) 0%, rgba(255,255,255,0) 100%);
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            z-index: 1;
+        }
+
+        .bento-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(255,255,255,0.2);
+            box-shadow: 0 20px 40px -20px rgba(0,0,0,0.5);
+        }
+
+        .bento-card:hover::before {
+            opacity: 1;
+        }
+
+        /* Editorial Serif Polish */
+        .editorial {
+            font-family: 'Newsreader', serif;
+            letter-spacing: -0.02em;
+        }
+
+        /* Glass Nav */
+        nav {
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        /* CRT Scanline Effect Overlay (Subtle) */
+        .scanlines::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+            z-index: 50;
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+            opacity: 0.15;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-terminal selection:text-black">
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 bg-deep/80">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-12">
+                <a href="/" class="text-2xl font-black tracking-tight text-white flex items-center gap-2">
+                    <i class="ph-fill ph-planet text-terminal text-3xl"></i>
+                    RemitWise
+                </a>
+                
+                <div class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-400">
+                    <a href="#products" class="hover:text-white transition-colors flex items-center gap-1">Products <i class="ph ph-caret-down text-xs"></i></a>
+                    <a href="#" class="hover:text-white transition-colors">Business</a>
+                    <a href="#" class="hover:text-white transition-colors">Developers</a>
+                    <a href="#" class="hover:text-white transition-colors">Pricing</a>
+                    <a href="#" class="hover:text-white transition-colors">Resources</a>
+                </div>
+            </div>
+
+            <div class="hidden md:flex items-center gap-6 text-sm font-medium">
+                <a href="#" class="text-gray-400 hover:text-white transition-colors">Sign In</a>
+                <a href="/send_money" class="bg-white text-black px-5 py-2.5 rounded-full hover:bg-gray-200 transition-colors flex items-center gap-2">
+                    Open App <i class="ph-bold ph-arrow-right"></i>
+                </a>
+            </div>
+            
+            <!-- Mobile Menu Toggle -->
+            <button class="md:hidden text-white text-2xl">
+                <i class="ph ph-list"></i>
+            </button>
+        </div>
+    </nav>
+
+    <!-- The Wildcard: Live Ticker at the absolute top under Nav -->
+    <div class="ticker-wrap pt-20 pb-0">
+        <div class="ticker-content animate-marquee text-[10px] font-mono text-terminal/80 tracking-widest py-1.5 uppercase flex gap-12">
+            <span>LIVE INTELLIGENCE FEED</span>
+            <span>AED/INR: 22.754</span>
+            <span>SAR/INR: 22.281</span>
+            <span>BIN: 411111 [VISA/CREDIT/US]</span>
+            <span>EUR/USD: 1.084</span>
+            <span>SYS_STATUS: OPTIMAL</span>
+            <span>LIVE INTELLIGENCE FEED</span>
+            <span>AED/INR: 22.754</span>
+            <span>SAR/INR: 22.281</span>
+            <span>BIN: 411111 [VISA/CREDIT/US]</span>
+            <span>EUR/USD: 1.084</span>
+            <span>SYS_STATUS: OPTIMAL</span>
+        </div>
+        <div class="ticker-content animate-marquee text-[10px] font-mono text-terminal/80 tracking-widest py-1.5 uppercase flex gap-12" aria-hidden="true">
+            <span>LIVE INTELLIGENCE FEED</span>
+            <span>AED/INR: 22.754</span>
+            <span>SAR/INR: 22.281</span>
+            <span>BIN: 411111 [VISA/CREDIT/US]</span>
+            <span>EUR/USD: 1.084</span>
+            <span>SYS_STATUS: OPTIMAL</span>
+            <span>LIVE INTELLIGENCE FEED</span>
+            <span>AED/INR: 22.754</span>
+            <span>SAR/INR: 22.281</span>
+            <span>BIN: 411111 [VISA/CREDIT/US]</span>
+            <span>EUR/USD: 1.084</span>
+            <span>SYS_STATUS: OPTIMAL</span>
+        </div>
+    </div>
+
+    <!-- Hero Section -->
+    <section class="relative pt-24 pb-32 overflow-hidden border-b border-white/5">
+        <!-- Abstract glowing background -->
+        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-terminal/5 rounded-full blur-[120px] pointer-events-none"></div>
+        <div class="absolute top-0 right-0 w-1/3 h-1/3 bg-blue-500/5 rounded-full blur-[100px] pointer-events-none"></div>
+
+        <div class="max-w-7xl mx-auto px-6 relative z-10">
+            <div class="flex flex-col lg:flex-row items-center gap-16">
+                
+                <!-- Left: Typography & Copy -->
+                <div class="w-full lg:w-1/2 space-y-8">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-terminal/30 bg-terminal/5 text-terminal text-xs font-mono tracking-wide">
+                        <span class="w-2 h-2 rounded-full bg-terminal animate-pulse"></span>
+                        SYSTEMS ONLINE
+                    </div>
+                    
+                    <h1 class="text-5xl md:text-7xl font-light text-white leading-[1.1] tracking-tight">
+                        Global Financial <br />
+                        <span class="editorial text-6xl md:text-8xl italic text-gray-300">Intelligence.</span>
+                    </h1>
+                    
+                    <p class="text-lg md:text-xl text-gray-400 max-w-lg leading-relaxed font-light">
+                        Compare exchange rates, verify card BINs, analyze global currencies, and execute international transfers—from one unified terminal.
+                    </p>
+                    
+                    <div class="flex flex-col sm:flex-row gap-4 pt-4">
+                        <a href="/send_money" class="bg-white text-black px-8 py-4 rounded-xl hover:bg-gray-200 transition-colors font-bold flex items-center justify-center gap-2">
+                            Compare Live Rates <i class="ph-bold ph-arrow-up-right"></i>
+                        </a>
+                        <a href="#products" class="bg-surface border border-border text-white px-8 py-4 rounded-xl hover:bg-border transition-colors font-medium flex items-center justify-center gap-2">
+                            Explore Tools
+                        </a>
+                    </div>
+                    
+                    <div class="pt-8 flex items-center gap-4 text-sm text-gray-500">
+                        <div class="flex -space-x-2">
+                            <div class="w-8 h-8 rounded-full bg-gray-800 border-2 border-deep"></div>
+                            <div class="w-8 h-8 rounded-full bg-gray-700 border-2 border-deep"></div>
+                            <div class="w-8 h-8 rounded-full bg-gray-600 border-2 border-deep"></div>
+                        </div>
+                        <p>Trusted by <strong class="text-gray-300">10,000+</strong> global businesses & developers.</p>
+                    </div>
+                </div>
+
+                <!-- Right: Visual Terminal Simulation -->
+                <div class="w-full lg:w-1/2 relative animate-float">
+                    <div class="absolute -inset-1 bg-gradient-to-r from-terminal/20 to-blue-500/20 rounded-2xl blur-lg"></div>
+                    <div class="relative bg-surface border border-border rounded-2xl p-6 shadow-2xl scanlines overflow-hidden">
+                        
+                        <!-- Terminal Header -->
+                        <div class="flex items-center justify-between border-b border-border pb-4 mb-4">
+                            <div class="flex gap-2">
+                                <div class="w-3 h-3 rounded-full bg-red-500/80"></div>
+                                <div class="w-3 h-3 rounded-full bg-yellow-500/80"></div>
+                                <div class="w-3 h-3 rounded-full bg-green-500/80"></div>
+                            </div>
+                            <div class="text-[10px] font-mono text-gray-500 tracking-widest uppercase">remitwise_core.exe</div>
+                        </div>
+                        
+                        <!-- Terminal Content -->
+                        <div class="font-mono text-xs md:text-sm space-y-3 text-gray-400">
+                            <p class="text-terminal">~$ connect_gateway --region=global</p>
+                            <p>> Initializing routing matrix...</p>
+                            <p>> Fetching live FX margins (SAR/INR) ... <span class="text-white">SUCCESS</span></p>
+                            <p>> Validating Card BIN [411111] ... <span class="text-white">VALID: VISA CREDIT</span></p>
+                            
+                            <div class="mt-6 p-4 border border-terminal/20 bg-terminal/5 rounded text-terminal">
+                                <div class="flex justify-between items-end mb-2">
+                                    <span class="text-gray-400 text-[10px] uppercase tracking-widest">Optimal Route Found</span>
+                                    <span class="text-lg font-bold">22.840</span>
+                                </div>
+                                <div class="w-full bg-terminal/20 h-1 rounded overflow-hidden">
+                                    <div class="w-[85%] h-full bg-terminal"></div>
+                                </div>
+                            </div>
+
+                            <p class="animate-pulse">_</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- The Features Matrix (Bento Grid) -->
+    <section id="products" class="py-32 bg-deep relative">
+        <div class="max-w-7xl mx-auto px-6">
+            
+            <div class="mb-16 md:mb-24 max-w-2xl">
+                <h2 class="text-sm font-mono text-terminal tracking-widest uppercase mb-4">Infrastructure</h2>
+                <h3 class="text-4xl md:text-5xl font-light text-white leading-tight">
+                    One platform. <br />
+                    <span class="editorial italic text-gray-400">Total global control.</span>
+                </h3>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                
+                <!-- Card 1: Send Money (Large) -->
+                <a href="/send_money" class="bento-card col-span-1 md:col-span-2 lg:col-span-2 bg-surface border border-border rounded-3xl p-8 md:p-12 flex flex-col justify-between group h-[400px]">
+                    <div class="z-10 relative">
+                        <div class="w-12 h-12 bg-white rounded-2xl flex items-center justify-center mb-6 text-black group-hover:scale-110 transition-transform">
+                            <i class="ph-fill ph-paper-plane-right text-2xl"></i>
+                        </div>
+                        <h4 class="text-2xl md:text-3xl font-medium text-white mb-3">Send Money Globally</h4>
+                        <p class="text-gray-400 max-w-md font-light">Execute international transfers with institutional-grade exchange rates. Compare real-time provider margins before you send.</p>
+                    </div>
+                    
+                    <div class="z-10 relative flex items-center text-sm font-bold text-white mt-8 group-hover:text-terminal transition-colors">
+                        Start Transfer <i class="ph-bold ph-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                    
+                    <!-- Decorative Graphic -->
+                    <div class="absolute bottom-0 right-0 w-2/3 h-2/3 bg-gradient-to-tl from-white/5 to-transparent rounded-tl-full pointer-events-none opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                </a>
+
+                <!-- Card 2: BIN Checker -->
+                <a href="/bincheck" class="bento-card col-span-1 bg-surface border border-border rounded-3xl p-8 flex flex-col justify-between group h-[400px]">
+                    <div class="z-10 relative">
+                        <div class="w-12 h-12 bg-terminal/10 border border-terminal/30 rounded-2xl flex items-center justify-center mb-6 text-terminal group-hover:bg-terminal group-hover:text-black transition-colors">
+                            <i class="ph-fill ph-credit-card text-2xl"></i>
+                        </div>
+                        <h4 class="text-xl md:text-2xl font-medium text-white mb-3">BIN Intelligence</h4>
+                        <p class="text-gray-400 text-sm font-light">Instantly verify card networks, issuer banks, and country of origin using the first 6 digits.</p>
+                    </div>
+                    
+                    <div class="z-10 relative flex items-center text-sm font-bold text-gray-300 mt-8 group-hover:text-white transition-colors">
+                        Lookup a BIN <i class="ph-bold ph-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                    </div>
+                </a>
+
+                <!-- Card 3: Exchange Rates -->
+                <a href="/exchange-rates" class="bento-card col-span-1 bg-surface border border-border rounded-3xl p-8 flex flex-col justify-between group h-[300px]">
+                    <div class="z-10 relative">
+                        <div class="w-12 h-12 bg-blue-500/10 border border-blue-500/30 rounded-2xl flex items-center justify-center mb-6 text-blue-400 group-hover:bg-blue-500 group-hover:text-white transition-colors">
+                            <i class="ph-fill ph-chart-line-up text-2xl"></i>
+                        </div>
+                        <h4 class="text-xl font-medium text-white mb-3">Live FX Dashboard</h4>
+                        <p class="text-gray-400 text-sm font-light">Monitor mid-market rates and actual remittance sell rates in real-time.</p>
+                    </div>
+                </a>
+
+                <!-- Card 4: Compare Providers -->
+                <a href="/compare" class="bento-card col-span-1 bg-surface border border-border rounded-3xl p-8 flex flex-col justify-between group h-[300px]">
+                    <div class="z-10 relative">
+                        <div class="w-12 h-12 bg-orange-500/10 border border-orange-500/30 rounded-2xl flex items-center justify-center mb-6 text-orange-400 group-hover:bg-orange-500 group-hover:text-white transition-colors">
+                            <i class="ph-fill ph-scales text-2xl"></i>
+                        </div>
+                        <h4 class="text-xl font-medium text-white mb-3">Provider Comparison</h4>
+                        <p class="text-gray-400 text-sm font-light">See hidden markups and true costs across top remittance platforms before you commit.</p>
+                    </div>
+                </a>
+
+                <!-- Card 5: Currency Converter -->
+                <a href="/currency-converter" class="bento-card col-span-1 md:col-span-2 lg:col-span-1 bg-surface border border-border rounded-3xl p-8 flex flex-col justify-between group h-[300px]">
+                    <div class="z-10 relative">
+                        <div class="w-12 h-12 bg-purple-500/10 border border-purple-500/30 rounded-2xl flex items-center justify-center mb-6 text-purple-400 group-hover:bg-purple-500 group-hover:text-white transition-colors">
+                            <i class="ph-fill ph-arrows-left-right text-2xl"></i>
+                        </div>
+                        <h4 class="text-xl font-medium text-white mb-3">Currency Converter</h4>
+                        <p class="text-gray-400 text-sm font-light">Instantly convert between 150+ global fiat currencies using live institutional data.</p>
+                    </div>
+                </a>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- Bottom CTA -->
+    <section class="py-32 border-t border-white/5 relative overflow-hidden">
+        <div class="absolute inset-0 bg-gradient-to-b from-transparent to-terminal/5 pointer-events-none"></div>
+        <div class="max-w-4xl mx-auto px-6 text-center relative z-10">
+            <h2 class="editorial italic text-5xl md:text-7xl text-white mb-8">Ready to route?</h2>
+            <p class="text-gray-400 text-lg md:text-xl font-light mb-10 max-w-2xl mx-auto">
+                Stop guessing on exchange rates and card routing. Get institutional transparency on your very next transaction.
+            </p>
+            <a href="/send_money" class="inline-flex items-center gap-3 bg-white text-black px-10 py-5 rounded-full font-bold hover:scale-105 transition-transform">
+                Open The Platform <i class="ph-bold ph-arrow-right"></i>
+            </a>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="bg-surface border-t border-border pt-20 pb-10">
+        <div class="max-w-7xl mx-auto px-6">
+            <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-10 mb-16">
+                
+                <div class="col-span-2 lg:col-span-2">
+                    <a href="/" class="text-2xl font-black tracking-tight text-white flex items-center gap-2 mb-6">
+                        <i class="ph-fill ph-planet text-terminal text-2xl"></i>
+                        RemitWise
+                    </a>
+                    <p class="text-gray-500 text-sm font-light max-w-xs">
+                        Global Financial Intelligence for Smarter International Payments. Built for transparency.
+                    </p>
+                </div>
+
+                <div>
+                    <h5 class="text-white font-medium mb-4">Products</h5>
+                    <ul class="space-y-3 text-sm text-gray-500">
+                        <li><a href="/send_money" class="hover:text-white transition-colors">Send Money</a></li>
+                        <li><a href="/bincheck" class="hover:text-white transition-colors">BIN Checker</a></li>
+                        <li><a href="/exchange-rates" class="hover:text-white transition-colors">Exchange Rates</a></li>
+                        <li><a href="/currency-converter" class="hover:text-white transition-colors">Currency Converter</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="text-white font-medium mb-4">Company</h5>
+                    <ul class="space-y-3 text-sm text-gray-500">
+                        <li><a href="/about" class="hover:text-white transition-colors">About Us</a></li>
+                        <li><a href="/services" class="hover:text-white transition-colors">Services</a></li>
+                        <li><a href="/partners" class="hover:text-white transition-colors">Partners</a></li>
+                        <li><a href="/contact" class="hover:text-white transition-colors">Contact</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h5 class="text-white font-medium mb-4">Legal</h5>
+                    <ul class="space-y-3 text-sm text-gray-500">
+                        <li><a href="/privacy" class="hover:text-white transition-colors">Privacy Policy</a></li>
+                        <li><a href="/terms" class="hover:text-white transition-colors">Terms of Service</a></li>
+                        <li><a href="/faq" class="hover:text-white transition-colors">FAQ</a></li>
+                    </ul>
+                </div>
+
+            </div>
+
+            <div class="border-t border-border pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-gray-600">
+                <p>&copy; 2026 RemitWise. All rights reserved.</p>
+                <div class="flex gap-4">
+                    <a href="#" class="hover:text-white transition-colors"><i class="ph-fill ph-twitter-logo text-xl"></i></a>
+                    <a href="#" class="hover:text-white transition-colors"><i class="ph-fill ph-github-logo text-xl"></i></a>
+                    <a href="#" class="hover:text-white transition-colors"><i class="ph-fill ph-linkedin-logo text-xl"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+</body>
+</html>
