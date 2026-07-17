@@ -168,7 +168,7 @@
 
     <!-- The Wildcard: Live Ticker at the absolute top under Nav -->
     <div class="ticker-wrap pt-20 pb-0">
-        <div class="ticker-content animate-marquee text-[10px] font-mono text-accentBlue/80 tracking-widest py-1.5 uppercase flex gap-12">
+        <div id="ticker-main" class="ticker-content animate-marquee text-[10px] font-mono text-accentBlue/80 tracking-widest py-1.5 uppercase flex gap-12">
             <span>LIVE INTELLIGENCE FEED</span>
             <span>AED/INR: 22.754</span>
             <span>SAR/INR: 22.281</span>
@@ -182,7 +182,7 @@
             <span>EUR/USD: 1.084</span>
             <span>SYS_STATUS: OPTIMAL</span>
         </div>
-        <div class="ticker-content animate-marquee text-[10px] font-mono text-accentBlue/80 tracking-widest py-1.5 uppercase flex gap-12" aria-hidden="true">
+        <div id="ticker-clone" class="ticker-content animate-marquee text-[10px] font-mono text-accentBlue/80 tracking-widest py-1.5 uppercase flex gap-12" aria-hidden="true">
             <span>LIVE INTELLIGENCE FEED</span>
             <span>AED/INR: 22.754</span>
             <span>SAR/INR: 22.281</span>
@@ -446,5 +446,43 @@
     </footer>
 
     <script src="/js/tracker.js"></script>
+    <script>
+        // Fetch and update the ticker with real-time data
+        async function updateLiveTicker() {
+            try {
+                const res = await fetch('/api/fx-rates');
+                if (!res.ok) return;
+                const rates = await res.json();
+                
+                if (Array.isArray(rates) && rates.length > 0) {
+                    let spans = `<span>LIVE INTELLIGENCE FEED</span>`;
+                    
+                    // Show up to 10 pairs on the ticker
+                    rates.slice(0, 10).forEach(r => {
+                        // Formatting the rate to 3 decimal places for ticker aesthetic
+                        const formattedRate = Number(r.rate).toFixed(3);
+                        spans += `<span>${r.pair}: ${formattedRate}</span>`;
+                    });
+                    
+                    spans += `<span>SYS_STATUS: OPTIMAL</span>`;
+                    
+                    // We duplicate it inside the container so the marquee flows seamlessly
+                    const fullHtml = spans + spans;
+                    
+                    const tickerMain = document.getElementById('ticker-main');
+                    const tickerClone = document.getElementById('ticker-clone');
+                    
+                    if (tickerMain) tickerMain.innerHTML = fullHtml;
+                    if (tickerClone) tickerClone.innerHTML = fullHtml;
+                }
+            } catch (err) {
+                console.error("Failed to load ticker data", err);
+            }
+        }
+
+        // Initialize and set interval
+        updateLiveTicker();
+        setInterval(updateLiveTicker, 60000); // Update every 60 seconds
+    </script>
 </body>
 </html>
