@@ -518,3 +518,29 @@ _(Reply to this exact message to chat directly with the user)_
         console.error('Error broadcasting support bot alert:', err);
     }
 };
+
+export const broadcastSupportBotReply = async (ticketId, text, userName) => {
+    if (!bot || !db) return;
+
+    try {
+        const subscribers = await db.all('SELECT chat_id FROM telegram_subscribers');
+        if (subscribers.length === 0) return;
+
+        const message = `
+💬 *Reply from ${userName}*
+*TicketID:* \`${ticketId}\`
+
+_${text}_
+
+_(Reply to this message to continue the chat)_
+        `;
+
+        for (const sub of subscribers) {
+            bot.sendMessage(sub.chat_id, message, { parse_mode: 'Markdown' }).catch(err => {
+                console.error(`Failed to send support bot reply to ${sub.chat_id}:`, err.message);
+            });
+        }
+    } catch (err) {
+        console.error('Error broadcasting support bot reply:', err);
+    }
+};

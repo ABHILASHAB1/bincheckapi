@@ -987,7 +987,7 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        function submitChatMessage(e) {
+        async function submitChatMessage(e) {
             e.preventDefault();
             const input = document.getElementById('support-chat-input');
             const text = input.value.trim();
@@ -1003,9 +1003,18 @@
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
 
-            // Note: Since this is purely a demonstration of the admin replying, 
-            // sending *back* to telegram from the chat window would require another backend endpoint.
-            // For now we just append it locally so it looks like it sent.
+            try {
+                await fetch('/api/support/message', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ticketId: currentTicketId, text })
+                });
+                // Remove optimistic opacity 
+                div.querySelector('div').classList.remove('opacity-70');
+            } catch (err) {
+                console.error("Failed to send message", err);
+                div.querySelector('div').classList.replace('bg-[#00a859]', 'bg-red-500');
+            }
         }
     </script>
 

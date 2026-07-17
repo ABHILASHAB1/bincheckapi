@@ -1387,7 +1387,7 @@ app.post('/api/analytics/track', async (req, res) => {
 });
 import { runFullScraper } from './swiftScraper.js';
 import { runProviderScraper } from './providerScraper.js';
-import { broadcastSupportBotAlert, activeSupportSessions } from './telegramBot.js';
+import { broadcastSupportBotAlert, broadcastSupportBotReply, activeSupportSessions } from './telegramBot.js';
 
 app.post('/api/support-bot', async (req, res) => {
     try {
@@ -1435,6 +1435,33 @@ app.post('/api/support-bot', async (req, res) => {
     } catch (e) {
         console.error("Support bot routing error:", e);
         res.status(500).json({ error: "Failed to route support ticket." });
+    }
+});
+
+app.post('/api/support/message', async (req, res) => {
+    try {
+        const { ticketId, text } = req.body;
+        if (!ticketId || !text) return res.status(400).json({ error: 'Missing ticketId or text' });
+
+        const session = activeSupportSessions.get(ticketId);
+        if (!session) {
+            return res.status(404).json({ error: 'Session not found or expired' });
+        }
+
+        // Add user message to session
+        session.messages.push({
+            sender: 'user',
+            text: text,
+            timestamp: Date.now()
+        });
+
+        // Broadcast to admin
+        await broadcastSupportBotReply(ticketId, text, session.data.name);
+
+        res.json({ success: true });
+    } catch (e) {
+        console.error("Error sending user reply:", e);
+        res.status(500).json({ error: "Failed to send message." });
     }
 });
 
