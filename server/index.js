@@ -11,7 +11,7 @@ import { calculateNetPayout } from './payoutEngine.js';
 import { generateMarketPulse } from './anithaAI.js';
 import { supabase } from './supabaseClient.js';
 import { initSwiftScheduler } from './swiftScheduler.js';
-import UAParser from 'ua-parser-js';
+import { UAParser } from 'ua-parser-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
