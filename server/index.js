@@ -50,7 +50,7 @@ app.get('/swift-codes/country/:code', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/swift_country.html'));
 });
 app.get('/exchange-rates', (req, res) => {
-  res.redirect('/');
+  res.redirect(301, '/send_money');
 });
 app.get('/test_remittance.html', (req, res) => {
   res.sendFile(path.join(__dirname, '../test_remittance.html'));
