@@ -1397,6 +1397,7 @@ app.post('/api/support-bot', async (req, res) => {
         // 1. Create the session
         activeSupportSessions.set(ticketId, {
             data,
+            active: true,
             messages: [
                 {
                     sender: 'user',
@@ -1428,7 +1429,7 @@ app.post('/api/support/message', async (req, res) => {
         if (!ticketId || !text) return res.status(400).json({ error: 'Missing ticketId or text' });
 
         const session = activeSupportSessions.get(ticketId);
-        if (!session) {
+        if (!session || !session.active) {
             return res.status(404).json({ error: 'Session not found or expired' });
         }
 
@@ -1449,6 +1450,24 @@ app.post('/api/support/message', async (req, res) => {
     }
 });
 
+app.post('/api/support/end', async (req, res) => {
+    try {
+        const { ticketId } = req.body;
+        if (!ticketId) return res.status(400).json({ error: 'Missing ticketId' });
+
+        const session = activeSupportSessions.get(ticketId);
+        if (session) {
+            session.active = false;
+        }
+
+        // We can optionally tell telegram it was closed by user
+        // But for now, we just mark inactive
+        res.json({ success: true });
+    } catch (e) {
+        res.status(500).json({ error: "Failed to end chat." });
+    }
+});
+
 app.get('/api/support/poll', (req, res) => {
     const { ticketId } = req.query;
     if (!ticketId) return res.status(400).json({ error: 'Missing ticketId' });
@@ -1458,7 +1477,7 @@ app.get('/api/support/poll', (req, res) => {
         return res.json({ active: false, messages: [] });
     }
 
-    res.json({ active: true, messages: session.messages });
+    res.json({ active: session.active, messages: session.messages });
 });
 
 app.listen(port, async () => {

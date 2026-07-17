@@ -918,9 +918,20 @@
             }
         }
 
-        function endSupportChat() {
+        async function endSupportChat() {
             // Stop polling
             if (pollInterval) clearInterval(pollInterval);
+            
+            if (currentTicketId) {
+                try {
+                    await fetch('/api/support/end', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ticketId: currentTicketId })
+                    });
+                } catch(e) {}
+            }
+
             currentTicketId = null;
             
             // Reset UI
@@ -931,6 +942,8 @@
             
             const footerInput = document.getElementById('support-chat-input-form');
             footerInput.classList.add('opacity-50', 'pointer-events-none');
+            document.getElementById('support-chat-input').disabled = false;
+            document.getElementById('support-chat-input').placeholder = "Type here and press enter..";
             
             // Reset form button and inputs
             const form = document.getElementById('support-form');
@@ -944,8 +957,19 @@
             try {
                 const res = await fetch(`/api/support/poll?ticketId=${currentTicketId}`);
                 const data = await res.json();
-                if (data.active && data.messages) {
+                
+                if (data.messages) {
                     renderChatMessages(data.messages);
+                }
+
+                if (!data.active) {
+                    // Session ended by admin
+                    if (pollInterval) clearInterval(pollInterval);
+                    pollInterval = null;
+                    const footerInput = document.getElementById('support-chat-input-form');
+                    footerInput.classList.add('opacity-50', 'pointer-events-none');
+                    document.getElementById('support-chat-input').disabled = true;
+                    document.getElementById('support-chat-input').placeholder = "Chat ended.";
                 }
             } catch (err) {
                 console.error('Polling error:', err);

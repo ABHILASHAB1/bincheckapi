@@ -111,7 +111,18 @@ export const initTelegramBot = async () => {
             const ticketId = adminActiveChats.get(msg.chat.id);
             if (ticketId) {
                 adminActiveChats.delete(msg.chat.id);
-                bot.sendMessage(msg.chat.id, `🔓 Unlocked from \`${ticketId}\`. You will no longer send messages to this user.`);
+                bot.sendMessage(msg.chat.id, `🔓 Unlocked from \`${ticketId}\`. The chat session has been closed.`);
+                
+                // Notify the web user
+                const session = activeSupportSessions.get(ticketId);
+                if (session) {
+                    session.active = false;
+                    session.messages.push({
+                        sender: 'system',
+                        text: 'The support agent has ended the chat session. Have a great day!',
+                        timestamp: Date.now()
+                    });
+                }
             } else {
                 bot.sendMessage(msg.chat.id, `You are not currently locked to any chat session.`);
             }
