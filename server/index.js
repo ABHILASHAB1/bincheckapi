@@ -53,7 +53,7 @@ app.get('/test_admin.html', (req, res) => {
 });
 
 // Catch-all for upcoming portal pages
-const comingSoonRoutes = ['/faq', '/terms', '/privacy', '/contact', '/partners', '/services', '/about'];
+const comingSoonRoutes = ['/faq', '/terms', '/privacy', '/contact', '/partners', '/services', '/about', '/currency-converter', '/compare'];
 app.get(comingSoonRoutes, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/coming_soon.html'));
 });
