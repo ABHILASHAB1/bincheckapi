@@ -1327,6 +1327,50 @@ app.get('/api/config/firebase', (req, res) => {
   });
 });
 
+// Public BIN Directory List Endpoint
+app.get('/api/bins/list', async (req, res) => {
+  try {
+    if (!localDb) return res.status(503).json({ error: 'Database not initialized' });
+    
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = parseInt(req.query.offset) || 0;
+    const search = req.query.q ? req.query.q.trim() : '';
+
+    let query = `SELECT bin, issuer, country, scheme, type, category FROM bins`;
+    let params = [];
+
+    if (search) {
+        query += ` WHERE bin LIKE ? OR issuer LIKE ?`;
+        params.push(`%${search}%`, `%${search}%`);
+    }
+
+    query += ` ORDER BY bin ASC LIMIT ? OFFSET ?`;
+    params.push(limit, offset);
+
+    const rows = await localDb.all(query, params);
+    
+    // Total count for pagination
+    let countQuery = `SELECT COUNT(*) as total FROM bins`;
+    let countParams = [];
+    if (search) {
+        countQuery += ` WHERE bin LIKE ? OR issuer LIKE ?`;
+        countParams.push(`%${search}%`, `%${search}%`);
+    }
+    const countRow = await localDb.get(countQuery, countParams);
+    
+    res.json({
+        success: true,
+        data: rows,
+        total: countRow.total,
+        page: Math.floor(offset / limit) + 1,
+        pages: Math.ceil(countRow.total / limit)
+    });
+  } catch (e) {
+    console.error("Error fetching BIN list:", e);
+    res.status(500).json({ error: 'Server error fetching BIN list' });
+  }
+});
+
 // Database count stats
 app.get('/api/bins/stats', async (req, res) => {
   try {

@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Global BIN Directory | RemitWise</title>
+    <meta name="description" content="Search our extensive database of global Bank Identification Numbers (BINs).">
+    
+    <!-- Fonts: Satoshi (Sans) + Newsreader (Serif) -->
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,400&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Satoshi', 'sans-serif'],
+                    },
+                    colors: {
+                        deep: '#F8FAFC',
+                        surface: '#FFFFFF',
+                        border: '#E2E8F0',
+                        terminal: '#2563EB',
+                        offwhite: '#0F172A',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #F8FAFC;
+            color: #0F172A;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+
+        .blurred-field {
+            filter: blur(4px);
+            user-select: none;
+            transition: filter 0.3s ease;
+        }
+
+        .locked-cell {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .locked-cell:hover .blurred-field {
+            filter: blur(6px);
+        }
+
+        .lock-icon {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: #2563EB;
+            font-size: 1.2rem;
+            opacity: 0.8;
+            z-index: 10;
+            pointer-events: none;
+        }
+        
+        .table-row-hover:hover {
+            background-color: #F1F5F9;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-terminal selection:text-white flex flex-col min-h-screen">
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 glass transition-all duration-300 border-b border-border">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-12">
+                <a href="/" class="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
+                    <i class="ph-fill ph-planet text-terminal text-3xl"></i>
+                    RemitWise
+                </a>
+                <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+                    <a href="/directory.html" class="hover:text-slate-900 transition-colors">Bank Directory</a>
+                    <a href="/bincheck.html" class="hover:text-slate-900 transition-colors">BIN Checker</a>
+                    <span class="text-terminal font-bold">Public BIN List</span>
+                </div>
+            </div>
+            
+            <!-- Mobile Menu Toggle -->
+            <button class="md:hidden text-slate-900 text-2xl">
+                <i class="ph ph-list"></i>
+            </button>
+        </div>
+    </nav>
+
+    <main class="flex-grow pt-32 pb-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            
+            <div class="text-center max-w-3xl mx-auto mb-12">
+                <h1 class="text-4xl md:text-5xl font-black text-slate-900 tracking-tight mb-4">Global BIN Database</h1>
+                <p class="text-lg text-slate-600">Browse our extensive list of Bank Identification Numbers. Premium fields are locked—try our API to unlock full real-time data.</p>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="mb-8 max-w-2xl mx-auto relative group">
+                <div class="absolute inset-y-0 left-6 flex items-center pointer-events-none text-slate-400 group-focus-within:text-terminal transition-colors">
+                    <i class="ph-bold ph-magnifying-glass text-xl"></i>
+                </div>
+                <input 
+                    type="text" 
+                    id="searchInput" 
+                    class="w-full bg-white text-slate-900 rounded-full py-4 pl-14 pr-32 text-lg font-medium border-2 border-slate-200 focus:outline-none focus:border-terminal focus:ring-4 focus:ring-blue-50 transition-all shadow-sm"
+                    placeholder="Search by BIN or Bank Name..."
+                >
+                <button id="searchBtn" class="absolute right-2 top-2 bottom-2 bg-slate-900 text-white px-6 rounded-full font-bold text-sm hover:bg-slate-800 transition-colors flex items-center gap-2 shadow-md">
+                    Search
+                </button>
+            </div>
+
+            <!-- Table Container -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 text-sm font-bold uppercase tracking-wider">
+                                <th class="py-4 px-6">BIN</th>
+                                <th class="py-4 px-6">Bank Name</th>
+                                <th class="py-4 px-6">Country</th>
+                                <th class="py-4 px-6 text-center">Scheme <i class="ph-fill ph-lock-key text-xs ml-1"></i></th>
+                                <th class="py-4 px-6 text-center">Type <i class="ph-fill ph-lock-key text-xs ml-1"></i></th>
+                                <th class="py-4 px-6 text-center">Level <i class="ph-fill ph-lock-key text-xs ml-1"></i></th>
+                            </tr>
+                        </thead>
+                        <tbody id="binTableBody" class="text-slate-800 text-sm font-medium">
+                            <!-- Rows rendered by JS -->
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                <div class="border-t border-slate-200 bg-slate-50 px-6 py-4 flex items-center justify-between">
+                    <div class="text-sm text-slate-500 font-medium" id="pageInfo">
+                        Showing page 1 of 1
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button id="prevBtn" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-colors font-semibold text-sm">Previous</button>
+                        <button id="nextBtn" class="px-4 py-2 bg-white border border-slate-200 rounded-lg text-slate-700 hover:bg-slate-50 disabled:opacity-50 transition-colors font-semibold text-sm">Next</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-12 text-center">
+                <a href="/bincheck.html" class="inline-flex items-center justify-center gap-2 px-8 py-4 bg-terminal text-white font-bold rounded-full hover:bg-blue-700 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-1">
+                    Try Premium BIN Checker API <i class="ph-bold ph-arrow-right"></i>
+                </a>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        const tableBody = document.getElementById('binTableBody');
+        const searchInput = document.getElementById('searchInput');
+        const searchBtn = document.getElementById('searchBtn');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const pageInfo = document.getElementById('pageInfo');
+
+        let currentPage = 1;
+        const limit = 50;
+
+        async function fetchBins(page = 1, query = '') {
+            tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-12 text-slate-400"><i class="ph-bold ph-spinner animate-spin text-3xl"></i></td></tr>';
+            const offset = (page - 1) * limit;
+            try {
+                const res = await fetch(`/api/bins/list?q=${encodeURIComponent(query)}&limit=${limit}&offset=${offset}`);
+                const data = await res.json();
+                
+                if (data.success) {
+                    renderTable(data.data);
+                    
+                    pageInfo.textContent = `Showing page ${data.page} of ${data.pages} (${data.total} total BINs)`;
+                    
+                    prevBtn.disabled = data.page <= 1;
+                    nextBtn.disabled = data.page >= data.pages;
+                    currentPage = data.page;
+                }
+            } catch (err) {
+                console.error(err);
+                tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-12 text-red-500">Failed to load data.</td></tr>';
+            }
+        }
+
+        function renderTable(rows) {
+            if (rows.length === 0) {
+                tableBody.innerHTML = '<tr><td colspan="6" class="text-center py-12 text-slate-500">No BINs found matching your search.</td></tr>';
+                return;
+            }
+
+            tableBody.innerHTML = rows.map(row => `
+                <tr class="border-b border-slate-100 last:border-0 table-row-hover">
+                    <td class="py-4 px-6 font-mono font-bold text-slate-900">${row.bin}</td>
+                    <td class="py-4 px-6 text-slate-700">${row.issuer || 'Unknown Bank'}</td>
+                    <td class="py-4 px-6 text-slate-500">${row.country || '--'}</td>
+                    
+                    <td class="py-4 px-6 text-center locked-cell" onclick="triggerUpsell()">
+                        <span class="blurred-field text-slate-400">Mastercard</span>
+                        <i class="ph-fill ph-lock-key lock-icon"></i>
+                    </td>
+                    <td class="py-4 px-6 text-center locked-cell" onclick="triggerUpsell()">
+                        <span class="blurred-field text-slate-400">Debit</span>
+                        <i class="ph-fill ph-lock-key lock-icon"></i>
+                    </td>
+                    <td class="py-4 px-6 text-center locked-cell" onclick="triggerUpsell()">
+                        <span class="blurred-field text-slate-400">Platinum</span>
+                        <i class="ph-fill ph-lock-key lock-icon"></i>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function triggerUpsell() {
+            Swal.fire({
+                title: 'Premium Data Locked',
+                text: 'Detailed card attributes like Scheme, Type, and Level are available exclusively through our API.',
+                icon: 'lock',
+                iconHtml: '<i class="ph-fill ph-lock-key text-terminal"></i>',
+                customClass: {
+                    icon: 'border-none text-4xl'
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Try BIN Checker',
+                confirmButtonColor: '#2563EB',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = '/bincheck.html';
+                }
+            });
+        }
+
+        // Events
+        searchBtn.addEventListener('click', () => {
+            fetchBins(1, searchInput.value);
+        });
+
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                fetchBins(1, searchInput.value);
+            }
+        });
+
+        prevBtn.addEventListener('click', () => {
+            if (currentPage > 1) fetchBins(currentPage - 1, searchInput.value);
+        });
+
+        nextBtn.addEventListener('click', () => {
+            fetchBins(currentPage + 1, searchInput.value);
+        });
+
+        // Init
+        fetchBins();
+    </script>
+</body>
+</html>
