@@ -10,6 +10,7 @@ import { initRemittanceDB, getLiveRates, upsertFXRate } from './remittanceDB.js'
 import { calculateNetPayout } from './payoutEngine.js';
 import { generateMarketPulse } from './anithaAI.js';
 import { supabase } from './supabaseClient.js';
+import { initSwiftScheduler } from './swiftScheduler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1146,10 +1147,75 @@ app.get('/api/bins/stats', async (req, res) => {
   }
 });
 
+// --- SWIFT CODES API ENDPOINTS ---
+
+app.get('/api/swift/search', async (req, res) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase not initialized' });
+    const { code, bank, city } = req.query;
+    
+    try {
+        let query = supabase.from('swift_codes').select('*');
+        if (code) query = query.ilike('swift_code', `%${code}%`);
+        if (bank) query = query.ilike('bank_name', `%${bank}%`);
+        if (city) query = query.ilike('city', `%${city}%`);
+        
+        const { data, error } = await query.limit(50);
+        if (error) throw error;
+        res.json({ success: true, count: data.length, data });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/swift/country/:country_code', async (req, res) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase not initialized' });
+    try {
+        const { data, error } = await supabase
+            .from('swift_codes')
+            .select('*')
+            .eq('country_code', req.params.country_code.toUpperCase())
+            .limit(100);
+        if (error) throw error;
+        res.json({ success: true, count: data.length, data });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/swift/validate/:swift_code', async (req, res) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase not initialized' });
+    try {
+        const { data, error } = await supabase
+            .from('swift_codes')
+            .select('*')
+            .eq('swift_code', req.params.swift_code.toUpperCase().trim())
+            .single();
+            
+        if (error) {
+            // Might be "Row not found"
+            return res.json({ valid: false, message: 'SWIFT code not found in database', code: req.params.swift_code });
+        }
+        res.json({ valid: true, data });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// Admin manual trigger for scraper (for testing)
+app.post('/api/admin/trigger-swift-scrape', async (req, res) => {
+    // In production, secure this with an admin API key
+    // For now, we will just trigger it asynchronously so we don't block the response
+    res.json({ message: 'SWIFT scrape job initiated in the background' });
+    import('./swiftScraper.js').then(({ runFullScraper }) => {
+        runFullScraper().catch(console.error);
+    });
+});
+
 app.listen(port, async () => {
   await init();
   // Initialize Telegram Bot & FX Engine
-  await initTelegramBot();
   await initRemittanceDB();
+  await initSwiftScheduler();
+  await initTelegramBot();
   console.log(`🚀 BIN Check API Server listening on port ${port}`);
 });
