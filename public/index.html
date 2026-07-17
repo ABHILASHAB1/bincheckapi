@@ -33,8 +33,8 @@
                         offwhite: '#0F172A',
                     },
                     animation: {
-                        'marquee': 'marquee 60s linear infinite',
-                        'marquee-fast': 'marquee 30s linear infinite',
+                        'marquee': 'marquee 90s linear infinite',
+                        'marquee-fast': 'marquee 45s linear infinite',
                         'float': 'float 6s ease-in-out infinite',
                     },
                     keyframes: {
@@ -63,9 +63,9 @@
         .ticker-wrap {
             overflow: hidden;
             white-space: nowrap;
-            border-top: 1px solid rgba(37, 99, 235, 0.2);
-            border-bottom: 1px solid rgba(37, 99, 235, 0.2);
-            background: rgba(37, 99, 235, 0.02);
+            border-top: 1px solid rgba(37, 99, 235, 0.3);
+            border-bottom: 1px solid rgba(37, 99, 235, 0.3);
+            background: rgba(37, 99, 235, 0.08);
             display: flex;
         }
 
@@ -168,7 +168,7 @@
 
     <!-- The Wildcard: Live Ticker at the absolute top under Nav -->
     <div class="ticker-wrap pt-20 pb-0">
-        <div id="ticker-main" class="ticker-content animate-marquee text-[10px] font-mono text-accentBlue/80 tracking-widest py-1.5 uppercase flex gap-12">
+        <div id="ticker-main" class="ticker-content animate-marquee text-[13px] font-mono font-bold text-accentBlue tracking-widest py-2.5 uppercase flex gap-16 items-center">
             <span>LIVE INTELLIGENCE FEED</span>
             <span>AED/INR: 22.754</span>
             <span>SAR/INR: 22.281</span>
@@ -182,7 +182,7 @@
             <span>EUR/USD: 1.084</span>
             <span>SYS_STATUS: OPTIMAL</span>
         </div>
-        <div id="ticker-clone" class="ticker-content animate-marquee text-[10px] font-mono text-accentBlue/80 tracking-widest py-1.5 uppercase flex gap-12" aria-hidden="true">
+        <div id="ticker-clone" class="ticker-content animate-marquee text-[13px] font-mono font-bold text-accentBlue tracking-widest py-2.5 uppercase flex gap-16 items-center" aria-hidden="true">
             <span>LIVE INTELLIGENCE FEED</span>
             <span>AED/INR: 22.754</span>
             <span>SAR/INR: 22.281</span>
