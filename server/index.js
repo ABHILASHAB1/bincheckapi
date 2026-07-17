@@ -1338,7 +1338,7 @@ app.get('/api/bins/list', async (req, res) => {
 
     let query = supabase
         .from('bins')
-        .select('bin, issuer, country, scheme, type, category', { count: 'exact' });
+        .select('bin, issuer, country_name, country_code, scheme, type, category', { count: 'exact' });
 
     if (search) {
         // Search by bin or issuer
@@ -1346,11 +1346,17 @@ app.get('/api/bins/list', async (req, res) => {
     }
 
     // Add pagination
-    const { data: rows, error, count } = await query
+    const { data: rawRows, error, count } = await query
         .order('bin', { ascending: true })
         .range(offset, offset + limit - 1);
 
     if (error) throw error;
+    
+    // Map country_code to country to match the expected format
+    const rows = (rawRows || []).map(r => ({
+        ...r,
+        country: r.country_code || r.country_name || 'US'
+    }));
     
     res.json({
         success: true,
