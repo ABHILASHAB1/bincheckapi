@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RemitWise | Bank Profile Editor (Replica)</title>
+    
+    <!-- Fonts -->
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Satoshi', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        deep: '#F8FAFC',
+                        surface: '#FFFFFF',
+                        border: '#E2E8F0',
+                        terminal: '#2563EB',
+                        offwhite: '#0F172A',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #F8FAFC;
+            color: #0F172A;
+            overflow-x: hidden;
+        }
+
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .input-label {
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #475569;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        
+        .bdww-input {
+            width: 100%;
+            background: white;
+            border: 1px solid #E2E8F0;
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: #0F172A;
+            transition: all 0.2s ease;
+        }
+        .bdww-input:focus {
+            outline: none;
+            border-color: #2563EB;
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+        }
+
+        /* Flippable Card */
+        .flip-card {
+            background-color: transparent;
+            width: 100%;
+            max-width: 450px;
+            height: 270px;
+            perspective: 1000px;
+            margin: 0 auto;
+        }
+        
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: left;
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .flip-card.flipped .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+        
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 20px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+        
+        .flip-card-front::before, .flip-card-back::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url('https://www.transparenttextures.com/patterns/cubes.png');
+            opacity: 0.1;
+            z-index: 1;
+        }
+        
+        .flip-card-front {
+            z-index: 2;
+        }
+        
+        .flip-card-back {
+            transform: rotateY(180deg);
+            z-index: 2;
+        }
+
+        .card-content {
+            position: relative;
+            z-index: 3;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-terminal selection:text-white flex flex-col min-h-screen">
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 glass transition-all duration-300 border-b border-border">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-12">
+                <a href="/" class="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
+                    <i class="ph-fill ph-planet text-terminal text-3xl"></i>
+                    RemitWise
+                </a>
+                <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+                    <a href="/directory.html" class="hover:text-slate-900 transition-colors">Bank Directory</a>
+                    <span class="text-terminal font-bold">Bank Editor Replica</span>
+                </div>
+            </div>
+            <div>
+                <button id="btnSave" class="bg-slate-900 text-white px-6 py-2.5 rounded-full hover:bg-slate-800 transition-colors font-bold text-sm flex items-center gap-2">
+                    <i class="ph-bold ph-floppy-disk"></i> Save Changes
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow pt-32 pb-20 px-6">
+        <div class="max-w-7xl mx-auto">
+            
+            <div class="flex items-center gap-4 mb-8">
+                <div class="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center text-terminal text-2xl">
+                    <i class="ph-fill ph-bank"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-black text-slate-900" id="pageTitle">Create New Bank</h1>
+                    <p class="text-slate-500 font-medium mt-1">View Bank Info Page - Replica Editor</p>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+                
+                <!-- Left Column: Form Inputs -->
+                <div class="lg:col-span-7 space-y-8">
+                    
+                    <!-- Info Section -->
+                    <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                        <h2 class="text-xl font-bold text-slate-900 mb-6 border-b border-slate-100 pb-4">Info</h2>
+                        <div class="grid grid-cols-2 gap-6">
+                            <div>
+                                <label class="input-label">Short Name</label>
+                                <input type="text" class="bdww-input" id="inpShortName" placeholder="e.g. Al Rajhi Bank">
+                            </div>
+                            <div>
+                                <label class="input-label">Country Code</label>
+                                <select class="bdww-input" id="inpCountry">
+                                    <option value="SA">Saudi Arabia (SA)</option>
+                                    <option value="US">United States (US)</option>
+                                    <option value="GB">United Kingdom (GB)</option>
+                                    <option value="AE">United Arab Emirates (AE)</option>
+                                    <option value="IN">India (IN)</option>
+                                    <option value="PL">Poland (PL)</option>
+                                    <option value="FR">France (FR)</option>
+                                    <!-- Simplified list for demo, easily expandable -->
+                                </select>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="input-label">Official Name</label>
+                                <input type="text" class="bdww-input" id="inpOfficialName" placeholder="e.g. Al Rajhi Banking and Investment Corporation">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="input-label">SWIFT Code</label>
+                                <input type="text" class="bdww-input" id="inpSwift" placeholder="e.g. RJHI SA RI">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Contact Section -->
+                    <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                        <h2 class="text-xl font-bold text-slate-900 mb-6 border-b border-slate-100 pb-4">Contact</h2>
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="col-span-2">
+                                <label class="input-label">Website</label>
+                                <input type="url" class="bdww-input" id="inpWebsite" placeholder="https://www.alrajhibank.com.sa/">
+                            </div>
+                            <div>
+                                <label class="input-label">Customer Service</label>
+                                <input type="text" class="bdww-input" id="inpPhone" placeholder="+966920003344">
+                            </div>
+                            <div>
+                                <label class="input-label">Email</label>
+                                <input type="email" class="bdww-input" id="inpEmail" placeholder="contact@alrajhibank.com.sa">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Brand Section -->
+                    <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                        <h2 class="text-xl font-bold text-slate-900 mb-6 border-b border-slate-100 pb-4">Brand & Aesthetics</h2>
+                        <div class="grid grid-cols-2 gap-6">
+                            <div class="col-span-2">
+                                <label class="input-label">Logo Image URL</label>
+                                <input type="url" class="bdww-input" id="inpLogo" placeholder="https://upload.wikimedia.org/...">
+                            </div>
+                            <div>
+                                <label class="input-label">Card Background (Hex or Gradient)</label>
+                                <input type="text" class="bdww-input" id="inpCardColor" placeholder="linear-gradient(135deg, #003c71 0%, #0056a3 100%)">
+                            </div>
+                            <div>
+                                <label class="input-label">Card Text Color</label>
+                                <input type="text" class="bdww-input" id="inpTextColor" placeholder="#ffffff">
+                            </div>
+                            <div class="col-span-2">
+                                <label class="input-label">Brand Main Color (Hex)</label>
+                                <input type="text" class="bdww-input" id="inpBrandColor" placeholder="#003c71">
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Right Column: Previews -->
+                <div class="lg:col-span-5 space-y-8">
+                    
+                    <!-- Live Card Preview -->
+                    <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
+                        <h2 class="text-xl font-bold text-slate-900 mb-8 border-b border-slate-100 pb-4">Real-Time Card Preview</h2>
+                        
+                        <!-- 3D Card Visual -->
+                        <div class="flex flex-col justify-center perspective-container w-full">
+                            <div class="flip-card cursor-pointer" title="Click to flip card" onclick="this.classList.toggle('flipped')">
+                                <div class="flip-card-inner">
+                                    <!-- Front -->
+                                    <div class="flip-card-front" id="cardFront" style="background: linear-gradient(135deg, #003c71 0%, #0056a3 100%); color: #ffffff;">
+                                        <div class="card-content flex justify-between items-start w-full">
+                                            <div>
+                                                <h3 class="font-bold text-xl opacity-90" id="cardBankName">Al Rajhi Bank</h3>
+                                                <p class="text-xs font-mono opacity-70 mt-1" id="cardCountry">SA</p>
+                                            </div>
+                                            <img src="" alt="Logo" id="cardLogo" class="h-10 object-contain rounded bg-white/10 p-1" style="display: none;">
+                                        </div>
+                                        <div class="card-content">
+                                            <div class="flex gap-2 mb-4 opacity-80">
+                                                <i class="ph-fill ph-sim-card text-3xl"></i>
+                                                <i class="ph ph-wifi-high text-3xl rotate-90"></i>
+                                            </div>
+                                            <div class="font-mono text-xl tracking-widest opacity-90">•••• •••• •••• ••••</div>
+                                            <div class="flex justify-between items-end mt-4">
+                                                <div class="font-mono text-sm opacity-80" id="cardSwift">RJHI SA RI</div>
+                                                <div class="font-bold italic text-lg opacity-90">PREMIUM</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <!-- Back -->
+                                    <div class="flip-card-back" id="cardBack" style="background: #1a1a1a; color: #fff;">
+                                        <div class="card-content w-full h-full flex flex-col">
+                                            <div class="w-[120%] h-12 bg-black -ml-6 mt-4 opacity-80 relative z-10"></div>
+                                            <div class="mt-4 bg-white/20 h-10 w-3/4 rounded flex items-center justify-end px-4 relative z-10">
+                                                <span class="font-mono text-sm text-black italic">123</span>
+                                            </div>
+                                            <div class="mt-auto relative z-10 text-xs opacity-70 space-y-1">
+                                                <p id="cardCustomerService"><i class="ph ph-phone"></i> +966920003344</p>
+                                                <p id="cardWebsite"><i class="ph ph-globe"></i> https://www.alrajhibank.com.sa/</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="text-center mt-6 text-xs font-medium text-slate-400 flex items-center justify-center gap-1">
+                                <i class="ph-bold ph-arrows-left-right"></i> Click card to flip
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Generated SQL Preview -->
+                    <div class="bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-sm">
+                        <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-4">
+                            <h2 class="text-lg font-bold text-white">Generated SQL Output</h2>
+                            <i class="ph-bold ph-code text-slate-400"></i>
+                        </div>
+                        <textarea id="sqlOutput" class="w-full h-32 bg-slate-950 text-emerald-400 font-mono text-xs p-4 rounded-xl border border-slate-800 focus:outline-none resize-none" readonly></textarea>
+                    </div>
+
+                    <!-- Generated JSON Preview -->
+                    <div class="bg-slate-900 p-8 rounded-2xl border border-slate-800 shadow-sm">
+                        <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-4">
+                            <h2 class="text-lg font-bold text-white">Generated JSON Output</h2>
+                            <i class="ph-bold ph-brackets-curly text-slate-400"></i>
+                        </div>
+                        <textarea id="jsonOutput" class="w-full h-48 bg-slate-950 text-amber-400 font-mono text-xs p-4 rounded-xl border border-slate-800 focus:outline-none resize-none" readonly></textarea>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <script>
+        // DOM Elements - Inputs
+        const inpShortName = document.getElementById('inpShortName');
+        const inpOfficialName = document.getElementById('inpOfficialName');
+        const inpCountry = document.getElementById('inpCountry');
+        const inpSwift = document.getElementById('inpSwift');
+        const inpWebsite = document.getElementById('inpWebsite');
+        const inpPhone = document.getElementById('inpPhone');
+        const inpEmail = document.getElementById('inpEmail');
+        const inpLogo = document.getElementById('inpLogo');
+        const inpCardColor = document.getElementById('inpCardColor');
+        const inpTextColor = document.getElementById('inpTextColor');
+        const inpBrandColor = document.getElementById('inpBrandColor');
+        
+        // DOM Elements - Previews
+        const cardFront = document.getElementById('cardFront');
+        const cardBankName = document.getElementById('cardBankName');
+        const cardCountry = document.getElementById('cardCountry');
+        const cardSwift = document.getElementById('cardSwift');
+        const cardLogo = document.getElementById('cardLogo');
+        const cardCustomerService = document.getElementById('cardCustomerService');
+        const cardWebsite = document.getElementById('cardWebsite');
+        const sqlOutput = document.getElementById('sqlOutput');
+        const jsonOutput = document.getElementById('jsonOutput');
+        
+        // State
+        let currentBankId = null;
+
+        // Extract ID from URL if editing
+        const urlParams = new URLSearchParams(window.location.search);
+        const bankId = urlParams.get('id');
+
+        if (bankId) {
+            loadBank(bankId);
+        } else {
+            updatePreviews(); // Initialize empty previews
+        }
+
+        async function loadBank(id) {
+            try {
+                const res = await fetch(`/api/banks/${id}`);
+                if (res.ok) {
+                    const bank = await res.json();
+                    currentBankId = bank.id;
+                    document.getElementById('pageTitle').textContent = `Edit Bank: ${bank.short_name}`;
+                    
+                    // Populate Form
+                    inpShortName.value = bank.short_name || '';
+                    inpOfficialName.value = bank.official_name || '';
+                    inpCountry.value = bank.country || '';
+                    inpSwift.value = bank.swift_code || '';
+                    inpWebsite.value = bank.website || '';
+                    inpPhone.value = bank.customer_service || '';
+                    inpEmail.value = bank.email || '';
+                    inpLogo.value = bank.logo_url || '';
+                    inpCardColor.value = bank.card_color || '';
+                    inpTextColor.value = bank.brand_text_color || '';
+                    inpBrandColor.value = bank.brand_color || '';
+
+                    updatePreviews();
+                }
+            } catch (err) {
+                console.error("Failed to load bank", err);
+            }
+        }
+
+        // Attach event listeners to all inputs to trigger live preview update
+        const allInputs = document.querySelectorAll('.bdww-input');
+        allInputs.forEach(input => {
+            input.addEventListener('input', updatePreviews);
+            input.addEventListener('change', updatePreviews);
+        });
+
+        function updatePreviews() {
+            const vals = {
+                short_name: inpShortName.value || 'Bank Name',
+                official_name: inpOfficialName.value,
+                country: inpCountry.value || 'US',
+                swift_code: inpSwift.value || 'SWIFT',
+                website: inpWebsite.value || 'Website',
+                customer_service: inpPhone.value || 'Service',
+                email: inpEmail.value,
+                logo_url: inpLogo.value,
+                card_color: inpCardColor.value || '#333333',
+                brand_text_color: inpTextColor.value || '#ffffff',
+                brand_color: inpBrandColor.value || '#2563eb'
+            };
+
+            // 1. Update Card Visual
+            cardFront.style.background = vals.card_color;
+            cardFront.style.color = vals.brand_text_color;
+            cardBankName.textContent = vals.short_name;
+            cardCountry.textContent = vals.country;
+            cardSwift.textContent = vals.swift_code;
+            
+            if (vals.logo_url) {
+                cardLogo.src = vals.logo_url;
+                cardLogo.style.display = 'block';
+            } else {
+                cardLogo.style.display = 'none';
+            }
+
+            cardCustomerService.innerHTML = `<i class="ph ph-phone"></i> ${vals.customer_service}`;
+            cardWebsite.innerHTML = `<i class="ph ph-globe"></i> ${vals.website}`;
+
+            // 2. Generate SQL
+            const sqlCode = `INSERT INTO banks (
+    short_name, official_name, country, swift_code, website, 
+    customer_service, email, brand_color, brand_text_color, 
+    card_color, logo_url
+) VALUES (
+    '${vals.short_name.replace(/'/g, "''")}', 
+    '${(vals.official_name||'').replace(/'/g, "''")}', 
+    '${vals.country}', 
+    '${vals.swift_code}', 
+    '${vals.website}', 
+    '${vals.customer_service}', 
+    '${vals.email}', 
+    '${vals.brand_color}', 
+    '${vals.brand_text_color}', 
+    '${vals.card_color}', 
+    '${vals.logo_url}'
+);`;
+            sqlOutput.value = sqlCode;
+
+            // 3. Generate JSON
+            const jsonObj = {
+                [vals.official_name || 'NewBank']: {
+                    info: {
+                        short_name: vals.short_name,
+                        official_name: vals.official_name,
+                        country: vals.country,
+                        swift_code: vals.swift_code
+                    },
+                    contact: {
+                        website: vals.website,
+                        customer_service: vals.customer_service,
+                        email: vals.email
+                    },
+                    brand: {
+                        logo_url: vals.logo_url,
+                        brand_main_color: vals.brand_color,
+                        brand_text_color: vals.brand_text_color,
+                        card_color: vals.card_color
+                    }
+                }
+            };
+            jsonOutput.value = JSON.stringify(jsonObj, null, 4);
+        }
+
+        // Save Function
+        document.getElementById('btnSave').addEventListener('click', async () => {
+            const btn = document.getElementById('btnSave');
+            btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i> Saving...';
+            
+            const payload = {
+                id: currentBankId,
+                short_name: inpShortName.value,
+                official_name: inpOfficialName.value,
+                country: inpCountry.value,
+                swift_code: inpSwift.value,
+                website: inpWebsite.value,
+                customer_service: inpPhone.value,
+                email: inpEmail.value,
+                logo_url: inpLogo.value,
+                card_color: inpCardColor.value,
+                brand_text_color: inpTextColor.value,
+                brand_color: inpBrandColor.value
+            };
+
+            try {
+                const res = await fetch('/api/banks/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    currentBankId = data.id;
+                    btn.innerHTML = '<i class="ph-bold ph-check"></i> Saved!';
+                    setTimeout(() => {
+                        btn.innerHTML = '<i class="ph-bold ph-floppy-disk"></i> Save Changes';
+                    }, 2000);
+                } else {
+                    alert('Error saving bank data.');
+                    btn.innerHTML = '<i class="ph-bold ph-floppy-disk"></i> Save Changes';
+                }
+            } catch (err) {
+                alert('Network error while saving.');
+                btn.innerHTML = '<i class="ph-bold ph-floppy-disk"></i> Save Changes';
+            }
+        });
+    </script>
+</body>
+</html>

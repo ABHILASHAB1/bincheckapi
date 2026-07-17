@@ -241,6 +241,44 @@ app.get('/api/banks/search', async (req, res) => {
     }
 });
 
+app.get('/api/banks/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const bank = await localDb.get('SELECT * FROM banks WHERE id = ?', [id]);
+        if (!bank) return res.status(404).json({ error: 'Bank not found' });
+        res.json(bank);
+    } catch (e) {
+        console.error("Error fetching bank by ID:", e);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
+app.post('/api/banks/save', async (req, res) => {
+    try {
+        const { id, short_name, official_name, country, swift_code, website, customer_service, email, brand_color, brand_text_color, card_color, logo_url } = req.body;
+        
+        if (id) {
+            // Update
+            await localDb.run(`
+                UPDATE banks SET 
+                    short_name = ?, official_name = ?, country = ?, swift_code = ?, website = ?, customer_service = ?, email = ?, brand_color = ?, brand_text_color = ?, card_color = ?, logo_url = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            `, [short_name, official_name, country, swift_code, website, customer_service, email, brand_color, brand_text_color, card_color, logo_url, id]);
+            res.json({ success: true, id });
+        } else {
+            // Insert
+            const result = await localDb.run(`
+                INSERT INTO banks (short_name, official_name, country, swift_code, website, customer_service, email, brand_color, brand_text_color, card_color, logo_url)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [short_name, official_name, country, swift_code, website, customer_service, email, brand_color, brand_text_color, card_color, logo_url]);
+            res.json({ success: true, id: result.lastID });
+        }
+    } catch (e) {
+        console.error("Error saving bank:", e);
+        res.status(500).json({ error: 'Server error while saving bank' });
+    }
+});
+
 // --- Support Chat endpoints ---
 // Health check endpoint
 app.get('/api/botstatus', (req, res) => {
