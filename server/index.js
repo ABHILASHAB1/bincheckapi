@@ -1385,11 +1385,19 @@ app.post('/api/analytics/track', async (req, res) => {
         res.status(500).json({ error: e.message });
     }
 });
+import { runFullScraper } from './swiftScraper.js';
+import { runProviderScraper } from './providerScraper.js';
+
 app.listen(port, async () => {
   await init();
   // Initialize Telegram Bot & FX Engine
   await initRemittanceDB();
   await initSwiftScheduler();
   await initTelegramBot();
+  
+  // Initialize and schedule Provider Scraper (Runs every 15 minutes)
+  await runProviderScraper();
+  setInterval(runProviderScraper, 15 * 60 * 1000);
+
   console.log(`🚀 BIN Check API Server listening on port ${port}`);
 });
