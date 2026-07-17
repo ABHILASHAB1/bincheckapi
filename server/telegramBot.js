@@ -406,3 +406,31 @@ _Enterprise FX Simulation Engine_
         console.error('Error broadcasting FX alert:', err);
     }
 };
+
+export const broadcastNewUserAlert = async (pageUrl, userAgent) => {
+    if (!bot || !db) return;
+
+    try {
+        const subscribers = await db.all('SELECT chat_id FROM telegram_subscribers');
+        if (subscribers.length === 0) return;
+
+        // Parse user agent minimally
+        let device = 'Desktop';
+        if (/mobile/i.test(userAgent)) device = 'Mobile';
+        if (/bot|crawl|spider/i.test(userAgent)) device = 'Bot';
+
+        const message = `
+👤 *New Visitor Detected* 
+• Page: \`${pageUrl}\`
+• Device: \`${device}\`
+        `;
+
+        for (const sub of subscribers) {
+            bot.sendMessage(sub.chat_id, message, { parse_mode: 'Markdown' }).catch(err => {
+                console.error(`Failed to send new user alert to ${sub.chat_id}:`, err.message);
+            });
+        }
+    } catch (err) {
+        console.error('Error broadcasting new user alert:', err);
+    }
+};

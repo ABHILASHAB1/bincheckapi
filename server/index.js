@@ -5,7 +5,7 @@ import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { setupDatabase } from './db.js';
 import { BinService } from './binService.js';
-import { initTelegramBot } from './telegramBot.js';
+import { initTelegramBot, broadcastFXAlert, broadcastNewUserAlert } from './telegramBot.js';
 import { initRemittanceDB, getLiveRates, upsertFXRate } from './remittanceDB.js';
 import { calculateNetPayout } from './payoutEngine.js';
 import { generateMarketPulse } from './anithaAI.js';
@@ -1266,6 +1266,9 @@ app.post('/api/analytics/track', async (req, res) => {
                     time_spent_ms: time_spent_ms || 0,
                     user_agent
                 }]);
+            
+            // Fire Telegram alert for new session/page hit
+            broadcastNewUserAlert(page_url, user_agent);
         }
         
         res.json({ success: true });
