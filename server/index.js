@@ -1415,22 +1415,6 @@ app.post('/api/support-bot', async (req, res) => {
         // 2. Broadcast to Telegram Admin
         await broadcastSupportBotAlert(ticketId, data);
 
-        // 3. Set Auto-Responder Timeout (60 seconds)
-        setTimeout(() => {
-            const session = activeSupportSessions.get(ticketId);
-            if (session) {
-                // If the only message is the initial system message, admin hasn't replied
-                const hasAdminReplied = session.messages.some(m => m.sender === 'admin');
-                if (!hasAdminReplied) {
-                    session.messages.push({
-                        sender: 'system',
-                        text: 'Currently we are facing high engagement hence we will connect you shortly on provided info thanks.',
-                        timestamp: Date.now()
-                    });
-                }
-            }
-        }, 60000);
-
         res.json({ success: true, ticketId, message: "Chat session started." });
     } catch (e) {
         console.error("Support bot routing error:", e);
