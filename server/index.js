@@ -185,6 +185,88 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// ----------------------------------------------------
+// User Tracking API
+// ----------------------------------------------------
+app.post('/api/track', async (req, res) => {
+  try {
+    const { userAgent, screenResolution, language, timezone, latitude, longitude } = req.body;
+    
+    // Generate Fingerprint
+    const rawString = `${userAgent}-${screenResolution}-${language}-${timezone}`;
+    const fingerprint = crypto.createHash('sha256').update(rawString).digest('hex');
+
+    // Parse User Agent (basic parsing)
+    const browserMatch = userAgent?.match(/(firefox|msie|chrome|safari|trident|edge|opr(?=\/))\/?\s*(\d+)/i) || [];
+    const browser = browserMatch[1] || 'Unknown';
+    const osMatch = userAgent?.match(/(windows nt|mac os x|linux|android|ios|iphone|ipad)/i) || [];
+    const os = osMatch[1] || 'Unknown';
+    const isMobile = /mobile|android|iphone|ipad/i.test(userAgent || '');
+    const device_type = isMobile ? 'Mobile' : 'Desktop';
+    const ip_address = req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+
+    if (!supabase) {
+      return res.status(503).json({ error: 'Database connection not available' });
+    }
+
+    // 1. Find Tracked User
+    const { data: user, error: userError } = await supabase
+      .from('tracked_users')
+      .select('*')
+      .eq('fingerprint', fingerprint)
+      .maybeSingle();
+
+    let userId;
+
+    if (user) {
+      userId = user.id;
+      // Increment visits and update last_seen
+      await supabase
+        .from('tracked_users')
+        .update({ 
+          last_seen_at: new Date().toISOString(),
+          total_visits: user.total_visits + 1,
+          browser,
+          os,
+          device_type
+        })
+        .eq('id', userId);
+    } else {
+      // Create new user
+      const { data: newUser, error: insertError } = await supabase
+        .from('tracked_users')
+        .insert([{
+          fingerprint,
+          browser,
+          os,
+          device_type,
+          total_visits: 1
+        }])
+        .select()
+        .single();
+        
+      if (insertError) throw insertError;
+      userId = newUser.id;
+    }
+
+    // 2. Log Session
+    await supabase
+      .from('user_sessions')
+      .insert([{
+        user_id: userId,
+        latitude: latitude || null,
+        longitude: longitude || null,
+        ip_address
+      }]);
+
+    res.json({ success: true, fingerprint });
+
+  } catch (error) {
+    console.error('❌ Error tracking user:', error);
+    res.status(500).json({ error: 'Internal server error during tracking' });
+  }
+});
+
 // GET /v1/balance - Swagger check balance (Free of query charges)
 app.get('/v1/balance', authenticateApiKey, (req, res) => {
   res.json({

@@ -180,6 +180,33 @@
           if (n.includes('enjaz')) return { bg: '#DC2626', initials: 'ENJ', text: 'text-white' };
           return { bg: '#9CA3AF', initials: name.substring(0, 2).toUpperCase(), text: 'text-white' };
         };
+
+        // Track User Identity and Location
+        useEffect(() => {
+          const sendTrackingData = (position) => {
+            const payload = {
+              userAgent: navigator.userAgent,
+              screenResolution: `${window.screen.width}x${window.screen.height}`,
+              language: navigator.language,
+              timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+              latitude: position?.coords?.latitude || null,
+              longitude: position?.coords?.longitude || null
+            };
+
+            fetch('/api/track', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(payload)
+            }).catch(console.error);
+          };
+
+          if (navigator.geolocation) {
+            // Timeout after 3 seconds so we still track even if user ignores popup
+            navigator.geolocation.getCurrentPosition(sendTrackingData, () => sendTrackingData(null), { timeout: 3000 });
+          } else {
+            sendTrackingData(null);
+          }
+        }, []);
         
         // Fetch available bases and targets (with polling)
         useEffect(() => {
