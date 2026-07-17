@@ -216,14 +216,14 @@ app.get('/api/banks/search', async (req, res) => {
     try {
         const { q } = req.query;
         if (!q) {
-            const banks = await localDb.all('SELECT * FROM banks LIMIT 50');
+            const banks = await db.all('SELECT * FROM banks LIMIT 50');
             return res.json(banks);
         }
 
         const queryStr = q.trim().toLowerCase();
         
         // Advanced Universal Search: Name, SWIFT, Email, Phone, Domain
-        const banks = await localDb.all(`
+        const banks = await db.all(`
             SELECT * FROM banks 
             WHERE lower(short_name) LIKE ? 
                OR lower(official_name) LIKE ? 
@@ -244,7 +244,7 @@ app.get('/api/banks/search', async (req, res) => {
 app.get('/api/banks/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const bank = await localDb.get('SELECT * FROM banks WHERE id = ?', [id]);
+        const bank = await db.get('SELECT * FROM banks WHERE id = ?', [id]);
         if (!bank) return res.status(404).json({ error: 'Bank not found' });
         res.json(bank);
     } catch (e) {
@@ -265,13 +265,13 @@ app.post('/api/banks/save', async (req, res) => {
         
         // 1. Sync to SQLite banks table
         if (id) {
-            await localDb.run(`
+            await db.run(`
                 UPDATE banks SET 
                     short_name = ?, official_name = ?, country = ?, swift_code = ?, website = ?, customer_service = ?, email = ?, brand_color = ?, brand_text_color = ?, card_color = ?, logo_url = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             `, [short_name, official_name, country, swift_code, website, customer_service, email, brand_color, brand_text_color, card_color, logo_url, id]);
         } else {
-            const result = await localDb.run(`
+            const result = await db.run(`
                 INSERT INTO banks (short_name, official_name, country, swift_code, website, customer_service, email, brand_color, brand_text_color, card_color, logo_url)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [short_name, official_name, country, swift_code, website, customer_service, email, brand_color, brand_text_color, card_color, logo_url]);
@@ -282,7 +282,7 @@ app.post('/api/banks/save', async (req, res) => {
         if (bin && bin.trim() !== '') {
             const cleanBin = bin.trim();
             // Local SQLite bins
-            await localDb.run(`
+            await db.run(`
                 INSERT INTO bins (bin, scheme, type, category, issuer, country, source)
                 VALUES (?, ?, ?, ?, ?, ?, 'LOCAL_EDITOR')
                 ON CONFLICT(bin) DO UPDATE SET
@@ -1330,7 +1330,7 @@ app.get('/api/config/firebase', (req, res) => {
 // Public BIN Directory List Endpoint
 app.get('/api/bins/list', async (req, res) => {
   try {
-    if (!localDb) return res.status(503).json({ error: 'Database not initialized' });
+    if (!db) return res.status(503).json({ error: 'Database not initialized' });
     
     const limit = parseInt(req.query.limit) || 50;
     const offset = parseInt(req.query.offset) || 0;
@@ -1347,7 +1347,7 @@ app.get('/api/bins/list', async (req, res) => {
     query += ` ORDER BY bin ASC LIMIT ? OFFSET ?`;
     params.push(limit, offset);
 
-    const rows = await localDb.all(query, params);
+    const rows = await db.all(query, params);
     
     // Total count for pagination
     let countQuery = `SELECT COUNT(*) as total FROM bins`;
@@ -1356,7 +1356,7 @@ app.get('/api/bins/list', async (req, res) => {
         countQuery += ` WHERE bin LIKE ? OR issuer LIKE ?`;
         countParams.push(`%${search}%`, `%${search}%`);
     }
-    const countRow = await localDb.get(countQuery, countParams);
+    const countRow = await db.get(countQuery, countParams);
     
     res.json({
         success: true,
