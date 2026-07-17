@@ -756,10 +756,12 @@
             <!-- Header -->
             <div class="bg-[#00a859] text-white px-4 py-4 flex items-center justify-between">
                 <div class="flex items-center gap-2">
-                    <i class="ph-bold ph-caret-left cursor-pointer" onclick="toggleSupportChat()"></i>
+                    <i class="ph-bold ph-caret-down cursor-pointer hover:bg-white/20 p-1 rounded transition-colors" onclick="toggleSupportChat()" title="Minimize"></i>
                     <h3 class="font-bold text-lg">Customer Support</h3>
                 </div>
-                <i class="ph-bold ph-list cursor-pointer text-xl"></i>
+                <button id="end-chat-btn" onclick="endSupportChat()" class="hidden text-xs font-bold bg-white/20 hover:bg-white/30 px-2 py-1 rounded transition-colors">
+                    End Chat
+                </button>
             </div>
 
             <!-- Form Body -->
@@ -897,6 +899,7 @@
                     const chatContainer = document.getElementById('support-chat-container');
                     chatContainer.classList.remove('hidden');
                     chatContainer.classList.add('flex');
+                    document.getElementById('end-chat-btn').classList.remove('hidden');
                     
                     // Enable footer input
                     const footerInput = document.getElementById('support-chat-input-form');
@@ -916,6 +919,27 @@
                 btn.innerHTML = '<i class="ph-bold ph-warning"></i> Error';
                 setTimeout(() => { btn.innerHTML = originalText; }, 2000);
             }
+        }
+
+        function endSupportChat() {
+            // Stop polling
+            if (pollInterval) clearInterval(pollInterval);
+            currentTicketId = null;
+            
+            // Reset UI
+            document.getElementById('support-chat-container').classList.add('hidden');
+            document.getElementById('support-chat-container').classList.remove('flex');
+            document.getElementById('support-form-container').classList.remove('hidden');
+            document.getElementById('end-chat-btn').classList.add('hidden');
+            
+            const footerInput = document.getElementById('support-chat-input-form');
+            footerInput.classList.add('opacity-50', 'pointer-events-none');
+            
+            // Reset form button and inputs
+            const form = document.getElementById('support-form');
+            form.reset();
+            const btn = form.querySelector('button[type="submit"]');
+            btn.innerHTML = '<i class="ph-bold ph-paper-plane-tilt"></i> Start Chat';
         }
 
         async function pollSupportChat() {
