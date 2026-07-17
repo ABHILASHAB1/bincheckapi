@@ -776,15 +776,27 @@
                         <input type="email" required class="w-full text-sm font-medium focus:outline-none bg-transparent text-gray-800" />
                     </div>
 
-                    <div class="flex gap-2">
-                        <div class="bg-white border border-gray-200 rounded-xl px-2 py-2 flex items-center justify-center w-20 shadow-sm cursor-pointer hover:bg-gray-50">
-                            <span class="text-xs font-bold flex items-center gap-1">🇸🇦 <i class="ph-bold ph-caret-down text-[10px] text-gray-400"></i></span>
+                    <div class="flex gap-2 w-full">
+                        <div class="relative bg-white border border-gray-200 rounded-xl px-1 py-2 flex items-center justify-center w-20 shadow-sm hover:bg-gray-50 focus-within:border-[#00a859] transition-colors">
+                            <select id="support-country-code" onchange="document.getElementById('support-phone-prefix').innerText = this.value" class="w-full bg-transparent text-xs font-bold focus:outline-none cursor-pointer appearance-none pl-2 z-10 relative">
+                                <option value="+966">🇸🇦 SA</option>
+                                <option value="+971">🇦🇪 AE</option>
+                                <option value="+91">🇮🇳 IN</option>
+                                <option value="+1">🇺🇸 US</option>
+                                <option value="+44">🇬🇧 UK</option>
+                                <option value="+63">🇵🇭 PH</option>
+                                <option value="+92">🇵🇰 PK</option>
+                                <option value="+20">🇪🇬 EG</option>
+                                <option value="+880">🇧🇩 BD</option>
+                                <option value="+94">🇱🇰 LK</option>
+                            </select>
+                            <i class="ph-bold ph-caret-down text-[10px] text-gray-400 absolute right-2 pointer-events-none"></i>
                         </div>
-                        <div class="bg-white border border-gray-200 rounded-xl px-3 py-2 flex-1 shadow-sm focus-within:border-[#00a859] transition-colors">
-                            <label class="text-xs text-gray-500 font-medium">Phone</label>
-                            <div class="flex items-center gap-1 mt-0.5">
-                                <span class="text-sm font-medium text-gray-400">+ 966</span>
-                                <input type="tel" class="w-full text-sm font-medium focus:outline-none bg-transparent text-gray-800" />
+                        <div class="bg-white border border-gray-200 rounded-xl px-3 py-2 flex-1 shadow-sm focus-within:border-[#00a859] transition-colors min-w-0">
+                            <label class="text-xs text-gray-500 font-medium block">Phone</label>
+                            <div class="flex items-center gap-1 mt-0.5 flex-nowrap w-full">
+                                <span id="support-phone-prefix" class="text-sm font-medium text-gray-400 whitespace-nowrap shrink-0">+966</span>
+                                <input type="tel" class="w-full min-w-0 text-sm font-medium focus:outline-none bg-transparent text-gray-800" />
                             </div>
                         </div>
                     </div>
@@ -857,10 +869,12 @@
             
             // Extract form data
             const inputs = e.target.querySelectorAll('input, textarea');
+            const countryCode = document.getElementById('support-country-code').value;
+            
             const data = {
                 name: inputs[0].value,
                 email: inputs[1].value,
-                phone: inputs[2].value,
+                phone: `${countryCode} ${inputs[2].value}`,
                 subject: inputs[3].value,
                 message: inputs[4].value
             };

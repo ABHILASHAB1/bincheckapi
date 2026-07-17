@@ -471,7 +471,7 @@ export const broadcastSupportBotAlert = async (supportData) => {
 🎧 *Customer Support Bot Message*
 • *Name:* \`${supportData.name}\`
 • *Email:* \`${supportData.email}\`
-• *Phone:* \`+966 ${supportData.phone}\`
+• *Phone:* \`${supportData.phone}\`
 • *Subject:* \`${supportData.subject}\`
 • *Message:* 
 _${supportData.message}_
