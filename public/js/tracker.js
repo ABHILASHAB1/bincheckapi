@@ -11,8 +11,7 @@
         sessionStorage.setItem('rw_session_id', sessionId);
     }
 
-    // 2. State
-    const startTime = Date.now();
+    let lastPingTime = Date.now();
     const pageUrl = window.location.pathname;
     
     // 3. Helper to determine current theme
@@ -28,12 +27,18 @@
 
     // 4. Send telemetry data to backend
     function sendTelemetry(isFinal = false) {
-        const timeSpent = Date.now() - startTime;
+        const now = Date.now();
+        const delta_ms = now - lastPingTime;
+        lastPingTime = now; // Reset the clock for the next ping
+
+        // Don't send empty pings
+        if (delta_ms <= 0 && !isFinal) return;
+
         const payload = {
             session_id: sessionId,
             page_url: pageUrl,
             theme_mode: getThemeMode(),
-            time_spent_ms: timeSpent,
+            delta_ms: delta_ms,
             user_agent: navigator.userAgent
         };
 

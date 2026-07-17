@@ -1217,75 +1217,103 @@ app.post('/api/admin/trigger-swift-scrape', async (req, res) => {
     });
 });
 
-// Analytics tracking endpoint
+// Analytics tracking endpoint (Uses tracked_users & user_sessions)
 app.post('/api/analytics/track', async (req, res) => {
     if (!supabase) return res.status(500).json({ error: 'Supabase not initialized' });
     try {
-        const { page_url, theme_mode, time_spent_ms } = req.body;
+        const { session_id, page_url, theme_mode, delta_ms, user_agent } = req.body;
         
         if (!page_url) {
             return res.status(400).json({ error: 'Missing required tracking fields' });
         }
 
-        // Capture IP and Device dynamically from the server request
-        // Render passes the real IP in the x-forwarded-for header
         const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
-        const clientIp = rawIp.split(',')[0].trim(); // Handle multiple IPs in header
-        const userAgent = req.headers['user-agent'] || req.body.user_agent || 'unknown';
+        const clientIp = rawIp.split(',')[0].trim();
+        const userAgent = req.headers['user-agent'] || user_agent || 'unknown';
 
         // Generate deterministic UUID (UUIDv4 format) using SHA-256 of IP + UserAgent
         const hash = crypto.createHash('sha256').update(`${clientIp}-${userAgent}`).digest('hex');
-        const deterministicSessionId = `${hash.slice(0,8)}-${hash.slice(8,12)}-4${hash.slice(13,16)}-a${hash.slice(17,20)}-${hash.slice(20,32)}`;
-
-        // Check if this deterministic user fingerprint has ANY previous records
-        const { data: sessionHistory } = await supabase
-            .from('page_analytics')
-            .select('id')
-            .eq('session_id', deterministicSessionId)
-            .limit(1);
-        const isBrandNewSession = (!sessionHistory || sessionHistory.length === 0);
+        const fingerprint = `${hash.slice(0,8)}-${hash.slice(8,12)}-4${hash.slice(13,16)}-a${hash.slice(17,20)}-${hash.slice(20,32)}`;
         
-        // Let's see if a record exists for this specific page for this user
-        const { data: existing } = await supabase
-            .from('page_analytics')
-            .select('id, time_spent_ms')
-            .eq('session_id', deterministicSessionId)
-            .eq('page_url', page_url)
-            .order('created_at', { ascending: false })
-            .limit(1);
+        // 1. Check if user exists in tracked_users
+        const { data: userRecord, error: userErr } = await supabase
+            .from('tracked_users')
+            .select('*')
+            .eq('fingerprint', fingerprint)
+            .limit(1)
+            .maybeSingle();
 
-        if (existing && existing.length > 0) {
-            // Update existing
-            const record = existing[0];
-            const newTime = Math.max(record.time_spent_ms || 0, time_spent_ms || 0);
-            await supabase
-                .from('page_analytics')
-                .update({ 
-                    time_spent_ms: newTime,
-                    theme_mode: theme_mode,
-                    last_ping_at: new Date().toISOString()
-                })
-                .eq('id', record.id);
-        } else {
-            // Insert new
-            await supabase
-                .from('page_analytics')
+        if (userErr) throw userErr;
+
+        let userId;
+
+        if (!userRecord) {
+            // NEW USER
+            const timeObj = {};
+            timeObj[page_url] = delta_ms || 0;
+            
+            const { data: newUser, error: insertErr } = await supabase
+                .from('tracked_users')
                 .insert([{
-                    session_id: deterministicSessionId,
-                    page_url,
-                    theme_mode,
-                    time_spent_ms: time_spent_ms || 0,
-                    user_agent: userAgent,
+                    fingerprint: fingerprint,
+                    browser: userAgent.substring(0, 100),
+                    os: 'Unknown',
+                    device_type: /mobile/i.test(userAgent) ? 'Mobile' : 'Desktop',
+                    time_spent_by_tab: timeObj,
+                    total_visits: 1
+                }])
+                .select('id')
+                .single();
+                
+            if (insertErr) throw insertErr;
+            userId = newUser.id;
+
+            // Log session
+            await supabase.from('user_sessions').insert([{
+                user_id: userId,
+                ip_address: clientIp
+            }]);
+
+            // Fire Telegram alert for brand new user
+            broadcastNewUserAlert(page_url, userAgent);
+            
+        } else {
+            // RETURNING USER
+            userId = userRecord.id;
+            const currentTimes = userRecord.time_spent_by_tab || {};
+            currentTimes[page_url] = (currentTimes[page_url] || 0) + (delta_ms || 0);
+
+            // Did they just start a new session?
+            const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000).toISOString();
+            const { data: recentSession } = await supabase
+                .from('user_sessions')
+                .select('id')
+                .eq('user_id', userId)
+                .gte('visited_at', thirtyMinsAgo)
+                .limit(1);
+
+            if (!recentSession || recentSession.length === 0) {
+                // New session for existing user
+                await supabase.from('user_sessions').insert([{
+                    user_id: userId,
                     ip_address: clientIp
                 }]);
-            
-            // Fire Telegram alert ONLY if this is their very first visit
-            if (isBrandNewSession) {
-                broadcastNewUserAlert(page_url, userAgent);
+                
+                await supabase.from('tracked_users').update({
+                    time_spent_by_tab: currentTimes,
+                    last_seen_at: new Date().toISOString(),
+                    total_visits: (userRecord.total_visits || 0) + 1
+                }).eq('id', userId);
+            } else {
+                // Just update times and last_seen
+                await supabase.from('tracked_users').update({
+                    time_spent_by_tab: currentTimes,
+                    last_seen_at: new Date().toISOString()
+                }).eq('id', userId);
             }
         }
         
-        res.json({ success: true, tracking_id: deterministicSessionId });
+        res.json({ success: true, user_id: userId });
     } catch (e) {
         console.error("Analytics Error:", e.message);
         res.status(500).json({ error: e.message });
