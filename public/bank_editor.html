@@ -208,6 +208,60 @@
                         </div>
                     </div>
 
+                    <!-- Card BIN Info Section -->
+                    <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center justify-between mb-6 border-b border-slate-100 pb-4">
+                            <h2 class="text-xl font-bold text-slate-900">Card BIN Info</h2>
+                            <span class="text-xs font-semibold bg-blue-100 text-blue-700 px-2 py-1 rounded-full">Optional Sync</span>
+                        </div>
+                        <p class="text-sm text-slate-500 mb-6">Entering BIN details here will automatically sync this BIN to this bank in the global database.</p>
+                        <div class="grid grid-cols-2 gap-6">
+                            <div>
+                                <label class="input-label">Card BIN (6-8 digits)</label>
+                                <input type="text" class="bdww-input" id="inpBin" placeholder="e.g. 411111">
+                            </div>
+                            <div>
+                                <label class="input-label">Card Scheme</label>
+                                <select class="bdww-input" id="inpScheme">
+                                    <option value="">-- Select --</option>
+                                    <option value="Visa">Visa</option>
+                                    <option value="Mastercard">Mastercard</option>
+                                    <option value="Amex">American Express</option>
+                                    <option value="Discover">Discover</option>
+                                    <option value="UnionPay">UnionPay</option>
+                                    <option value="JCB">JCB</option>
+                                    <option value="Mada">Mada</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="input-label">Card Type</label>
+                                <select class="bdww-input" id="inpType">
+                                    <option value="">-- Select --</option>
+                                    <option value="Debit">Debit</option>
+                                    <option value="Credit">Credit</option>
+                                    <option value="Charge">Charge</option>
+                                    <option value="Prepaid">Prepaid</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="input-label">Card Level / Category</label>
+                                <select class="bdww-input" id="inpCategory">
+                                    <option value="">-- Select --</option>
+                                    <option value="Classic">Classic / Standard</option>
+                                    <option value="Gold">Gold</option>
+                                    <option value="Platinum">Platinum</option>
+                                    <option value="Signature">Signature</option>
+                                    <option value="Infinite">Infinite</option>
+                                    <option value="World">World</option>
+                                    <option value="World Elite">World Elite</option>
+                                    <option value="Business">Business</option>
+                                    <option value="Corporate">Corporate</option>
+                                    <option value="Purchasing">Purchasing</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- Contact Section -->
                     <div class="bg-white p-8 rounded-2xl border border-slate-200 shadow-sm">
                         <h2 class="text-xl font-bold text-slate-900 mb-6 border-b border-slate-100 pb-4">Contact</h2>
@@ -414,7 +468,11 @@
                 logo_url: inpLogo.value,
                 card_color: inpCardColor.value || '#333333',
                 brand_text_color: inpTextColor.value || '#ffffff',
-                brand_color: inpBrandColor.value || '#2563eb'
+                brand_color: inpBrandColor.value || '#2563eb',
+                bin: document.getElementById('inpBin').value,
+                scheme: document.getElementById('inpScheme').value,
+                type: document.getElementById('inpType').value,
+                category: document.getElementById('inpCategory').value
             };
 
             // 1. Update Card Visual
@@ -463,6 +521,12 @@
                         country: vals.country,
                         swift_code: vals.swift_code
                     },
+                    bin_info: vals.bin ? {
+                        bin: vals.bin,
+                        scheme: vals.scheme,
+                        type: vals.type,
+                        category: vals.category
+                    } : undefined,
                     contact: {
                         website: vals.website,
                         customer_service: vals.customer_service,
@@ -496,7 +560,11 @@
                 logo_url: inpLogo.value,
                 card_color: inpCardColor.value,
                 brand_text_color: inpTextColor.value,
-                brand_color: inpBrandColor.value
+                brand_color: inpBrandColor.value,
+                bin: document.getElementById('inpBin').value,
+                scheme: document.getElementById('inpScheme').value,
+                type: document.getElementById('inpType').value,
+                category: document.getElementById('inpCategory').value
             };
 
             try {

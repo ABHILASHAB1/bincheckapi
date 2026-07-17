@@ -255,24 +255,73 @@ app.get('/api/banks/:id', async (req, res) => {
 
 app.post('/api/banks/save', async (req, res) => {
     try {
-        const { id, short_name, official_name, country, swift_code, website, customer_service, email, brand_color, brand_text_color, card_color, logo_url } = req.body;
+        const { 
+            id, short_name, official_name, country, swift_code, website, 
+            customer_service, email, brand_color, brand_text_color, card_color, logo_url,
+            bin, scheme, type, category 
+        } = req.body;
         
+        let newId = id;
+        
+        // 1. Sync to SQLite banks table
         if (id) {
-            // Update
             await localDb.run(`
                 UPDATE banks SET 
                     short_name = ?, official_name = ?, country = ?, swift_code = ?, website = ?, customer_service = ?, email = ?, brand_color = ?, brand_text_color = ?, card_color = ?, logo_url = ?, updated_at = CURRENT_TIMESTAMP
                 WHERE id = ?
             `, [short_name, official_name, country, swift_code, website, customer_service, email, brand_color, brand_text_color, card_color, logo_url, id]);
-            res.json({ success: true, id });
         } else {
-            // Insert
             const result = await localDb.run(`
                 INSERT INTO banks (short_name, official_name, country, swift_code, website, customer_service, email, brand_color, brand_text_color, card_color, logo_url)
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [short_name, official_name, country, swift_code, website, customer_service, email, brand_color, brand_text_color, card_color, logo_url]);
-            res.json({ success: true, id: result.lastID });
+            newId = result.lastID;
         }
+
+        // 2. Sync to local and Supabase bins tables
+        if (bin && bin.trim() !== '') {
+            const cleanBin = bin.trim();
+            // Local SQLite bins
+            await localDb.run(`
+                INSERT INTO bins (bin, scheme, type, category, issuer, country, source)
+                VALUES (?, ?, ?, ?, ?, ?, 'LOCAL_EDITOR')
+                ON CONFLICT(bin) DO UPDATE SET
+                    scheme = excluded.scheme,
+                    type = excluded.type,
+                    category = excluded.category,
+                    issuer = excluded.issuer,
+                    country = excluded.country,
+                    updated_at = CURRENT_TIMESTAMP
+            `, [cleanBin, scheme || null, type || null, category || null, official_name || short_name, country]);
+
+            // Remote Supabase bins
+            if (supabase) {
+                await supabase.from('bins').upsert({
+                    bin: cleanBin,
+                    scheme: scheme || null,
+                    type: type || null,
+                    category: category || null,
+                    issuer: official_name || short_name,
+                    country: country,
+                    source: 'LOCAL_EDITOR'
+                }, { onConflict: 'bin' }).catch(err => console.warn('[Supabase Sync] Bin upsert failed:', err.message));
+            }
+        }
+
+        // 3. Sync to Supabase swift_codes table
+        if (swift_code && swift_code.trim() !== '' && supabase) {
+            const cleanSwift = swift_code.trim();
+            await supabase.from('swift_codes').upsert({
+                swift_code: cleanSwift,
+                bank_name: official_name || short_name,
+                country: null, // Full country name typically used here, but we only have code SA/US right now
+                country_code: country,
+                city: null,
+                address: null
+            }, { onConflict: 'swift_code' }).catch(err => console.warn('[Supabase Sync] Swift upsert failed:', err.message));
+        }
+
+        res.json({ success: true, id: newId });
     } catch (e) {
         console.error("Error saving bank:", e);
         res.status(500).json({ error: 'Server error while saving bank' });
