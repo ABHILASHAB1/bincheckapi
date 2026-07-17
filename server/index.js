@@ -1217,6 +1217,63 @@ app.post('/api/admin/trigger-swift-scrape', async (req, res) => {
     });
 });
 
+// Analytics tracking endpoint
+app.post('/api/analytics/track', async (req, res) => {
+    if (!supabase) return res.status(500).json({ error: 'Supabase not initialized' });
+    try {
+        const { session_id, page_url, theme_mode, time_spent_ms, user_agent } = req.body;
+        
+        if (!session_id || !page_url) {
+            return res.status(400).json({ error: 'Missing required tracking fields' });
+        }
+
+        // Use upsert matching session_id and page_url so we can continuously update time_spent_ms
+        // Wait, to upsert on (session_id, page_url), there must be a unique constraint on those two columns!
+        // But since we just use id as PK, let's just do a blind insert for now, OR we query first and update.
+        // Doing an insert every 15 seconds will create multiple rows per page visit.
+        // Instead of upserting (since we lack a composite unique key), we can query the latest row for this session/page and update it, or insert if none.
+        
+        // Let's see if a record exists for this session and page within the last 24 hours
+        const { data: existing } = await supabase
+            .from('page_analytics')
+            .select('id, time_spent_ms')
+            .eq('session_id', session_id)
+            .eq('page_url', page_url)
+            .order('created_at', { ascending: false })
+            .limit(1);
+
+        if (existing && existing.length > 0) {
+            // Update existing
+            const record = existing[0];
+            // Only update time if the new time is strictly greater (to prevent a new tab from resetting it)
+            const newTime = Math.max(record.time_spent_ms || 0, time_spent_ms || 0);
+            await supabase
+                .from('page_analytics')
+                .update({ 
+                    time_spent_ms: newTime,
+                    theme_mode: theme_mode,
+                    last_ping_at: new Date().toISOString() // Let Postgres convert to KSA
+                })
+                .eq('id', record.id);
+        } else {
+            // Insert new
+            await supabase
+                .from('page_analytics')
+                .insert([{
+                    session_id,
+                    page_url,
+                    theme_mode,
+                    time_spent_ms: time_spent_ms || 0,
+                    user_agent
+                }]);
+        }
+        
+        res.json({ success: true });
+    } catch (e) {
+        console.error("Analytics Error:", e.message);
+        res.status(500).json({ error: e.message });
+    }
+});
 app.listen(port, async () => {
   await init();
   // Initialize Telegram Bot & FX Engine
