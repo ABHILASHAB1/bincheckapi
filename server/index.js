@@ -1221,31 +1221,35 @@ app.post('/api/admin/trigger-swift-scrape', async (req, res) => {
 app.post('/api/analytics/track', async (req, res) => {
     if (!supabase) return res.status(500).json({ error: 'Supabase not initialized' });
     try {
-        const { session_id, page_url, theme_mode, time_spent_ms, user_agent } = req.body;
+        const { page_url, theme_mode, time_spent_ms } = req.body;
         
-        if (!session_id || !page_url) {
+        if (!page_url) {
             return res.status(400).json({ error: 'Missing required tracking fields' });
         }
 
-        // Use upsert matching session_id and page_url so we can continuously update time_spent_ms
-        // Wait, to upsert on (session_id, page_url), there must be a unique constraint on those two columns!
-        // But since we just use id as PK, let's just do a blind insert for now, OR we query first and update.
-        // Doing an insert every 15 seconds will create multiple rows per page visit.
-        // Instead of upserting (since we lack a composite unique key), we can query the latest row for this session/page and update it, or insert if none.
-        
-        // Check if this session has ANY previous records (to prevent multiple Telegram alerts for the same user browsing multiple pages)
+        // Capture IP and Device dynamically from the server request
+        // Render passes the real IP in the x-forwarded-for header
+        const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+        const clientIp = rawIp.split(',')[0].trim(); // Handle multiple IPs in header
+        const userAgent = req.headers['user-agent'] || req.body.user_agent || 'unknown';
+
+        // Generate deterministic UUID (UUIDv4 format) using SHA-256 of IP + UserAgent
+        const hash = crypto.createHash('sha256').update(`${clientIp}-${userAgent}`).digest('hex');
+        const deterministicSessionId = `${hash.slice(0,8)}-${hash.slice(8,12)}-4${hash.slice(13,16)}-a${hash.slice(17,20)}-${hash.slice(20,32)}`;
+
+        // Check if this deterministic user fingerprint has ANY previous records
         const { data: sessionHistory } = await supabase
             .from('page_analytics')
             .select('id')
-            .eq('session_id', session_id)
+            .eq('session_id', deterministicSessionId)
             .limit(1);
         const isBrandNewSession = (!sessionHistory || sessionHistory.length === 0);
         
-        // Let's see if a record exists for this session AND page
+        // Let's see if a record exists for this specific page for this user
         const { data: existing } = await supabase
             .from('page_analytics')
             .select('id, time_spent_ms')
-            .eq('session_id', session_id)
+            .eq('session_id', deterministicSessionId)
             .eq('page_url', page_url)
             .order('created_at', { ascending: false })
             .limit(1);
@@ -1253,14 +1257,13 @@ app.post('/api/analytics/track', async (req, res) => {
         if (existing && existing.length > 0) {
             // Update existing
             const record = existing[0];
-            // Only update time if the new time is strictly greater (to prevent a new tab from resetting it)
             const newTime = Math.max(record.time_spent_ms || 0, time_spent_ms || 0);
             await supabase
                 .from('page_analytics')
                 .update({ 
                     time_spent_ms: newTime,
                     theme_mode: theme_mode,
-                    last_ping_at: new Date().toISOString() // Let Postgres convert to KSA
+                    last_ping_at: new Date().toISOString()
                 })
                 .eq('id', record.id);
         } else {
@@ -1268,20 +1271,21 @@ app.post('/api/analytics/track', async (req, res) => {
             await supabase
                 .from('page_analytics')
                 .insert([{
-                    session_id,
+                    session_id: deterministicSessionId,
                     page_url,
                     theme_mode,
                     time_spent_ms: time_spent_ms || 0,
-                    user_agent
+                    user_agent: userAgent,
+                    ip_address: clientIp
                 }]);
             
-            // Fire Telegram alert ONLY if this is their very first page view of the session
+            // Fire Telegram alert ONLY if this is their very first visit
             if (isBrandNewSession) {
-                broadcastNewUserAlert(page_url, user_agent);
+                broadcastNewUserAlert(page_url, userAgent);
             }
         }
         
-        res.json({ success: true });
+        res.json({ success: true, tracking_id: deterministicSessionId });
     } catch (e) {
         console.error("Analytics Error:", e.message);
         res.status(500).json({ error: e.message });
