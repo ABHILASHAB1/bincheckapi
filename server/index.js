@@ -262,6 +262,49 @@ app.post('/api/track', async (req, res) => {
   }
 });
 
+// ----------------------------------------------------
+// User Tracking - Update Ping API
+// ----------------------------------------------------
+app.post('/api/track-ping', express.json(), async (req, res) => {
+  try {
+    const { fingerprint, baseCurrency, targetCurrency, currentTab, timeSpentSeconds } = req.body;
+    
+    if (!supabase || !fingerprint) {
+      return res.status(400).json({ error: 'Missing fingerprint or db connection' });
+    }
+
+    const { data: user } = await supabase
+      .from('tracked_users')
+      .select('id, time_spent_by_tab')
+      .eq('fingerprint', fingerprint)
+      .maybeSingle();
+
+    if (user) {
+      const updates = {};
+      if (baseCurrency) updates.preferred_base = baseCurrency;
+      if (targetCurrency) updates.preferred_target = targetCurrency;
+
+      if (currentTab && timeSpentSeconds > 0) {
+        const timeMap = user.time_spent_by_tab || {};
+        timeMap[currentTab] = (timeMap[currentTab] || 0) + timeSpentSeconds;
+        updates.time_spent_by_tab = timeMap;
+      }
+
+      await supabase
+        .from('tracked_users')
+        .update(updates)
+        .eq('id', user.id);
+        
+      res.json({ success: true });
+    } else {
+      res.status(404).json({ error: 'User not found' });
+    }
+  } catch (error) {
+    console.error('❌ Error in track-ping:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // GET /v1/balance - Swagger check balance (Free of query charges)
 app.get('/v1/balance', authenticateApiKey, (req, res) => {
   res.json({

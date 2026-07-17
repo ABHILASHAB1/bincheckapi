@@ -197,6 +197,9 @@
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(payload)
+            }).then(res => res.json())
+              .then(data => {
+                if (data.fingerprint) window.visitorFingerprint = data.fingerprint;
             }).catch(console.error);
           };
 
@@ -207,6 +210,28 @@
             sendTrackingData(null);
           }
         }, []);
+
+        // Track time spent per tab and currency preferences
+        useEffect(() => {
+          const tabStartTime = Date.now();
+          
+          return () => {
+            if (!window.visitorFingerprint) return; // wait till we have an identity
+            const timeSpentSeconds = Math.floor((Date.now() - tabStartTime) / 1000);
+            
+            fetch('/api/track-ping', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                fingerprint: window.visitorFingerprint,
+                baseCurrency,
+                targetCurrency,
+                currentTab,
+                timeSpentSeconds
+              })
+            }).catch(console.error);
+          };
+        }, [currentTab, baseCurrency, targetCurrency]);
         
         // Fetch available bases and targets (with polling)
         useEffect(() => {
