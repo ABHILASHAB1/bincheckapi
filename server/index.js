@@ -37,9 +37,7 @@ app.use(express.static(path.join(__dirname, '../public')));
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, '../index.html'));
 });
-app.get(['/send_money', '/send_money.html'], (req, res) => {
-  res.sendFile(path.join(__dirname, '../send_money.html'));
-});
+
 app.get('/bincheck', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/bincheck.html'));
 });
@@ -67,7 +65,7 @@ app.get('/contact', (req, res) => res.sendFile(path.join(__dirname, '../public/c
 app.get('/services', (req, res) => res.redirect(301, '/#services'));
 
 // Catch-all for upcoming portal pages
-const comingSoonRoutes = ['/faq', '/terms', '/privacy', '/partners', '/currency-converter', '/compare'];
+const comingSoonRoutes = ['/send_money', '/faq', '/terms', '/privacy', '/partners', '/currency-converter', '/compare'];
 app.get(comingSoonRoutes, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/coming_soon.html'));
 });
