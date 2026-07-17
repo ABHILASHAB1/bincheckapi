@@ -804,106 +804,134 @@
               )})()}
 
               {currentTab === 'calculator' && (
-                <div className="space-y-6 animate-fadeIn">
-                  <h2 className="text-xl font-bold text-textPrimary">Calculator & Insights</h2>
+                <div className="animate-fade-in bg-[#F9FAFB] min-h-screen -mx-6 px-6 pt-4 pb-24">
+                  <h2 className="text-[22px] font-black text-textPrimary mb-6">Calculator & Insights</h2>
                   
-                  <div className="bg-white rounded-[2rem] p-5 border border-black/5 shadow-sm space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1">*From</label>
+                  <div className="bg-white rounded-[24px] p-5 border border-black/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-5 animate-slide-up opacity-0" style={{ animationDelay: '0.1s' }}>
+                    <div className="flex items-center justify-between space-x-2">
+                      <div className="flex-1">
+                        <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1.5 ml-1">From</label>
                         <select 
                           value={calcBase}
                           onChange={(e) => setCalcBase(e.target.value)}
-                          className="w-full bg-transparent border border-black/10 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-brandPurple"
+                          className="w-full bg-gray-50/80 border border-black/5 rounded-[16px] px-4 py-3.5 text-[15px] font-black text-textPrimary focus:outline-none focus:ring-2 focus:ring-brandPurple/20 transition-all appearance-none"
                         >
                           {availableBases.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                       </div>
-                      <div>
-                        <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1">*Amount</label>
-                        <input 
-                          type="number"
-                          value={calcAmount}
-                          onChange={(e) => setCalcAmount(e.target.value)}
-                          className="w-full bg-transparent border border-black/10 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-brandPurple"
-                        />
+                      <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-brandPurple border border-brandPurple/10 shadow-sm self-end mb-1 z-10 shrink-0 mx-[-8px]">
+                        <Icon name="arrow-left-right" size={16} />
                       </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1">*To</label>
+                      <div className="flex-1">
+                        <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1.5 ml-1 text-right pr-1">To</label>
                         <select 
                           value={calcTarget}
                           onChange={(e) => setCalcTarget(e.target.value)}
-                          className="w-full bg-transparent border border-black/10 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-brandPurple"
+                          className="w-full bg-gray-50/80 border border-black/5 rounded-[16px] px-4 py-3.5 text-[15px] font-black text-textPrimary text-right focus:outline-none focus:ring-2 focus:ring-brandPurple/20 transition-all appearance-none"
                         >
                           {availableTargets.map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                       </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1">*Bank Fee</label>
+                        <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1.5 ml-1">Amount</label>
+                        <input 
+                          type="number"
+                          value={calcAmount}
+                          onChange={(e) => setCalcAmount(e.target.value)}
+                          className="w-full bg-gray-50/80 border border-black/5 rounded-[16px] px-4 py-3.5 text-[15px] font-black text-textPrimary focus:outline-none focus:ring-2 focus:ring-brandPurple/20 transition-all placeholder:text-black/20"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1.5 ml-1">Bank Fee</label>
                         <input 
                           type="text"
                           value={calcFee}
                           onChange={(e) => setCalcFee(e.target.value)}
-                          className="w-full bg-transparent border border-black/10 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-brandPurple"
+                          className="w-full bg-gray-50/80 border border-black/5 rounded-[16px] px-4 py-3.5 text-[15px] font-black text-textPrimary focus:outline-none focus:ring-2 focus:ring-brandPurple/20 transition-all placeholder:text-black/20 text-center"
                           placeholder="e.g. 2%"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1">Select Date of Transaction</label>
+                      <label className="block text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1.5 ml-1">Date of Transaction</label>
                       <input 
                         type="date"
                         value={calcDate}
                         onChange={(e) => setCalcDate(e.target.value)}
-                        className="w-full bg-transparent border border-black/10 rounded-xl px-3 py-2 text-sm font-bold focus:outline-none focus:border-brandPurple"
+                        className="w-full bg-gray-50/80 border border-black/5 rounded-[16px] px-4 py-3.5 text-[15px] font-black text-textPrimary focus:outline-none focus:ring-2 focus:ring-brandPurple/20 transition-all"
                       />
                     </div>
 
                     <button 
                       onClick={handleCalculate}
-                      className="mt-4 bg-textPrimary text-white font-bold text-sm px-6 py-2.5 rounded-full hover:bg-black transition-colors shadow-lg"
+                      className="w-full mt-2 bg-textPrimary text-white font-bold text-[15px] px-6 py-4 rounded-[16px] hover:bg-black transition-all active:scale-[0.98] shadow-md flex justify-center items-center space-x-2 group"
                     >
-                      Calculate
+                      <Icon name="calculator" size={18} className="group-hover:text-brandPurple transition-colors" />
+                      <span>Calculate & Insights</span>
                     </button>
                   </div>
 
                   {calcResult && (
-                    <div className="bg-white rounded-[2rem] p-5 border border-black/5 shadow-sm space-y-4 animate-fadeIn">
+                    <div className="bg-white rounded-[24px] p-5 border border-black/5 shadow-[0_8px_30px_rgb(0,0,0,0.04)] space-y-5 animate-slide-up opacity-0" style={{ animationDelay: '0.2s' }}>
                       {calcResult.error ? (
-                        <div className="text-red-500 text-sm font-bold">Error: {calcResult.error}</div>
+                        <div className="text-red-500 text-sm font-bold bg-red-50 p-4 rounded-xl border border-red-100 flex items-center space-x-2">
+                            <Icon name="alert-circle" size={16} /> <span>{calcResult.error}</span>
+                        </div>
                       ) : !calcResult.found ? (
-                        <div className="text-red-500 text-sm font-bold">No historical data found for this date.</div>
+                        <div className="text-red-500 text-sm font-bold bg-red-50 p-4 rounded-xl border border-red-100 flex items-center space-x-2">
+                            <Icon name="alert-circle" size={16} /> <span>No historical data found for this date.</span>
+                        </div>
                       ) : (
                         <>
-                          <div>
-                            <div className="text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1">Historical Rate ({calcDate}):</div>
-                            <div className="text-sm font-bold text-textPrimary">
-                              1 {calcBase} = {calcResult.historicalRate.toFixed(4)} {calcTarget}
+                          <div className="flex justify-between items-center border-b border-black/5 pb-4 px-1">
+                            <div>
+                                <div className="text-[9px] font-bold text-textSecondary uppercase tracking-widest mb-1">Rate on {calcDate}</div>
+                                <div className="text-sm font-black text-textPrimary">
+                                  {calcResult.historicalRate.toFixed(4)}
+                                </div>
+                            </div>
+                            <div className="text-right">
+                                <div className="text-[9px] font-bold text-textSecondary uppercase tracking-widest mb-1">Live Rate Today</div>
+                                <div className="text-sm font-black text-brandPurple">
+                                  {calcResult.currentRate.toFixed(4)}
+                                </div>
                             </div>
                           </div>
                           
-                          <div>
-                            <div className="text-[10px] font-bold text-textSecondary uppercase tracking-widest mb-1">Transaction Amount:</div>
-                            <div className="text-lg font-black text-brandPurple">
-                              {calcResult.finalAmount.toFixed(2)} {calcBase} = {calcResult.transactionAmount.toFixed(2)} {calcTarget}
+                          <div className="bg-gray-50/80 p-4 rounded-[16px] border border-black/5 flex justify-between items-center">
+                            <div>
+                              <div className="text-[9px] font-bold text-textSecondary uppercase tracking-widest mb-1">Send Amount</div>
+                              <div className="text-[14px] font-black text-textPrimary">{parseFloat(calcAmount).toFixed(2)} {calcBase}</div>
+                            </div>
+                            <Icon name="arrow-right" size={16} className="text-textSecondary/50" />
+                            <div className="text-right">
+                              <div className="text-[9px] font-bold text-brandPurple uppercase tracking-widest mb-1">You Receive</div>
+                              <div className="text-[16px] font-black text-brandPurple">{calcResult.transactionAmount.toFixed(2)} {calcTarget}</div>
                             </div>
                           </div>
 
-                          <div className={`mt-4 p-3 rounded-xl border ${calcResult.isProfit ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
-                            <div className="flex items-center space-x-2 mb-1">
-                              <Icon name="bot" size={16} className={calcResult.isProfit ? 'text-green-600' : 'text-red-600'} />
-                              <span className={`text-xs font-bold uppercase tracking-widest ${calcResult.isProfit ? 'text-green-600' : 'text-red-600'}`}>
-                                AI Insight: {calcResult.isProfit ? 'Profit' : 'Loss'}
-                              </span>
+                          <div className={`p-4 rounded-[16px] border ${calcResult.isProfit ? 'bg-green-50/50 border-green-200/50' : 'bg-red-50/50 border-red-200/50'}`}>
+                            <div className="flex items-center justify-between mb-2">
+                                <div className="flex items-center space-x-2">
+                                  <div className={`w-6 h-6 rounded-full flex items-center justify-center ${calcResult.isProfit ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
+                                      <Icon name={calcResult.isProfit ? 'trending-up' : 'trending-down'} size={12} />
+                                  </div>
+                                  <span className={`text-[10px] font-black uppercase tracking-widest ${calcResult.isProfit ? 'text-green-600' : 'text-red-600'}`}>
+                                    AI Insight: {calcResult.isProfit ? 'Profit' : 'Loss'}
+                                  </span>
+                                </div>
+                                <div className={`text-sm font-black ${calcResult.isProfit ? 'text-green-600' : 'text-red-600'}`}>
+                                    {calcResult.isProfit ? '+' : '-'}{calcResult.profitAmount.toFixed(2)} {calcTarget}
+                                </div>
                             </div>
-                            <div className="text-xs font-medium text-textPrimary">
+                            <div className="text-[12px] font-medium text-textPrimary leading-relaxed">
                               {calcResult.isProfit 
-                                ? `By waiting to transact today at the current best rate of ${calcResult.currentRate.toFixed(4)}, you profit +${calcResult.profitAmount.toFixed(2)} ${calcTarget} compared to ${calcDate}.`
-                                : `The rate was better on ${calcDate}. If you transact today at ${calcResult.currentRate.toFixed(4)}, you lose -${calcResult.profitAmount.toFixed(2)} ${calcTarget}.`}
+                                ? `By waiting to transact today at the current best rate of ${calcResult.currentRate.toFixed(4)}, you gained ${calcResult.profitAmount.toFixed(2)} ${calcTarget} compared to ${calcDate}.`
+                                : `The rate was better on ${calcDate}. By transacting today at ${calcResult.currentRate.toFixed(4)}, you lose ${calcResult.profitAmount.toFixed(2)} ${calcTarget}.`}
                             </div>
                           </div>
                         </>
