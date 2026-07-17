@@ -1330,43 +1330,37 @@ app.get('/api/config/firebase', (req, res) => {
 // Public BIN Directory List Endpoint
 app.get('/api/bins/list', async (req, res) => {
   try {
-    if (!db) return res.status(503).json({ error: 'Database not initialized' });
+    if (!supabase) return res.status(503).json({ error: 'Supabase not initialized' });
     
     const limit = parseInt(req.query.limit) || 50;
     const offset = parseInt(req.query.offset) || 0;
     const search = req.query.q ? req.query.q.trim() : '';
 
-    let query = `SELECT bin, issuer, country, scheme, type, category FROM bins`;
-    let params = [];
+    let query = supabase
+        .from('bins')
+        .select('bin, issuer, country, scheme, type, category', { count: 'exact' });
 
     if (search) {
-        query += ` WHERE bin LIKE ? OR issuer LIKE ?`;
-        params.push(`%${search}%`, `%${search}%`);
+        // Search by bin or issuer
+        query = query.or(`bin.ilike.%${search}%,issuer.ilike.%${search}%`);
     }
 
-    query += ` ORDER BY bin ASC LIMIT ? OFFSET ?`;
-    params.push(limit, offset);
+    // Add pagination
+    const { data: rows, error, count } = await query
+        .order('bin', { ascending: true })
+        .range(offset, offset + limit - 1);
 
-    const rows = await db.all(query, params);
-    
-    // Total count for pagination
-    let countQuery = `SELECT COUNT(*) as total FROM bins`;
-    let countParams = [];
-    if (search) {
-        countQuery += ` WHERE bin LIKE ? OR issuer LIKE ?`;
-        countParams.push(`%${search}%`, `%${search}%`);
-    }
-    const countRow = await db.get(countQuery, countParams);
+    if (error) throw error;
     
     res.json({
         success: true,
         data: rows,
-        total: countRow.total,
+        total: count || 0,
         page: Math.floor(offset / limit) + 1,
-        pages: Math.ceil(countRow.total / limit)
+        pages: Math.ceil((count || 0) / limit)
     });
   } catch (e) {
-    console.error("Error fetching BIN list:", e);
+    console.error("Error fetching BIN list from Supabase:", e);
     res.status(500).json({ error: 'Server error fetching BIN list' });
   }
 });
