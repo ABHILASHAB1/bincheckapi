@@ -50,7 +50,7 @@
       box-shadow: 0 4px 20px rgba(255, 255, 255, 0.15);
     }
     .btn-mock {
-      background-color: rgba(255, 255, 255, 0.03);
+      background-color: var(--input-bg);
       color: var(--text-muted);
       border: 1px dashed var(--panel-border);
       padding: 10px 20px;
@@ -62,8 +62,8 @@
       transition: all 0.2s ease;
     }
     .btn-mock:hover {
-      background-color: rgba(255, 255, 255, 0.07);
-      color: #fff;
+      background-color: var(--panel-border);
+      color: var(--text-main);
     }
     .user-profile {
       display: flex;
@@ -83,7 +83,7 @@
     }
     .btn-signout {
       background-color: rgba(239, 68, 68, 0.1);
-      color: #fca5a5;
+      color: var(--accent-danger);
       border: 1px solid rgba(239, 68, 68, 0.2);
       font-size: 11px;
       padding: 6px 12px;
@@ -95,7 +95,7 @@
       background-color: rgba(239, 68, 68, 0.2);
     }
     .progress-bar-container {
-      background-color: rgba(0, 0, 0, 0.3);
+      background-color: var(--input-bg);
       border: 1px solid var(--panel-border);
       height: 24px;
       border-radius: 12px;
