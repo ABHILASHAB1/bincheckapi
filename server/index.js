@@ -1179,7 +1179,7 @@ app.get('/api/swift/country/:country_code', async (req, res) => {
         const { data, error } = await supabase
             .from('swift_codes')
             .select('*')
-            .eq('country_code', req.params.country_code.toUpperCase())
+            .eq('country_code', req.params.country_code.toLowerCase())
             .limit(100);
         if (error) throw error;
         res.json({ success: true, count: data.length, data });
