@@ -47,7 +47,7 @@ function init() {
   }
 
   // Initialize theme
-  const savedTheme = localStorage.getItem('aou_theme') || 'dark';
+  const savedTheme = localStorage.getItem('aou_theme') || 'light';
   if (savedTheme === 'light') {
     document.body.classList.add('light-theme');
     updateThemeUI('light');

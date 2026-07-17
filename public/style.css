@@ -74,7 +74,6 @@ body {
   z-index: 0;
 }
 
-/* Header */
 .app-header {
   height: 80px;
   border-bottom: 1px solid var(--panel-border);
@@ -84,7 +83,7 @@ body {
   align-items: center;
   position: relative;
   z-index: 10;
-  background-color: rgba(5, 5, 8, 0.6);
+  background-color: var(--panel-bg);
   backdrop-filter: blur(12px);
 }
 
@@ -102,10 +101,11 @@ body {
   font-size: 22px;
   font-weight: 800;
   letter-spacing: -0.5px;
-  background: linear-gradient(90deg, #fff, #a5b4fc);
+  background: linear-gradient(90deg, var(--text-main), var(--accent-primary));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
+
 
 .badge {
   background: linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%);
