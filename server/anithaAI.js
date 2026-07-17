@@ -1,8 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getLiveRates } from './remittanceDB.js';
-import dotenv from 'dotenv';
-
-dotenv.config();
 
 const geminiApiKey = process.env.GEMINI_API_KEY;
 let genAI = null;
