@@ -69,9 +69,12 @@ app.get(['/send_money', '/send_money.html'], (req, res) => {
 });
 
 // Catch-all for upcoming portal pages
-const comingSoonRoutes = ['/global_transfer', '/faq', '/terms', '/privacy', '/partners', '/currency-converter', '/compare'];
+const comingSoonRoutes = ['/global_transfer', '/faq', '/terms', '/privacy', '/partners', '/compare'];
 app.get(comingSoonRoutes, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/coming_soon.html'));
+});
+app.get('/currency-converter', (req, res) => {
+  res.redirect(301, '/send_money');
 });
 
 let db = null;
