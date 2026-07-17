@@ -280,16 +280,13 @@
             clearTimeout(debounceTimer);
             const query = e.target.value.trim();
             
-            if (!query) {
-                resultsContainer.innerHTML = '';
-                resultsContainer.appendChild(emptyState);
-                return;
-            }
-
             debounceTimer = setTimeout(() => {
                 performSearch(query);
             }, 300);
         });
+
+        // Fetch initial list of banks on page load
+        performSearch('');
 
         async function performSearch(query) {
             try {
