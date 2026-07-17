@@ -126,7 +126,22 @@
             <!-- Main Hero Image (z-20) -->
             <!-- Placeholder: Imagine a sleek side-profile dashboard mockup -->
             <div class="absolute top-[260px] left-1/2 -translate-x-1/2 z-20 w-full max-w-[1160px] drop-shadow-2xl">
-                <img src="/images/currency_hero.png" class="w-full h-[420px] object-cover rounded-2xl border border-divider shadow-2xl" alt="RemitWise Exchange Dashboard" />
+                <div class="w-full h-[420px] bg-bgMain border border-divider rounded-2xl flex items-center justify-center overflow-hidden relative">
+                    <div class="absolute top-0 left-0 right-0 h-10 bg-bgSecondary border-b border-divider flex items-center px-4 gap-2">
+                        <div class="w-3 h-3 rounded-full bg-red-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-yellow-400"></div>
+                        <div class="w-3 h-3 rounded-full bg-green-400"></div>
+                    </div>
+                    <!-- Abstract Dashboard Graphic -->
+                    <div class="mt-10 p-8 w-full h-full flex flex-col gap-6 opacity-30">
+                        <div class="w-1/3 h-8 bg-gray-200 rounded"></div>
+                        <div class="w-full h-32 bg-gray-100 rounded flex items-end gap-2 p-4">
+                            <div class="w-1/6 h-[40%] bg-blue-200 rounded-t"></div>
+                            <div class="w-1/6 h-[60%] bg-blue-300 rounded-t"></div>
+                            <div class="w-1/6 h-[100%] bg-blue-500 rounded-t"></div>
+                            <div class="w-1/6 h-[80%] bg-blue-400 rounded-t"></div>
+                        </div>
+                    </div>
                     <!-- Mockup Overlay Label -->
                     <div class="absolute inset-0 flex items-center justify-center font-heading text-xl text-gray-400 font-bold uppercase tracking-widest">
                         [ Main Dashboard Render ]
@@ -189,7 +204,12 @@
 
             <!-- Right: Angled Car (Dashboard) Image -->
             <div class="w-full lg:w-[900px] flex justify-end">
-                <img src="/images/bin_check.png" class="w-full max-w-[980px] h-[360px] object-cover rounded-[16px] shadow-xl transform lg:-skew-x-6 lg:rotate-2" alt="BIN Intelligence API" />
+                <div class="w-full max-w-[980px] h-[360px] bg-bgSecondary rounded-[16px] shadow-xl flex items-center justify-center relative overflow-hidden transform lg:-skew-x-6 lg:rotate-2">
+                    <div class="absolute inset-0 bg-gradient-to-tr from-gray-200 to-transparent"></div>
+                    <div class="font-heading text-lg text-textMuted font-bold uppercase tracking-widest relative z-10">
+                        [ Angled Dashboard Render ]
+                    </div>
+                </div>
             </div>
 
         </div>
@@ -201,7 +221,11 @@
             
             <!-- Left: Top View Image -->
             <div class="w-full lg:w-[420px]">
-                <img src="/images/swift.png" class="w-full max-w-[360px] h-[420px] object-cover rounded-[16px] shadow-lg border border-divider" alt="SWIFT Validator Graphic" />
+                <div class="w-full max-w-[360px] h-[420px] bg-bgSecondary rounded-[16px] shadow-lg flex items-center justify-center border border-divider">
+                    <div class="font-heading text-sm text-textMuted font-bold uppercase tracking-widest text-center px-4">
+                        [ Top View Data Flow Graphic ]
+                    </div>
+                </div>
             </div>
 
             <!-- Right: Accordion Feature List -->
@@ -259,25 +283,25 @@
                 
                 <!-- Column 1 -->
                 <div class="flex flex-col gap-[20px] w-full lg:w-[460px]">
-                    <img src="/images/luhn_check.png" class="w-full h-[180px] object-cover rounded-[16px] shadow-sm" alt="Luhn Check" />
-                    <img src="/images/iso_sim.png" class="w-full h-[240px] object-cover rounded-[16px] shadow-sm" alt="ISO Simulator" />
+                    <div class="w-full h-[180px] bg-bgSecondary rounded-[16px] shadow-sm flex items-center justify-center text-textLightMuted text-xs font-bold uppercase tracking-widest">[ Image 1A ]</div>
+                    <div class="w-full h-[240px] bg-bgSecondary rounded-[16px] shadow-sm flex items-center justify-center text-textLightMuted text-xs font-bold uppercase tracking-widest">[ Image 1B ]</div>
                 </div>
 
                 <!-- Column 2 -->
                 <div class="flex flex-col gap-[20px] w-full lg:w-[240px]">
-                    <img src="/images/currency_hero.png" class="w-full h-[200px] object-cover rounded-[16px] shadow-sm" />
-                    <img src="/images/bin_check.png" class="w-full h-[200px] object-cover rounded-[16px] shadow-sm" />
+                    <div class="w-full h-[200px] bg-bgSecondary rounded-[16px] shadow-sm flex items-center justify-center text-textLightMuted text-xs font-bold uppercase tracking-widest">[ Image 2A ]</div>
+                    <div class="w-full h-[200px] bg-bgSecondary rounded-[16px] shadow-sm flex items-center justify-center text-textLightMuted text-xs font-bold uppercase tracking-widest">[ Image 2B ]</div>
                 </div>
 
                 <!-- Column 3 -->
                 <div class="flex flex-col gap-[20px] w-full lg:w-[240px]">
-                    <img src="/images/swift.png" class="w-full h-[200px] object-cover rounded-[16px] shadow-sm" />
-                    <img src="/images/luhn_check.png" class="w-full h-[200px] object-cover rounded-[16px] shadow-sm" />
+                    <div class="w-full h-[200px] bg-bgSecondary rounded-[16px] shadow-sm flex items-center justify-center text-textLightMuted text-xs font-bold uppercase tracking-widest">[ Image 3A ]</div>
+                    <div class="w-full h-[200px] bg-bgSecondary rounded-[16px] shadow-sm flex items-center justify-center text-textLightMuted text-xs font-bold uppercase tracking-widest">[ Image 3B ]</div>
                 </div>
 
                 <!-- Column 4 -->
                 <div class="w-full lg:w-[320px]">
-                    <img src="/images/iso_sim.png" class="w-full h-[460px] object-cover rounded-[16px] shadow-sm" />
+                    <div class="w-full h-[460px] bg-bgSecondary rounded-[16px] shadow-sm flex items-center justify-center text-textLightMuted text-xs font-bold uppercase tracking-widest">[ Image 4 (Tall) ]</div>
                 </div>
 
             </div>
