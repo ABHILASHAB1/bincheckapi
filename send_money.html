@@ -559,10 +559,10 @@
                     <div className="flex justify-between items-start mb-2">
                         <div>
                             <div className="text-[11px] font-bold text-textSecondary mb-1.5 flex items-center">
-                                Live Mid-Market Rate <div className="w-1.5 h-1.5 rounded-full bg-success ml-2 mr-1 animate-pulse"></div> <span className="text-[9px] text-success tracking-widest uppercase">Live</span>
+                                Live Sell Rate <div className="w-1.5 h-1.5 rounded-full bg-success ml-2 mr-1 animate-pulse"></div> <span className="text-[9px] text-success tracking-widest uppercase">Live</span>
                             </div>
                             <div className="text-[40px] leading-none font-black text-textPrimary tracking-tighter">
-                                {(selectedTrend.mid_rate || selectedTrend.rate).toFixed(5)}
+                                {(selectedTrend.sell_rate || (selectedTrend.rate - 0.00295)).toFixed(5)}
                             </div>
                         </div>
                         <div className="bg-[#F8F9FA] px-3 py-2 rounded-xl text-right border border-black/5 shadow-sm">
