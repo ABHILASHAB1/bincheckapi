@@ -52,6 +52,12 @@ app.get('/test_admin.html', (req, res) => {
   res.sendFile(path.join(__dirname, '../test_admin.html'));
 });
 
+// Catch-all for upcoming portal pages
+const comingSoonRoutes = ['/faq', '/terms', '/privacy', '/contact', '/partners', '/services', '/about'];
+app.get(comingSoonRoutes, (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/coming_soon.html'));
+});
+
 let db = null;
 let binService = null;
 
