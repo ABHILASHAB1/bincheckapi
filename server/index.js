@@ -40,8 +40,7 @@ app.get(['/send_money', '/send_money.html'], (req, res) => {
   res.sendFile(path.join(__dirname, '../send_money.html'));
 });
 app.get('/bincheck', (req, res) => {
-  // Temporary redirect/placeholder until the dedicated BIN checker UI is built
-  res.redirect('/');
+  res.sendFile(path.join(__dirname, '../public/bincheck.html'));
 });
 app.get('/exchange-rates', (req, res) => {
   res.redirect('/');
