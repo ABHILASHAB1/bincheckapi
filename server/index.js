@@ -214,41 +214,41 @@ async function authenticateApiKey(req, res, next) {
 // --- Universal Bank Search Endpoint ---
 app.get('/api/banks/search', async (req, res) => {
     try {
+        if (!supabase) return res.status(503).json({ error: 'Supabase not initialized' });
+
         const { q } = req.query;
         if (!q) {
-            const banks = await db.all('SELECT * FROM banks LIMIT 50');
-            return res.json(banks);
+            const { data, error } = await supabase.from('banks').select('*').limit(50);
+            if (error) throw error;
+            return res.json(data || []);
         }
 
-        const queryStr = q.trim().toLowerCase();
+        const queryStr = `%${q.trim()}%`;
         
         // Advanced Universal Search: Name, SWIFT, Email, Phone, Domain
-        const banks = await db.all(`
-            SELECT * FROM banks 
-            WHERE lower(short_name) LIKE ? 
-               OR lower(official_name) LIKE ? 
-               OR lower(swift_code) LIKE ? 
-               OR lower(website) LIKE ? 
-               OR lower(email) LIKE ? 
-               OR customer_service LIKE ?
-            LIMIT 20
-        `, [`%${queryStr}%`, `%${queryStr}%`, `%${queryStr}%`, `%${queryStr}%`, `%${queryStr}%`, `%${queryStr}%`]);
-
-        res.json(banks);
+        const { data, error } = await supabase
+            .from('banks')
+            .select('*')
+            .or(`short_name.ilike.${queryStr},official_name.ilike.${queryStr},swift_code.ilike.${queryStr},website.ilike.${queryStr},email.ilike.${queryStr},customer_service.ilike.${queryStr}`)
+            .limit(20);
+            
+        if (error) throw error;
+        res.json(data || []);
     } catch (e) {
-        console.error("Bank search error:", e);
+        console.error("Bank search error fetching from Supabase:", e);
         res.status(500).json({ error: "Failed to search banks" });
     }
 });
 
 app.get('/api/banks/:id', async (req, res) => {
     try {
+        if (!supabase) return res.status(503).json({ error: 'Supabase not initialized' });
         const { id } = req.params;
-        const bank = await db.get('SELECT * FROM banks WHERE id = ?', [id]);
-        if (!bank) return res.status(404).json({ error: 'Bank not found' });
-        res.json(bank);
+        const { data, error } = await supabase.from('banks').select('*').eq('id', id).single();
+        if (error || !data) return res.status(404).json({ error: 'Bank not found' });
+        res.json(data);
     } catch (e) {
-        console.error("Error fetching bank by ID:", e);
+        console.error("Error fetching bank by ID from Supabase:", e);
         res.status(500).json({ error: 'Server error' });
     }
 });
