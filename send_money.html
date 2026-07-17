@@ -22,6 +22,30 @@
             },
             fontFamily: {
               sans: ['Inter', 'sans-serif'],
+            },
+            animation: {
+              'fade-in': 'fadeIn 0.3s ease-out forwards',
+              'slide-up': 'slideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+              'draw-line': 'drawLine 1.5s cubic-bezier(0.4, 0, 0.2, 1) forwards',
+              'pop': 'pop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards'
+            },
+            keyframes: {
+              fadeIn: {
+                '0%': { opacity: '0' },
+                '100%': { opacity: '1' },
+              },
+              slideUp: {
+                '0%': { opacity: '0', transform: 'translateY(15px)' },
+                '100%': { opacity: '1', transform: 'translateY(0)' },
+              },
+              drawLine: {
+                '0%': { strokeDasharray: '0 2000' },
+                '100%': { strokeDasharray: '2000 2000' },
+              },
+              pop: {
+                '0%': { transform: 'scale(0.96)', opacity: '0' },
+                '100%': { transform: 'scale(1)', opacity: '1' }
+              }
             }
           }
         }
@@ -434,8 +458,9 @@
                       allTrends.map((t, idx) => (
                         <div 
                           key={idx} 
-                          onClick={() => setSelectedTrend({ target: t.target_currency, rate: t.rate, trend: t.trend, percentage: t.growthPercentage })}
-                          className="bg-white rounded-[1.5rem] p-4 flex items-center justify-between border border-black/5 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] cursor-pointer hover:shadow-md transition-shadow"
+                          onClick={() => setSelectedTrend({ target: t.target_currency, rate: t.rate, trend: t.trend, percentage: t.growthPercentage, buy_rate: t.buy_rate, mid_rate: t.mid_rate, sell_rate: t.sell_rate })}
+                          className="animate-slide-up opacity-0 bg-white rounded-[1.5rem] p-4 flex items-center justify-between border border-black/5 shadow-[0_4px_20px_-10px_rgba(0,0,0,0.05)] cursor-pointer hover:shadow-md transition-all active:scale-[0.98]"
+                          style={{ animationDelay: `${idx * 0.05}s` }}
                         >
                           <div className="flex items-center space-x-4">
                             <div className="w-12 h-12 rounded-2xl flex items-center justify-center font-black text-xl text-brandPurple bg-accentPurple">
@@ -481,7 +506,7 @@
                   };
 
                   return (
-                <div className="animate-fadeIn bg-[#F9FAFB] min-h-screen -mx-6 px-6 pt-4 pb-24">
+                <div className="animate-fade-in bg-[#F9FAFB] min-h-screen -mx-6 px-6 pt-4 pb-24">
                   {/* Header */}
                   <div className="flex justify-between items-center mb-6 relative">
                     <button 
@@ -495,13 +520,13 @@
                       <div className="text-[11px] text-textSecondary font-semibold">{getName(baseCurrency)} to {getName(selectedTrend.target)}</div>
                     </div>
                     <div className="flex items-center space-x-3 text-textPrimary z-10">
-                      <Icon name="star" size={22} className="cursor-pointer" />
-                      <Icon name="share" size={22} className="cursor-pointer" />
+                      <Icon name="star" size={22} className="cursor-pointer hover:text-brandPurple transition-colors" />
+                      <Icon name="share" size={22} className="cursor-pointer hover:text-brandPurple transition-colors" />
                     </div>
                   </div>
 
                   {/* Currency Pair Selector Card */}
-                  <div className="bg-white rounded-[20px] p-2 flex items-center justify-between shadow-sm border border-black/[0.04] mb-5 transition-shadow hover:shadow-md cursor-pointer">
+                  <div className="animate-slide-up opacity-0 bg-white rounded-[20px] p-2 flex items-center justify-between shadow-sm border border-black/[0.04] mb-5 transition-shadow hover:shadow-md cursor-pointer active:scale-[0.98]" style={{ animationDelay: '0.05s' }}>
                     <div className="flex items-center space-x-3 px-3 py-2 flex-1">
                       <div className="text-[28px] drop-shadow-sm">{getFlag(baseCurrency)}</div>
                       <div>
@@ -522,7 +547,7 @@
                   </div>
 
                   {/* Segmented Tabs */}
-                  <div className="flex items-center justify-between mb-6 px-1 space-x-1">
+                  <div className="animate-slide-up opacity-0 flex items-center justify-between mb-6 px-1 space-x-1" style={{ animationDelay: '0.1s' }}>
                      <div className="flex-1 text-center bg-purple-50 text-brandPurple px-2 py-1.5 rounded-full text-[11px] font-bold shadow-[0_1px_2px_rgba(0,0,0,0.02)] border border-brandPurple/10">Overview</div>
                      <div className="flex-1 text-center text-textSecondary px-2 py-1.5 text-[11px] font-bold hover:text-textPrimary cursor-pointer transition-colors">News</div>
                      <div className="flex-1 text-center text-textSecondary px-2 py-1.5 text-[11px] font-bold hover:text-textPrimary cursor-pointer transition-colors">Alerts</div>
@@ -530,7 +555,7 @@
                   </div>
 
                   {/* Main Chart Card */}
-                  <div className="bg-white rounded-[24px] p-5 mb-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-black/[0.03]">
+                  <div className="animate-slide-up opacity-0 bg-white rounded-[24px] p-5 mb-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-black/[0.03]" style={{ animationDelay: '0.15s' }}>
                     <div className="flex justify-between items-start mb-2">
                         <div>
                             <div className="text-[11px] font-bold text-textSecondary mb-1.5 flex items-center">
@@ -604,12 +629,12 @@
 
                                     return (
                                         <>
-                                            <polygon points={`0,100 ${pointString} 100,100`} fill="url(#chartGradientNew)" />
-                                            <polyline points={pointString} fill="none" stroke="#6C3CE9" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+                                            <polygon points={`0,100 ${pointString} 100,100`} fill="url(#chartGradientNew)" className="animate-fade-in opacity-0" style={{ animationDelay: '0.8s', animationDuration: '1s' }} />
+                                            <polyline points={pointString} fill="none" stroke="#6C3CE9" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="animate-draw-line" />
                                             
                                             {/* High Annotation */}
                                             {highPt && (
-                                                <g>
+                                                <g className="animate-pop opacity-0" style={{ animationDelay: '1s', transformOrigin: `${highPt.x}px ${highPt.y}px` }}>
                                                     <circle cx={highPt.x} cy={highPt.y} r="2" fill="#fff" stroke="#10B981" strokeWidth="1" />
                                                     <rect x={Math.max(0, highPt.x - 10)} y={Math.max(0, highPt.y - 12)} width="20" height="8" rx="2" fill="#ECFDF5" />
                                                     <text x={highPt.x} y={Math.max(0, highPt.y - 7)} fontSize="3.5" fill="#10B981" fontWeight="bold" textAnchor="middle">{maxStr}</text>
@@ -619,7 +644,7 @@
 
                                             {/* Low Annotation */}
                                             {lowPt && (
-                                                <g>
+                                                <g className="animate-pop opacity-0" style={{ animationDelay: '1.2s', transformOrigin: `${lowPt.x}px ${lowPt.y}px` }}>
                                                     <circle cx={lowPt.x} cy={lowPt.y} r="2" fill="#fff" stroke="#EF4444" strokeWidth="1" />
                                                     <rect x={Math.max(0, lowPt.x - 10)} y={Math.min(100, lowPt.y + 6)} width="20" height="8" rx="2" fill="#FEF2F2" />
                                                     <text x={lowPt.x} y={Math.min(100, lowPt.y + 9)} fontSize="3.5" fill="#EF4444" fontWeight="bold" textAnchor="middle">{minStr}</text>
@@ -629,7 +654,9 @@
 
                                             {/* End Dot */}
                                             {lastPt && (
-                                                <circle cx={lastPt.x} cy={lastPt.y} r="2" fill="#6C3CE9" stroke="#fff" strokeWidth="1" />
+                                                <g className="animate-pop opacity-0" style={{ animationDelay: '1.4s', transformOrigin: `${lastPt.x}px ${lastPt.y}px` }}>
+                                                    <circle cx={lastPt.x} cy={lastPt.y} r="2" fill="#6C3CE9" stroke="#fff" strokeWidth="1" />
+                                                </g>
                                             )}
                                         </>
                                     );
@@ -672,7 +699,7 @@
                   </div>
 
                   {/* Market Rates Card */}
-                  <div className="bg-white rounded-[24px] p-5 mb-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-black/[0.03]">
+                  <div className="animate-slide-up opacity-0 bg-white rounded-[24px] p-5 mb-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-black/[0.03]" style={{ animationDelay: '0.2s' }}>
                       <div className="flex justify-between items-center mb-5">
                           <h3 className="text-[13px] font-black text-textPrimary">Market Rates</h3>
                           <div className="text-[10px] text-textSecondary font-semibold">Updated 14 sec ago</div>
@@ -703,7 +730,7 @@
                   </div>
 
                   {/* Quick Convert */}
-                  <div className="mb-6">
+                  <div className="animate-slide-up opacity-0 mb-6" style={{ animationDelay: '0.25s' }}>
                       <h3 className="text-[13px] font-black text-textPrimary mb-3 ml-1">Quick Convert</h3>
                       <div className="flex items-center space-x-2">
                           <div className="bg-white flex-1 rounded-[16px] p-3.5 border border-black/5 shadow-[0_2px_10px_-4px_rgba(0,0,0,0.05)] hover:border-brandPurple/30 transition-all cursor-text group">
@@ -736,7 +763,7 @@
                   </div>
 
                   {/* Historical Performance */}
-                  <div className="bg-white rounded-[24px] p-4 mb-24 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-black/[0.03] grid grid-cols-4 gap-2">
+                  <div className="animate-slide-up opacity-0 bg-white rounded-[24px] p-4 mb-24 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-black/[0.03] grid grid-cols-4 gap-2" style={{ animationDelay: '0.3s' }}>
                       <div className="text-center border-r border-black/5 last:border-0">
                           <div className="text-[11px] font-bold text-textSecondary mb-1">7D</div>
                           <div className="text-[11px] font-black text-success">+0.11%</div>
