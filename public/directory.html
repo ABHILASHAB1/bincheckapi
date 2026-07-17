@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RemitWise | Universal Bank Directory & BIN View</title>
+    <meta name="description" content="Discover detailed bank profiles globally. Search by SWIFT, BIN, Domain, or Name to get real-time flip cards and analytics.">
+    
+    <!-- Fonts -->
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,400&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Satoshi', 'sans-serif'],
+                        serif: ['Newsreader', 'serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        deep: '#F8FAFC',
+                        surface: '#FFFFFF',
+                        border: '#E2E8F0',
+                        terminal: '#2563EB',
+                        offwhite: '#0F172A',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <style>
+        body {
+            background-color: #F8FAFC;
+            color: #0F172A;
+            overflow-x: hidden;
+        }
+
+        /* Glassmorphism utilities */
+        .glass {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+        }
+
+        /* Search Bar Animation */
+        .search-bar-wrapper {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .search-bar-wrapper:focus-within {
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px -15px rgba(37, 99, 235, 0.2);
+            border-color: #2563EB;
+        }
+
+        /* CSS 3D Flippable Card */
+        .flip-card {
+            background-color: transparent;
+            width: 100%;
+            max-width: 450px;
+            height: 270px;
+            perspective: 1000px;
+            margin: 0 auto;
+        }
+        
+        .flip-card-inner {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: left;
+            transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .flip-card.flipped .flip-card-inner {
+            transform: rotateY(180deg);
+        }
+        
+        .flip-card-front, .flip-card-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            border-radius: 20px;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            overflow: hidden;
+        }
+        
+        .flip-card-front::before, .flip-card-back::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: url('https://www.transparenttextures.com/patterns/cubes.png');
+            opacity: 0.1;
+            z-index: 1;
+        }
+        
+        .flip-card-front {
+            z-index: 2;
+        }
+        
+        .flip-card-back {
+            transform: rotateY(180deg);
+            z-index: 2;
+        }
+
+        .card-content {
+            position: relative;
+            z-index: 3;
+        }
+    </style>
+</head>
+<body class="antialiased selection:bg-terminal selection:text-white flex flex-col min-h-screen">
+
+    <!-- Navigation (Simplified) -->
+    <nav class="fixed w-full z-50 glass transition-all duration-300 border-b border-border">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-12">
+                <a href="/" class="text-2xl font-black tracking-tight text-slate-900 flex items-center gap-2">
+                    <i class="ph-fill ph-planet text-terminal text-3xl"></i>
+                    RemitWise
+                </a>
+                <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
+                    <a href="/directory.html" class="text-terminal font-bold">Bank Directory</a>
+                    <a href="/" class="hover:text-slate-900 transition-colors">Home</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow pt-32 pb-20 px-6">
+        <div class="max-w-5xl mx-auto">
+            
+            <!-- Header Section -->
+            <div class="text-center mb-12">
+                <h1 class="text-4xl md:text-5xl font-black tracking-tight text-slate-900 mb-4">
+                    Universal Bank <span class="text-terminal">Intelligence</span>
+                </h1>
+                <p class="text-lg text-slate-600 max-w-2xl mx-auto">
+                    Search using BIN, SWIFT, Domain, Phone, Email, or Name to extract highly contextual visual profiles.
+                </p>
+            </div>
+
+            <!-- Universal Search Bar -->
+            <div class="relative max-w-2xl mx-auto mb-16">
+                <div class="search-bar-wrapper glass rounded-2xl flex items-center p-2 border border-slate-200">
+                    <i class="ph ph-magnifying-glass text-2xl text-slate-400 ml-4"></i>
+                    <input type="text" id="searchInput" 
+                        class="w-full bg-transparent border-none focus:outline-none focus:ring-0 px-4 py-3 text-lg font-medium text-slate-900 placeholder:text-slate-400 placeholder:font-normal"
+                        placeholder="Try 'Al Rajhi', 'RJHI SA RI', or a BIN...">
+                    <div class="bg-slate-100 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-500 mr-2 flex items-center gap-1 hidden md:flex">
+                        <i class="ph-bold ph-command"></i> K
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Grid -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center" id="resultsContainer">
+                <!-- Initial State -->
+                <div class="col-span-1 lg:col-span-2 text-center py-20 text-slate-400" id="emptyState">
+                    <i class="ph-duotone ph-bank text-6xl mb-4 opacity-50"></i>
+                    <p class="text-lg">Enter a search query to render a bank profile.</p>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- UI Template for Bank Profile (Hidden, cloned by JS) -->
+    <template id="bankProfileTemplate">
+        <!-- 3D Card Visual -->
+        <div class="flex flex-col justify-center perspective-container w-full">
+            <div class="flip-card cursor-pointer" title="Click to flip card" onclick="this.classList.toggle('flipped')">
+                <div class="flip-card-inner">
+                    <!-- Front -->
+                    <div class="flip-card-front" id="cardFront" style="background: linear-gradient(135deg, #111 0%, #333 100%); color: #fff;">
+                        <div class="card-content flex justify-between items-start w-full">
+                            <div>
+                                <h3 class="font-bold text-xl opacity-90" id="cardBankName">Bank Name</h3>
+                                <p class="text-xs font-mono opacity-70 mt-1" id="cardCountry">Country</p>
+                            </div>
+                            <img src="" alt="Logo" id="cardLogo" class="h-10 object-contain rounded bg-white/10 p-1">
+                        </div>
+                        <div class="card-content">
+                            <div class="flex gap-2 mb-4 opacity-80">
+                                <i class="ph-fill ph-sim-card text-3xl"></i>
+                                <i class="ph ph-wifi-high text-3xl rotate-90"></i>
+                            </div>
+                            <div class="font-mono text-xl tracking-widest opacity-90">•••• •••• •••• ••••</div>
+                            <div class="flex justify-between items-end mt-4">
+                                <div class="font-mono text-sm opacity-80" id="cardSwift">SWIFT</div>
+                                <div class="font-bold italic text-lg opacity-90">PREMIUM</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Back -->
+                    <div class="flip-card-back" id="cardBack" style="background: #1a1a1a; color: #fff;">
+                        <div class="card-content w-full h-full flex flex-col">
+                            <div class="w-[120%] h-12 bg-black -ml-6 mt-4 opacity-80 relative z-10"></div>
+                            <div class="mt-4 bg-white/20 h-10 w-3/4 rounded flex items-center justify-end px-4 relative z-10">
+                                <span class="font-mono text-sm text-black italic">123</span>
+                            </div>
+                            <div class="mt-auto relative z-10 text-xs opacity-70 space-y-1">
+                                <p id="cardCustomerService"><i class="ph ph-phone"></i> Service</p>
+                                <p id="cardWebsite"><i class="ph ph-globe"></i> Website</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="text-center mt-4 text-xs font-medium text-slate-400 flex items-center justify-center gap-1">
+                <i class="ph-bold ph-arrows-left-right"></i> Click card to flip
+            </div>
+        </div>
+
+        <!-- Bank Details List -->
+        <div class="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm w-full">
+            <h2 class="text-2xl font-bold text-slate-900 mb-6 flex items-center gap-2">
+                <i class="ph-duotone ph-info"></i> Profile Analytics
+            </h2>
+            <div class="space-y-4">
+                <div class="flex justify-between items-center py-3 border-b border-slate-100">
+                    <span class="text-slate-500 font-medium">Official Name</span>
+                    <span class="text-slate-900 font-bold text-right" id="detailOfficialName">-</span>
+                </div>
+                <div class="flex justify-between items-center py-3 border-b border-slate-100">
+                    <span class="text-slate-500 font-medium">SWIFT Code</span>
+                    <span class="font-mono bg-slate-100 px-2 py-1 rounded text-slate-900 font-bold" id="detailSwift">-</span>
+                </div>
+                <div class="flex justify-between items-center py-3 border-b border-slate-100">
+                    <span class="text-slate-500 font-medium">Country</span>
+                    <span class="text-slate-900 font-bold" id="detailCountry">-</span>
+                </div>
+                <div class="flex justify-between items-center py-3 border-b border-slate-100">
+                    <span class="text-slate-500 font-medium">Email</span>
+                    <a href="#" class="text-terminal font-bold hover:underline" id="detailEmail">-</a>
+                </div>
+                <div class="flex justify-between items-center py-3">
+                    <span class="text-slate-500 font-medium">Phone</span>
+                    <a href="#" class="text-terminal font-bold hover:underline" id="detailPhone">-</a>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <script>
+        const searchInput = document.getElementById('searchInput');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const emptyState = document.getElementById('emptyState');
+        const template = document.getElementById('bankProfileTemplate');
+
+        let debounceTimer;
+
+        // Auto focus search on command+K
+        document.addEventListener('keydown', (e) => {
+            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+                e.preventDefault();
+                searchInput.focus();
+            }
+        });
+
+        searchInput.addEventListener('input', (e) => {
+            clearTimeout(debounceTimer);
+            const query = e.target.value.trim();
+            
+            if (!query) {
+                resultsContainer.innerHTML = '';
+                resultsContainer.appendChild(emptyState);
+                return;
+            }
+
+            debounceTimer = setTimeout(() => {
+                performSearch(query);
+            }, 300);
+        });
+
+        async function performSearch(query) {
+            try {
+                const res = await fetch(`/api/banks/search?q=${encodeURIComponent(query)}`);
+                const banks = await res.json();
+
+                resultsContainer.innerHTML = '';
+
+                if (banks.length === 0) {
+                    resultsContainer.innerHTML = `
+                        <div class="col-span-1 lg:col-span-2 text-center py-20 text-slate-400">
+                            <i class="ph-duotone ph-warning-circle text-6xl mb-4 opacity-50"></i>
+                            <p class="text-lg">No intelligence found for "${query}".</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Render the first matched bank as the hero card
+                const bank = banks[0];
+                const clone = template.content.cloneNode(true);
+
+                // Populate Card UI
+                const cardFront = clone.getElementById('cardFront');
+                const cardBack = clone.getElementById('cardBack');
+                if (bank.card_color) cardFront.style.background = bank.card_color;
+                if (bank.brand_text_color) cardFront.style.color = bank.brand_text_color;
+                
+                clone.getElementById('cardBankName').textContent = bank.short_name || bank.official_name;
+                clone.getElementById('cardCountry').textContent = bank.country;
+                clone.getElementById('cardSwift').textContent = bank.swift_code || 'N/A';
+                
+                const logoEl = clone.getElementById('cardLogo');
+                if (bank.logo_url) {
+                    logoEl.src = bank.logo_url;
+                } else {
+                    logoEl.style.display = 'none';
+                }
+
+                clone.getElementById('cardCustomerService').innerHTML = `<i class="ph ph-phone"></i> ${bank.customer_service || 'N/A'}`;
+                clone.getElementById('cardWebsite').innerHTML = `<i class="ph ph-globe"></i> ${bank.website || 'N/A'}`;
+
+                // Populate Details
+                clone.getElementById('detailOfficialName').textContent = bank.official_name;
+                clone.getElementById('detailSwift').textContent = bank.swift_code || 'N/A';
+                clone.getElementById('detailCountry').textContent = bank.country;
+                
+                const emailEl = clone.getElementById('detailEmail');
+                emailEl.textContent = bank.email || 'N/A';
+                if (bank.email) emailEl.href = `mailto:${bank.email}`;
+
+                const phoneEl = clone.getElementById('detailPhone');
+                phoneEl.textContent = bank.customer_service || 'N/A';
+                if (bank.customer_service) phoneEl.href = `tel:${bank.customer_service}`;
+
+                resultsContainer.appendChild(clone);
+
+                // If there are more results, show a brief list below
+                if (banks.length > 1) {
+                    const othersDiv = document.createElement('div');
+                    othersDiv.className = "col-span-1 lg:col-span-2 mt-8 border-t border-slate-200 pt-8";
+                    othersDiv.innerHTML = `<h3 class="font-bold text-slate-500 mb-4">Other Matches (${banks.length - 1})</h3>`;
+                    
+                    const flexList = document.createElement('div');
+                    flexList.className = "flex flex-wrap gap-2";
+                    
+                    for(let i=1; i<banks.length; i++) {
+                        const tag = document.createElement('div');
+                        tag.className = "bg-white border border-slate-200 px-3 py-1.5 rounded-full text-sm font-medium cursor-pointer hover:border-terminal hover:text-terminal transition-colors";
+                        tag.textContent = banks[i].short_name || banks[i].official_name;
+                        tag.onclick = () => {
+                            searchInput.value = banks[i].swift_code || banks[i].short_name;
+                            performSearch(searchInput.value);
+                        };
+                        flexList.appendChild(tag);
+                    }
+                    othersDiv.appendChild(flexList);
+                    resultsContainer.appendChild(othersDiv);
+                }
+
+            } catch (e) {
+                console.error(e);
+            }
+        }
+    </script>
+</body>
+</html>

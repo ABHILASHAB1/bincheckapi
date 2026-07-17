@@ -11,6 +11,7 @@ import { calculateNetPayout } from './payoutEngine.js';
 import { generateMarketPulse } from './anithaAI.js';
 import { supabase } from './supabaseClient.js';
 import { initSwiftScheduler } from './swiftScheduler.js';
+import UAParser from 'ua-parser-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -210,6 +211,37 @@ async function authenticateApiKey(req, res, next) {
   }
 }
 
+// --- Universal Bank Search Endpoint ---
+app.get('/api/banks/search', async (req, res) => {
+    try {
+        const { q } = req.query;
+        if (!q) {
+            const banks = await localDb.all('SELECT * FROM banks LIMIT 50');
+            return res.json(banks);
+        }
+
+        const queryStr = q.trim().toLowerCase();
+        
+        // Advanced Universal Search: Name, SWIFT, Email, Phone, Domain
+        const banks = await localDb.all(`
+            SELECT * FROM banks 
+            WHERE lower(short_name) LIKE ? 
+               OR lower(official_name) LIKE ? 
+               OR lower(swift_code) LIKE ? 
+               OR lower(website) LIKE ? 
+               OR lower(email) LIKE ? 
+               OR customer_service LIKE ?
+            LIMIT 20
+        `, [`%${queryStr}%`, `%${queryStr}%`, `%${queryStr}%`, `%${queryStr}%`, `%${queryStr}%`, `%${queryStr}%`]);
+
+        res.json(banks);
+    } catch (e) {
+        console.error("Bank search error:", e);
+        res.status(500).json({ error: "Failed to search banks" });
+    }
+});
+
+// --- Support Chat endpoints ---
 // Health check endpoint
 app.get('/api/botstatus', (req, res) => {
     res.json({
@@ -1318,17 +1350,28 @@ app.post('/api/analytics/track', async (req, res) => {
             const timeObj = {};
             timeObj[page_url] = delta_ms || 0;
             
+            // Parse User-Agent
+            const parser = new UAParser(userAgent);
+            const resData = parser.getResult();
+            const browserName = resData.browser.name ? `${resData.browser.name} ${resData.browser.version || ''}`.trim() : 'Unknown Browser';
+            const osName = resData.os.name ? `${resData.os.name} ${resData.os.version || ''}`.trim() : 'Unknown OS';
+            
+            let deviceType = 'Desktop';
+            if (resData.device.type === 'mobile') deviceType = 'Mobile';
+            else if (resData.device.type === 'tablet') deviceType = 'Tablet';
+            if (/bot|crawl|spider/i.test(userAgent)) deviceType = 'Bot';
+            
             const { data: newUser, error: insertErr } = await supabase
                 .from('tracked_users')
                 .insert([{
                     fingerprint: fingerprint,
-                    browser: userAgent.substring(0, 100),
-                    os: 'Unknown',
-                    device_type: /mobile/i.test(userAgent) ? 'Mobile' : 'Desktop',
+                    browser: browserName.substring(0, 100),
+                    os: osName.substring(0, 100),
+                    device_type: deviceType,
                     time_spent_by_tab: timeObj,
                     total_visits: 1
                 }])
-                .select('id')
+                .select()
                 .single();
                 
             if (insertErr) throw insertErr;

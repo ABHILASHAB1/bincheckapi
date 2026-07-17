@@ -36,6 +36,26 @@ export async function setupDatabase() {
     );
     CREATE UNIQUE INDEX IF NOT EXISTS idx_bin ON bins(bin);
     CREATE INDEX IF NOT EXISTS idx_issuer ON bins(issuer);
+    CREATE TABLE IF NOT EXISTS banks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      short_name TEXT,
+      official_name TEXT,
+      country TEXT,
+      swift_code TEXT,
+      website TEXT,
+      customer_service TEXT,
+      email TEXT,
+      brand_color TEXT,
+      brand_text_color TEXT,
+      card_color TEXT,
+      logo_url TEXT,
+      icon_url TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_banks_swift ON banks(swift_code);
+    CREATE INDEX IF NOT EXISTS idx_banks_name ON banks(official_name);
+    CREATE INDEX IF NOT EXISTS idx_banks_short_name ON banks(short_name);
   `);
 
   return db;
