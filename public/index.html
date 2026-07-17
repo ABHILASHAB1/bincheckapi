@@ -905,9 +905,6 @@
                     const footerInput = document.getElementById('support-chat-input-form');
                     footerInput.classList.remove('opacity-50', 'pointer-events-none');
                     
-                    // Render user's initial message
-                    renderChatMessages([{ sender: 'user', text: data.message }]);
-                    
                     // Start polling
                     pollInterval = setInterval(pollSupportChat, 3000);
                     // Immediate first poll

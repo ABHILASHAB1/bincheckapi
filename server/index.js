@@ -1397,11 +1397,18 @@ app.post('/api/support-bot', async (req, res) => {
         // 1. Create the session
         activeSupportSessions.set(ticketId, {
             data,
-            messages: [{
-                sender: 'system',
-                text: 'Thanks for providing the info. We will connect you to a customer executive.',
-                timestamp: Date.now()
-            }],
+            messages: [
+                {
+                    sender: 'user',
+                    text: data.message,
+                    timestamp: Date.now() - 100
+                },
+                {
+                    sender: 'system',
+                    text: 'Thanks for providing the info. We will connect you to a customer executive.',
+                    timestamp: Date.now()
+                }
+            ],
             createdAt: Date.now()
         });
 
