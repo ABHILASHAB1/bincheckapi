@@ -68,13 +68,26 @@ app.get(['/send_money', '/send_money.html'], (req, res) => {
   res.sendFile(path.join(__dirname, '../send_money.html'));
 });
 
+// Dedicated routes for SEO pages
+app.get(['/faq', '/faq.html'], (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/faq.html'));
+});
+
+app.get(['/blog', '/blog.html'], (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/blog.html'));
+});
+
+app.get(['/blog_post', '/blog_post.html'], (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/blog_post.html'));
+});
+
 // Catch-all for upcoming portal pages
-const comingSoonRoutes = ['/global_transfer', '/faq', '/terms', '/privacy', '/partners', '/compare'];
+const comingSoonRoutes = ['/global_transfer', '/terms', '/privacy', '/partners', '/compare'];
 app.get(comingSoonRoutes, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/coming_soon.html'));
 });
 app.get('/currency-converter', (req, res) => {
-  res.redirect(301, '/send_money');
+  res.redirect(301, '/send_money#calculator');
 });
 
 let db = null;

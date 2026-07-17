@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RemitWise Blog | Insights on Global Remittance & Fintech</title>
+    <meta name="description" content="Read the latest articles, guides, and insights on global remittance, exchange rate fluctuations, and fintech tools from RemitWise.">
+    <meta name="keywords" content="Remittance Blog, Fintech News, Exchange Rate Trends, SWIFT Code Guides">
+    
+    <link rel="canonical" href="https://remitwise.fit/blog">
+    
+    <!-- Fonts -->
+    <link href="https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,400&display=swap" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Satoshi', 'sans-serif'],
+                        serif: ['Newsreader', 'serif'],
+                    },
+                    colors: {
+                        deep: '#F8FAFC',
+                        surface: '#FFFFFF',
+                        divider: '#E2E8F0',
+                        accentBlue: '#2563EB',
+                        accentGreen: '#059669',
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-deep text-slate-900 antialiased selection:bg-accentBlue selection:text-white">
+
+    <!-- Navigation -->
+    <nav class="fixed w-full z-50 bg-deep/80 backdrop-blur-xl border-b border-divider">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-3 group">
+                <div class="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white group-hover:scale-105 transition-transform">
+                    <i class="ph-bold ph-globe-hemisphere-west text-xl"></i>
+                </div>
+                <span class="text-xl font-bold tracking-tight">RemitWise</span>
+            </a>
+            
+            <div class="hidden md:flex items-center gap-8">
+                <a href="/send_money" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">Live FX</a>
+                <a href="/bincheck" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">BIN Checker</a>
+                <a href="/swift" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">SWIFT Codes</a>
+                <a href="/faq" class="text-sm font-medium text-slate-600 hover:text-slate-900 transition-colors">FAQ</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Header Section -->
+    <section class="pt-40 pb-20 px-6">
+        <div class="max-w-4xl mx-auto text-center">
+            <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-blue-50 border border-blue-100 text-blue-600 text-sm font-bold mb-8">
+                <i class="ph-fill ph-book-open-text"></i> Knowledge Base
+            </div>
+            <h1 class="text-5xl md:text-6xl font-black mb-6 tracking-tight">Intelligence & Insights</h1>
+            <p class="text-xl text-slate-600 font-light max-w-2xl mx-auto leading-relaxed">
+                Expert guides on cross-border payments, hidden exchange rate markups, and utilizing our fintech tools to your advantage.
+            </p>
+        </div>
+    </section>
+
+    <!-- Articles Grid -->
+    <section class="pb-32 px-6">
+        <div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            
+            <!-- Article Card 1 -->
+            <a href="/blog_post" class="bg-white border border-divider rounded-3xl overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group">
+                <div class="h-48 bg-slate-100 flex items-center justify-center overflow-hidden">
+                    <i class="ph-duotone ph-currency-circle-dollar text-6xl text-slate-300 group-hover:scale-110 transition-transform duration-500"></i>
+                </div>
+                <div class="p-8">
+                    <div class="text-xs font-bold tracking-widest text-accentBlue uppercase mb-3">Remittance</div>
+                    <h3 class="text-2xl font-bold mb-3 leading-tight group-hover:text-accentBlue transition-colors">How to Spot Hidden Markups in Exchange Rates</h3>
+                    <p class="text-slate-600 font-light text-sm line-clamp-3">
+                        Providers often advertise "zero fees" while burying a massive margin in the exchange rate. Here is exactly how to calculate the true cost of your transfer.
+                    </p>
+                </div>
+            </a>
+
+            <!-- Article Card 2 -->
+            <a href="/blog_post" class="bg-white border border-divider rounded-3xl overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group">
+                <div class="h-48 bg-slate-100 flex items-center justify-center overflow-hidden">
+                    <i class="ph-duotone ph-credit-card text-6xl text-slate-300 group-hover:scale-110 transition-transform duration-500"></i>
+                </div>
+                <div class="p-8">
+                    <div class="text-xs font-bold tracking-widest text-accentBlue uppercase mb-3">Tools</div>
+                    <h3 class="text-2xl font-bold mb-3 leading-tight group-hover:text-accentBlue transition-colors">The Ultimate Guide to Bank Identification Numbers (BIN)</h3>
+                    <p class="text-slate-600 font-light text-sm line-clamp-3">
+                        What are the first 6 digits of your credit card telling merchants? Learn how BIN checks prevent fraud and identify card tiers.
+                    </p>
+                </div>
+            </a>
+
+            <!-- Article Card 3 -->
+            <a href="/blog_post" class="bg-white border border-divider rounded-3xl overflow-hidden hover:shadow-2xl hover:-translate-y-2 transition-all duration-300 group">
+                <div class="h-48 bg-slate-100 flex items-center justify-center overflow-hidden">
+                    <i class="ph-duotone ph-bank text-6xl text-slate-300 group-hover:scale-110 transition-transform duration-500"></i>
+                </div>
+                <div class="p-8">
+                    <div class="text-xs font-bold tracking-widest text-accentBlue uppercase mb-3">Global Banking</div>
+                    <h3 class="text-2xl font-bold mb-3 leading-tight group-hover:text-accentBlue transition-colors">SWIFT Codes Explained: Why Cross-Border Payments Fail</h3>
+                    <p class="text-slate-600 font-light text-sm line-clamp-3">
+                        An incorrect SWIFT code can delay a wire transfer for weeks. Understand the structure of BIC/SWIFT codes and how to verify them instantly.
+                    </p>
+                </div>
+            </a>
+
+        </div>
+    </section>
+
+</body>
+</html>
