@@ -10,6 +10,7 @@ const geminiApiKey = process.env.GEMINI_API_KEY;
 let bot = null;
 let db = null;
 let genAI = null;
+export const activeSupportSessions = new Map();
 
 // Initialize bot if token exists
 export const initTelegramBot = async () => {
@@ -62,6 +63,31 @@ export const initTelegramBot = async () => {
         // Simple status command
         bot.onText(/\/status/, (msg) => {
             bot.sendMessage(msg.chat.id, '🟢 *System Status: ONLINE*\n\nFX Market Simulation Engine is actively polling and updating rates.', { parse_mode: 'Markdown' });
+        });
+
+        // Intercept Replies for Live Support Chat
+        bot.on('message', (msg) => {
+            // Check if this is a reply to an existing message from the bot
+            if (msg.reply_to_message && msg.reply_to_message.text && msg.reply_to_message.text.includes('TicketID:')) {
+                // Extract TicketID
+                const match = msg.reply_to_message.text.match(/TicketID:\s*([A-Za-z0-9-]+)/);
+                if (match && match[1]) {
+                    const ticketId = match[1];
+                    const session = activeSupportSessions.get(ticketId);
+                    
+                    if (session) {
+                        // Push admin reply to the active session queue
+                        session.messages.push({
+                            sender: 'admin',
+                            text: msg.text,
+                            timestamp: Date.now()
+                        });
+                        bot.sendMessage(msg.chat.id, `✅ Sent to user on Ticket \`${ticketId}\``, { parse_mode: 'Markdown' });
+                    } else {
+                        bot.sendMessage(msg.chat.id, `❌ Session \`${ticketId}\` is closed or expired. The user has left the site.`, { parse_mode: 'Markdown' });
+                    }
+                }
+            }
         });
 
         // Admin command to manually override FX Rates
@@ -460,7 +486,7 @@ _${contactData.message}_
     }
 };
 
-export const broadcastSupportBotAlert = async (supportData) => {
+export const broadcastSupportBotAlert = async (ticketId, supportData) => {
     if (!bot || !db) return;
 
     try {
@@ -469,12 +495,16 @@ export const broadcastSupportBotAlert = async (supportData) => {
 
         const message = `
 🎧 *Customer Support Bot Message*
+*TicketID:* \`${ticketId}\`
+
 • *Name:* \`${supportData.name}\`
 • *Email:* \`${supportData.email}\`
 • *Phone:* \`${supportData.phone}\`
 • *Subject:* \`${supportData.subject}\`
 • *Message:* 
 _${supportData.message}_
+
+_(Reply to this exact message to chat directly with the user)_
         `;
 
         for (const sub of subscribers) {

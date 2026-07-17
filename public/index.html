@@ -763,7 +763,7 @@
             </div>
 
             <!-- Form Body -->
-            <div class="p-6 bg-[#f4f6f8] flex-1 overflow-y-auto max-h-[450px]">
+            <div id="support-form-container" class="p-6 bg-[#f4f6f8] flex-1 overflow-y-auto max-h-[450px]">
                 <form id="support-form" class="space-y-4" onsubmit="submitSupportForm(event)">
                     
                     <div class="bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm focus-within:border-[#00a859] transition-colors">
@@ -816,47 +816,50 @@
                             <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=e2e8f0" class="w-full h-full" alt="Agent">
                         </div>
                         <button type="submit" class="bg-[#00a859] hover:bg-[#00914d] text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors shadow-sm text-sm shrink-0">
-                            <i class="ph-bold ph-paper-plane-tilt"></i> Submit
+                            <i class="ph-bold ph-paper-plane-tilt"></i> Start Chat
                         </button>
                     </div>
                 </form>
             </div>
 
-            <!-- Footer Chat Input Mock -->
-            <div class="border-t border-gray-100 p-4 bg-white flex items-center justify-between text-gray-400 rounded-b-2xl">
-                <span class="text-sm">Type here and press enter..</span>
-                <div class="flex items-center gap-3 text-lg">
-                    <i class="ph-bold ph-thumbs-up hover:text-gray-600 cursor-pointer transition-colors"></i>
-                    <i class="ph-bold ph-paperclip hover:text-gray-600 cursor-pointer transition-colors"></i>
-                    <i class="ph-bold ph-smiley hover:text-gray-600 cursor-pointer transition-colors"></i>
-                </div>
+            <!-- Live Chat Body -->
+            <div id="support-chat-container" class="hidden p-4 bg-[#f4f6f8] flex-1 overflow-y-auto max-h-[450px] flex-col gap-4">
+                <!-- Messages will be injected here -->
             </div>
+
+            <!-- Footer Chat Input -->
+            <form id="support-chat-input-form" onsubmit="submitChatMessage(event)" class="border-t border-gray-100 p-3 bg-white flex items-center gap-2 rounded-b-2xl opacity-50 pointer-events-none transition-opacity">
+                <input id="support-chat-input" type="text" placeholder="Type here and press enter.." class="flex-1 text-sm bg-gray-50 rounded-full px-4 py-2 focus:outline-none focus:ring-1 focus:ring-[#00a859]" />
+                <button type="submit" class="w-8 h-8 rounded-full bg-[#00a859] text-white flex items-center justify-center hover:bg-[#00914d] shrink-0">
+                    <i class="ph-bold ph-paper-plane-right"></i>
+                </button>
+            </form>
         </div>
     </div>
 
     <script>
+        let currentTicketId = null;
+        let pollInterval = null;
+
         function toggleSupportChat() {
             const chat = document.getElementById('support-chat');
             const badge = document.getElementById('support-badge');
             
             if (chat.classList.contains('hidden')) {
-                // Open chat
                 chat.classList.remove('hidden');
                 chat.classList.add('flex');
-                // slight delay for animation
                 setTimeout(() => {
                     chat.classList.remove('scale-95', 'opacity-0');
                     chat.classList.add('scale-100', 'opacity-100');
                 }, 10);
                 badge.classList.add('opacity-0');
             } else {
-                // Close chat
                 chat.classList.remove('scale-100', 'opacity-100');
                 chat.classList.add('scale-95', 'opacity-0');
                 setTimeout(() => {
                     chat.classList.remove('flex');
                     chat.classList.add('hidden');
-                }, 300); // match transition duration
+                }, 300);
                 badge.classList.remove('opacity-0');
             }
         }
@@ -865,9 +868,8 @@
             e.preventDefault();
             const btn = e.target.querySelector('button[type="submit"]');
             const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i> Sending...';
+            btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i> Connecting...';
             
-            // Extract form data
             const inputs = e.target.querySelectorAll('input, textarea');
             const countryCode = document.getElementById('support-country-code').value;
             
@@ -880,27 +882,109 @@
             };
 
             try {
-                await fetch('/api/support-bot', {
+                const res = await fetch('/api/support-bot', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data)
                 });
-
-                btn.innerHTML = '<i class="ph-bold ph-check"></i> Sent!';
-                btn.classList.replace('bg-[#00a859]', 'bg-slate-800');
-                e.target.reset();
+                const result = await res.json();
                 
-                setTimeout(() => {
-                    toggleSupportChat();
-                    btn.innerHTML = originalText;
-                    btn.classList.replace('bg-slate-800', 'bg-[#00a859]');
-                }, 2000);
+                if (result.success && result.ticketId) {
+                    currentTicketId = result.ticketId;
+                    
+                    // Transition to Chat View
+                    document.getElementById('support-form-container').classList.add('hidden');
+                    const chatContainer = document.getElementById('support-chat-container');
+                    chatContainer.classList.remove('hidden');
+                    chatContainer.classList.add('flex');
+                    
+                    // Enable footer input
+                    const footerInput = document.getElementById('support-chat-input-form');
+                    footerInput.classList.remove('opacity-50', 'pointer-events-none');
+                    
+                    // Render user's initial message
+                    renderChatMessages([{ sender: 'user', text: data.message }]);
+                    
+                    // Start polling
+                    pollInterval = setInterval(pollSupportChat, 3000);
+                    // Immediate first poll
+                    setTimeout(pollSupportChat, 500);
+                }
 
             } catch (err) {
-                console.error("Failed to send support ticket", err);
+                console.error("Failed to start chat session", err);
                 btn.innerHTML = '<i class="ph-bold ph-warning"></i> Error';
                 setTimeout(() => { btn.innerHTML = originalText; }, 2000);
             }
+        }
+
+        async function pollSupportChat() {
+            if (!currentTicketId) return;
+            try {
+                const res = await fetch(`/api/support/poll?ticketId=${currentTicketId}`);
+                const data = await res.json();
+                if (data.active && data.messages) {
+                    renderChatMessages(data.messages);
+                }
+            } catch (err) {
+                console.error('Polling error:', err);
+            }
+        }
+
+        function renderChatMessages(messages) {
+            const container = document.getElementById('support-chat-container');
+            container.innerHTML = ''; // Re-render all for simplicity
+
+            messages.forEach(msg => {
+                const div = document.createElement('div');
+                div.className = 'flex flex-col max-w-[85%]';
+                
+                if (msg.sender === 'user') {
+                    div.classList.add('self-end');
+                    div.innerHTML = `
+                        <div class="bg-[#00a859] text-white px-4 py-2 rounded-2xl rounded-tr-none text-sm shadow-sm whitespace-pre-wrap">${msg.text}</div>
+                    `;
+                } else {
+                    // System or Admin
+                    div.classList.add('self-start', 'flex', 'gap-2');
+                    const avatar = msg.sender === 'system' ? 'bot' : 'admin';
+                    const name = msg.sender === 'system' ? 'System' : 'Support Team';
+                    div.innerHTML = `
+                        <div class="w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center shrink-0 mt-1 overflow-hidden border border-gray-100">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=${avatar}&backgroundColor=e2e8f0" class="w-full h-full">
+                        </div>
+                        <div class="flex flex-col">
+                            <span class="text-[10px] text-gray-400 font-bold ml-1 mb-0.5">${name}</span>
+                            <div class="bg-white text-gray-800 px-4 py-2 rounded-2xl rounded-tl-none text-sm shadow-sm border border-gray-100 whitespace-pre-wrap">${msg.text}</div>
+                        </div>
+                    `;
+                }
+                container.appendChild(div);
+            });
+            
+            // Auto scroll to bottom
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function submitChatMessage(e) {
+            e.preventDefault();
+            const input = document.getElementById('support-chat-input');
+            const text = input.value.trim();
+            if (!text || !currentTicketId) return;
+            
+            input.value = '';
+            
+            // Optimistic render
+            const container = document.getElementById('support-chat-container');
+            const div = document.createElement('div');
+            div.className = 'flex flex-col max-w-[85%] self-end';
+            div.innerHTML = `<div class="bg-[#00a859] text-white px-4 py-2 rounded-2xl rounded-tr-none text-sm shadow-sm whitespace-pre-wrap opacity-70">${text}</div>`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+
+            // Note: Since this is purely a demonstration of the admin replying, 
+            // sending *back* to telegram from the chat window would require another backend endpoint.
+            // For now we just append it locally so it looks like it sent.
         }
     </script>
 

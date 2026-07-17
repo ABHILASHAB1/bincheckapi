@@ -1387,17 +1387,60 @@ app.post('/api/analytics/track', async (req, res) => {
 });
 import { runFullScraper } from './swiftScraper.js';
 import { runProviderScraper } from './providerScraper.js';
-import { broadcastSupportBotAlert } from './telegramBot.js';
+import { broadcastSupportBotAlert, activeSupportSessions } from './telegramBot.js';
 
 app.post('/api/support-bot', async (req, res) => {
     try {
         const data = req.body;
-        await broadcastSupportBotAlert(data);
-        res.json({ success: true, message: "Support ticket submitted successfully." });
+        const ticketId = 'TKT-' + crypto.randomBytes(4).toString('hex').toUpperCase();
+
+        // 1. Create the session
+        activeSupportSessions.set(ticketId, {
+            data,
+            messages: [{
+                sender: 'system',
+                text: 'Thanks for providing the info. We will connect you to a customer executive.',
+                timestamp: Date.now()
+            }],
+            createdAt: Date.now()
+        });
+
+        // 2. Broadcast to Telegram Admin
+        await broadcastSupportBotAlert(ticketId, data);
+
+        // 3. Set Auto-Responder Timeout (60 seconds)
+        setTimeout(() => {
+            const session = activeSupportSessions.get(ticketId);
+            if (session) {
+                // If the only message is the initial system message, admin hasn't replied
+                const hasAdminReplied = session.messages.some(m => m.sender === 'admin');
+                if (!hasAdminReplied) {
+                    session.messages.push({
+                        sender: 'system',
+                        text: 'Currently we are facing high engagement hence we will connect you shortly on provided info thanks.',
+                        timestamp: Date.now()
+                    });
+                }
+            }
+        }, 60000);
+
+        res.json({ success: true, ticketId, message: "Chat session started." });
     } catch (e) {
         console.error("Support bot routing error:", e);
         res.status(500).json({ error: "Failed to route support ticket." });
     }
+});
+
+app.get('/api/support/poll', (req, res) => {
+    const { ticketId } = req.query;
+    if (!ticketId) return res.status(400).json({ error: 'Missing ticketId' });
+
+    const session = activeSupportSessions.get(ticketId);
+    if (!session) {
+        return res.json({ active: false, messages: [] });
+    }
+
+    res.json({ active: true, messages: session.messages });
 });
 
 app.listen(port, async () => {
