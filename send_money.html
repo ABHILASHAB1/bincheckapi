@@ -676,24 +676,24 @@
                     )}
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-4 gap-2 pt-6">
-                        <div className="text-center border-r border-black/5 last:border-0">
+                    <div className="grid grid-cols-4 gap-1 pt-6">
+                        <div className="text-center border-r border-black/5 px-0.5 last:border-0 overflow-hidden">
                             <div className="text-[10px] font-bold text-textSecondary mb-1">High</div>
-                            <div className="text-sm font-black text-success">{maxStr}</div>
+                            <div className="text-[11px] font-black text-success tracking-tighter truncate" title={maxStr}>{maxStr}</div>
                             <div className="text-[9px] text-textSecondary mt-0.5 font-medium">({maxObj ? formatDayMonth(maxObj.date) : ''})</div>
                         </div>
-                        <div className="text-center border-r border-black/5 last:border-0">
+                        <div className="text-center border-r border-black/5 px-0.5 last:border-0 overflow-hidden">
                             <div className="text-[10px] font-bold text-textSecondary mb-1">Low</div>
-                            <div className="text-sm font-black text-red-500">{minStr}</div>
+                            <div className="text-[11px] font-black text-red-500 tracking-tighter truncate" title={minStr}>{minStr}</div>
                             <div className="text-[9px] text-textSecondary mt-0.5 font-medium">({minObj ? formatDayMonth(minObj.date) : ''})</div>
                         </div>
-                        <div className="text-center border-r border-black/5 last:border-0">
+                        <div className="text-center border-r border-black/5 px-0.5 last:border-0 overflow-hidden">
                             <div className="text-[10px] font-bold text-textSecondary mb-1">Avg Rate</div>
-                            <div className="text-sm font-black text-textPrimary">{avgRate}</div>
+                            <div className="text-[11px] font-black text-textPrimary tracking-tighter truncate" title={avgRate}>{avgRate}</div>
                         </div>
-                        <div className="text-center">
+                        <div className="text-center px-0.5 overflow-hidden">
                             <div className="text-[10px] font-bold text-textSecondary mb-1">Volatility</div>
-                            <div className="text-sm font-black text-success flex items-center justify-center">Low <Icon name="bar-chart-2" size={14} className="ml-1" /></div>
+                            <div className="text-[11px] font-black text-success flex items-center justify-center tracking-tighter truncate">Low <Icon name="bar-chart-2" size={12} className="ml-1 flex-shrink-0" /></div>
                         </div>
                     </div>
                   </div>
