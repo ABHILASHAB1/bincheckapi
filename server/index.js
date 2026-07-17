@@ -33,7 +33,7 @@ app.use('/api', (req, res, next) => {
 app.use(express.static(path.join(__dirname, '../public')));
 
 // Explicitly serve HTML files from the root directory for easy testing
-app.get('/send_money.html', (req, res) => {
+app.get(['/', '/send_money', '/send_money.html'], (req, res) => {
   res.sendFile(path.join(__dirname, '../send_money.html'));
 });
 app.get('/test_remittance.html', (req, res) => {
