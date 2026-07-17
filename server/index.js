@@ -43,6 +43,9 @@ app.get(['/send_money', '/send_money.html'], (req, res) => {
 app.get('/bincheck', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/bincheck.html'));
 });
+app.get('/swift-codes/countries', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/swift_countries.html'));
+});
 app.get('/exchange-rates', (req, res) => {
   res.redirect('/');
 });

@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search SWIFT/BIC Codes by Country | RemitWise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="/js/countries.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], heading: ['Outfit', 'sans-serif'] },
+                    colors: { 
+                        xeBlue: '#0B122A', 
+                        xeNav: '#13224B',
+                        bgMain: '#FFFFFF', 
+                        textPrimary: '#0F172A', 
+                        textMuted: '#64748B' 
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-bgMain text-textPrimary font-sans antialiased selection:bg-xeNav selection:text-white min-h-screen flex flex-col">
+
+    <!-- Top Dark Section -->
+    <div class="bg-xeBlue w-full">
+        <!-- Top Nav (Secondary) -->
+        <div class="max-w-7xl mx-auto px-6 border-b border-white/10 flex items-center h-16 gap-8">
+            <a href="/" class="text-white font-bold tracking-wide">SWIFT/BIC</a>
+            <div class="flex items-center gap-2">
+                <a href="/coming_soon.html" class="text-white/80 hover:text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors">Search by bank</a>
+                <a href="/swift-codes/countries" class="bg-xeNav text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors">Search by country</a>
+            </div>
+        </div>
+
+        <!-- Hero -->
+        <div class="max-w-4xl mx-auto px-6 py-16 text-center">
+            <h1 class="text-4xl md:text-5xl font-heading font-semibold text-white mb-4">Search SWIFT/BIC codes by country</h1>
+            <p class="text-gray-300 text-lg max-w-2xl mx-auto mb-16">
+                Choose a country from below to view SWIFT/BIC codes for banks in that region, including specific branches.
+            </p>
+
+            <!-- Popular Countries -->
+            <div class="text-left max-w-3xl mx-auto">
+                <h3 class="text-white font-semibold text-xl mb-6">Popular countries</h3>
+                <div id="popular-grid" class="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom White Section -->
+    <div class="flex-grow bg-white w-full py-16">
+        <div class="max-w-4xl mx-auto px-6">
+            <!-- Header & Search -->
+            <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
+                <h2 class="text-2xl font-semibold text-slate-800">All countries</h2>
+                <div class="relative w-full md:w-72">
+                    <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+                    <input type="text" id="country-search" placeholder="Type to search..." 
+                           class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-xeNav focus:border-xeNav transition-shadow placeholder:text-slate-400">
+                </div>
+            </div>
+
+            <!-- All Countries Grid -->
+            <div id="all-grid" class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <!-- Injected via JS -->
+            </div>
+            
+            <!-- Empty State -->
+            <div id="empty-state" class="hidden text-center py-16">
+                <p class="text-slate-500">No countries found matching your search.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function renderCountryCard(country) {
+            // Flag CDN uses lowercase ISO codes
+            const flagUrl = `https://flagcdn.com/w80/${country.code}.png`;
+            return `
+                <a href="/swift-codes/country/${country.code.toUpperCase()}" class="flex flex-col items-center gap-3 p-4 rounded-2xl hover:bg-slate-100 transition-colors group">
+                    <div class="w-12 h-12 rounded-full overflow-hidden shadow-sm flex items-center justify-center bg-slate-50 border border-slate-100">
+                        <img src="${flagUrl}" alt="${country.name} flag" class="w-full h-full object-cover">
+                    </div>
+                    <span class="text-sm font-medium text-slate-700 text-center">${country.name}</span>
+                </a>
+            `;
+        }
+
+        function renderDarkCountryCard(country) {
+            const flagUrl = `https://flagcdn.com/w80/${country.code}.png`;
+            return `
+                <a href="/swift-codes/country/${country.code.toUpperCase()}" class="flex flex-col items-center gap-3 p-4 rounded-2xl hover:bg-xeNav transition-colors group">
+                    <div class="w-12 h-12 rounded-full overflow-hidden shadow-sm flex items-center justify-center bg-slate-800 border border-slate-700">
+                        <img src="${flagUrl}" alt="${country.name} flag" class="w-full h-full object-cover">
+                    </div>
+                    <span class="text-sm font-medium text-white text-center">${country.name}</span>
+                </a>
+            `;
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const popularGrid = document.getElementById('popular-grid');
+            const allGrid = document.getElementById('all-grid');
+            const searchInput = document.getElementById('country-search');
+            const emptyState = document.getElementById('empty-state');
+
+            // Render initial
+            popularGrid.innerHTML = popularCountries.map(renderDarkCountryCard).join('');
+            allGrid.innerHTML = allCountries.map(renderCountryCard).join('');
+
+            // Search logic
+            searchInput.addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase().trim();
+                const filtered = allCountries.filter(c => c.name.toLowerCase().includes(term));
+                
+                if (filtered.length === 0) {
+                    allGrid.innerHTML = '';
+                    emptyState.classList.remove('hidden');
+                } else {
+                    emptyState.classList.add('hidden');
+                    allGrid.innerHTML = filtered.map(renderCountryCard).join('');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
