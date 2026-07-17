@@ -5,7 +5,7 @@ import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { setupDatabase } from './db.js';
 import { BinService } from './binService.js';
-import { initTelegramBot, broadcastFXAlert, broadcastNewUserAlert } from './telegramBot.js';
+import { initTelegramBot, broadcastFXAlert, broadcastNewUserAlert, broadcastContactAlert } from './telegramBot.js';
 import { initRemittanceDB, getLiveRates, upsertFXRate } from './remittanceDB.js';
 import { calculateNetPayout } from './payoutEngine.js';
 import { generateMarketPulse } from './anithaAI.js';
@@ -207,6 +207,47 @@ app.get('/api/health', (req, res) => {
     databaseConnected: !!db,
     binServiceReady: !!binService
   });
+});
+
+// ----------------------------------------------------
+// Contact Form API
+// ----------------------------------------------------
+app.post('/api/contact', async (req, res) => {
+    const { firstName, lastName, email, message } = req.body;
+    
+    if (!firstName || !email || !message) {
+        return res.status(400).json({ error: 'Missing required fields' });
+    }
+
+    try {
+        if (supabase) {
+            const { error } = await supabase
+                .from('contact_messages')
+                .insert([{
+                    first_name: firstName,
+                    last_name: lastName || '',
+                    email: email,
+                    message: message,
+                    created_at: new Date().toISOString()
+                }]);
+            
+            if (error && error.code === '42P01') {
+                // Table doesn't exist, we will silently ignore Supabase insert
+                // and just send the Telegram message to avoid breaking the flow.
+                console.warn('contact_messages table does not exist in Supabase yet.');
+            } else if (error) {
+                console.error('Supabase contact insert error:', error);
+            }
+        }
+
+        // Fire Telegram Alert
+        await broadcastContactAlert({ firstName, lastName, email, message });
+
+        res.json({ success: true, message: 'Message sent successfully.' });
+    } catch (err) {
+        console.error('Contact Form Error:', err);
+        res.status(500).json({ error: 'Internal server error processing contact form.' });
+    }
 });
 
 // ----------------------------------------------------

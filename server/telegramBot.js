@@ -434,3 +434,28 @@ export const broadcastNewUserAlert = async (pageUrl, userAgent) => {
         console.error('Error broadcasting new user alert:', err);
     }
 };
+
+export const broadcastContactAlert = async (contactData) => {
+    if (!bot || !db) return;
+
+    try {
+        const subscribers = await db.all('SELECT chat_id FROM telegram_subscribers');
+        if (subscribers.length === 0) return;
+
+        const message = `
+📬 *New Contact Form Submission*
+• *Name:* \`${contactData.firstName} ${contactData.lastName}\`
+• *Email:* \`${contactData.email}\`
+• *Message:* 
+_${contactData.message}_
+        `;
+
+        for (const sub of subscribers) {
+            bot.sendMessage(sub.chat_id, message, { parse_mode: 'Markdown' }).catch(err => {
+                console.error(`Failed to send contact alert to ${sub.chat_id}:`, err.message);
+            });
+        }
+    } catch (err) {
+        console.error('Error broadcasting contact alert:', err);
+    }
+};
