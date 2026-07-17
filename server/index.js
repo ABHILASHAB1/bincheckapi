@@ -64,8 +64,12 @@ app.get('/contact', (req, res) => res.sendFile(path.join(__dirname, '../public/c
 // Permanent Redirects
 app.get('/services', (req, res) => res.redirect(301, '/#services'));
 
+app.get(['/send_money', '/send_money.html'], (req, res) => {
+  res.sendFile(path.join(__dirname, '../send_money.html'));
+});
+
 // Catch-all for upcoming portal pages
-const comingSoonRoutes = ['/send_money', '/faq', '/terms', '/privacy', '/partners', '/currency-converter', '/compare'];
+const comingSoonRoutes = ['/faq', '/terms', '/privacy', '/partners', '/currency-converter', '/compare'];
 app.get(comingSoonRoutes, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/coming_soon.html'));
 });
