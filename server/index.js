@@ -1233,7 +1233,15 @@ app.post('/api/analytics/track', async (req, res) => {
         // Doing an insert every 15 seconds will create multiple rows per page visit.
         // Instead of upserting (since we lack a composite unique key), we can query the latest row for this session/page and update it, or insert if none.
         
-        // Let's see if a record exists for this session and page within the last 24 hours
+        // Check if this session has ANY previous records (to prevent multiple Telegram alerts for the same user browsing multiple pages)
+        const { data: sessionHistory } = await supabase
+            .from('page_analytics')
+            .select('id')
+            .eq('session_id', session_id)
+            .limit(1);
+        const isBrandNewSession = (!sessionHistory || sessionHistory.length === 0);
+        
+        // Let's see if a record exists for this session AND page
         const { data: existing } = await supabase
             .from('page_analytics')
             .select('id, time_spent_ms')
@@ -1267,8 +1275,10 @@ app.post('/api/analytics/track', async (req, res) => {
                     user_agent
                 }]);
             
-            // Fire Telegram alert for new session/page hit
-            broadcastNewUserAlert(page_url, user_agent);
+            // Fire Telegram alert ONLY if this is their very first page view of the session
+            if (isBrandNewSession) {
+                broadcastNewUserAlert(page_url, user_agent);
+            }
         }
         
         res.json({ success: true });
