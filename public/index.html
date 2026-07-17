@@ -174,7 +174,7 @@
                 
                 <div class="hidden md:flex items-center gap-8 text-sm font-medium text-slate-600">
                     <a href="#products" class="hover:text-slate-900 transition-colors flex items-center gap-1">Products <i class="ph ph-caret-down text-xs"></i></a>
-                    <a href="#services" class="hover:text-slate-900 transition-colors">Services</a>
+                    <a href="/bin_list.html" class="hover:text-slate-900 transition-colors">Global BIN List</a>
                     <a href="/about" class="hover:text-slate-900 transition-colors">About Us</a>
                     <a href="/contact" class="hover:text-slate-900 transition-colors">Contact</a>
                     <a href="#" class="hover:text-slate-900 transition-colors">Pricing</a>
@@ -336,19 +336,24 @@
                 </a>
 
                 <!-- Card 2: BIN Checker -->
-                <a href="/bincheck" class="bento-card col-span-1 md:col-span-1 lg:col-span-4 bg-white border border-divider rounded-3xl p-8 flex flex-col justify-between group min-h-[380px] h-full shadow-[0_4px_24px_-8px_rgba(0,0,0,0.06)] hover:shadow-[0_32px_64px_-16px_rgba(37,99,235,0.12)] hover:-translate-y-1.5 transition-all duration-500 ease-out">
+                <div class="bento-card col-span-1 md:col-span-1 lg:col-span-4 bg-white border border-divider rounded-3xl p-8 flex flex-col justify-between group min-h-[380px] h-full shadow-[0_4px_24px_-8px_rgba(0,0,0,0.06)] hover:shadow-[0_32px_64px_-16px_rgba(37,99,235,0.12)] transition-all duration-500 ease-out">
                     <div class="z-10 relative">
                         <div class="w-12 h-12 bg-accentBlue/10 border border-accentBlue/30 rounded-2xl flex items-center justify-center mb-6 text-accentBlue group-hover:bg-accentBlue group-hover:text-white transition-colors">
                             <i class="ph-fill ph-credit-card text-2xl"></i>
                         </div>
                         <h4 class="text-xl md:text-2xl font-medium text-slate-900 mb-3">BIN Intelligence</h4>
-                        <p class="text-slate-600 text-sm font-light">Instantly verify card networks, issuer banks, and country of origin using the first 6 digits.</p>
+                        <p class="text-slate-600 text-sm font-light mb-6">Instantly verify card networks, issuer banks, and country of origin using the first 6 digits.</p>
                     </div>
                     
-                    <div class="z-10 relative flex items-center text-sm font-bold text-slate-700 mt-8 group-hover:text-slate-900 transition-colors">
-                        Lookup a BIN <i class="ph-bold ph-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+                    <div class="z-10 relative flex flex-col gap-3 mt-auto">
+                        <a href="/bincheck" class="flex items-center text-sm font-bold text-slate-700 hover:text-accentBlue transition-colors group/link1">
+                            Lookup a BIN <i class="ph-bold ph-arrow-right ml-2 group-hover/link1:translate-x-1 transition-transform"></i>
+                        </a>
+                        <a href="/bin_list.html" class="flex items-center text-sm font-bold text-slate-500 hover:text-slate-900 transition-colors group/link2 border-t border-slate-100 pt-3">
+                            Browse Global BIN Directory <i class="ph-bold ph-list ml-2 group-hover/link2:translate-x-1 transition-transform"></i>
+                        </a>
                     </div>
-                </a>
+                </div>
 
                 <!-- Card 3: Exchange Rates -->
                 <a href="/send_money" class="bento-card col-span-1 md:col-span-1 lg:col-span-3 bg-white border border-divider rounded-3xl p-8 flex flex-col justify-between group min-h-[300px] h-full shadow-[0_4px_24px_-8px_rgba(0,0,0,0.06)] hover:shadow-[0_32px_64px_-16px_rgba(37,99,235,0.12)] hover:-translate-y-1.5 transition-all duration-500 ease-out">
@@ -684,6 +689,7 @@
                     <ul class="space-y-3 text-sm text-slate-500">
                         <li><a href="/send_money" class="hover:text-slate-900 transition-colors">Send Money</a></li>
                         <li><a href="/bincheck" class="hover:text-slate-900 transition-colors">BIN Checker</a></li>
+                        <li><a href="/bin_list.html" class="hover:text-slate-900 transition-colors">Global BIN List</a></li>
                         <li><a href="/send_money" class="hover:text-slate-900 transition-colors">Exchange Rates</a></li>
                         <li><a href="/send_money#calculator" class="hover:text-slate-900 transition-colors">Currency Converter</a></li>
                     </ul>
