@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SWIFT/BIC Codes | RemitWise</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="/js/countries.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'], heading: ['Outfit', 'sans-serif'] },
+                    colors: { 
+                        xeBlue: '#0B122A', 
+                        xeNav: '#13224B',
+                        bgMain: '#FFFFFF', 
+                        textPrimary: '#0F172A', 
+                        textMuted: '#64748B' 
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 text-textPrimary font-sans antialiased selection:bg-xeNav selection:text-white min-h-screen flex flex-col">
+
+    <!-- Top Dark Section -->
+    <div class="bg-xeBlue w-full pb-20">
+        <!-- Top Nav (Secondary) -->
+        <div class="max-w-7xl mx-auto px-6 border-b border-white/10 flex items-center h-16 gap-8">
+            <a href="/" class="text-white font-bold tracking-wide">SWIFT/BIC</a>
+            <div class="flex items-center gap-2">
+                <a href="/coming_soon.html" class="text-white/80 hover:text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors">Search by bank</a>
+                <a href="/swift-codes/countries" class="text-white/80 hover:text-white font-medium px-4 py-2 rounded-lg text-sm transition-colors">Search by country</a>
+            </div>
+        </div>
+
+        <!-- Breadcrumbs -->
+        <div class="max-w-7xl mx-auto px-6 mt-8 mb-6 text-sm text-slate-400 flex items-center gap-2">
+            <a href="/" class="hover:text-white transition-colors">Home</a>
+            <i class="ph ph-caret-right text-xs"></i>
+            <a href="/swift-codes/countries" class="hover:text-white transition-colors">Countries</a>
+            <i class="ph ph-caret-right text-xs"></i>
+            <span id="breadcrumb-current" class="text-white font-medium">Loading...</span>
+        </div>
+
+        <!-- Hero -->
+        <div class="max-w-7xl mx-auto px-6 flex items-center gap-6">
+            <div class="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden shadow-lg border-2 border-white/10 shrink-0 bg-slate-800 flex items-center justify-center">
+                <img id="country-flag" src="" alt="Flag" class="w-full h-full object-cover hidden">
+            </div>
+            <div>
+                <h1 id="page-title" class="text-3xl md:text-5xl font-heading font-semibold text-white mb-2">SWIFT/BIC Codes</h1>
+                <p id="page-subtitle" class="text-gray-300 text-lg">Find SWIFT/BIC codes for banks and institutions.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="flex-grow max-w-7xl mx-auto px-6 w-full -mt-10 mb-20 relative z-10">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            
+            <!-- Toolbar -->
+            <div class="p-6 border-b border-slate-200 flex flex-col md:flex-row justify-between items-center gap-4 bg-white">
+                <h2 class="text-xl font-semibold text-slate-800">Bank Directory</h2>
+                <div class="relative w-full md:w-80">
+                    <i class="ph ph-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-lg"></i>
+                    <input type="text" id="table-search" placeholder="Search bank, city, or code..." 
+                           class="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-xeNav focus:border-xeNav transition-shadow placeholder:text-slate-400 text-sm">
+                </div>
+            </div>
+
+            <!-- Table Container -->
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse min-w-[800px]">
+                    <thead>
+                        <tr class="bg-slate-50 border-b border-slate-200 text-xs uppercase tracking-wider text-slate-500">
+                            <th class="px-6 py-4 font-medium">Bank or Institution</th>
+                            <th class="px-6 py-4 font-medium">City</th>
+                            <th class="px-6 py-4 font-medium">Branch</th>
+                            <th class="px-6 py-4 font-medium">SWIFT Code</th>
+                        </tr>
+                    </thead>
+                    <tbody id="table-body" class="divide-y divide-slate-100 bg-white text-sm text-slate-700">
+                        <tr>
+                            <td colspan="4" class="px-6 py-12 text-center text-slate-500">
+                                <i class="ph ph-spinner-gap animate-spin text-3xl mb-3 text-xeNav inline-block"></i>
+                                <p>Loading bank data from secure database...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Empty State / No Data -->
+            <div id="no-data-state" class="hidden py-16 px-6 text-center">
+                <div class="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-400">
+                    <i class="ph ph-database text-2xl"></i>
+                </div>
+                <h3 class="text-lg font-medium text-slate-800 mb-2">No SWIFT codes found</h3>
+                <p class="text-slate-500 max-w-sm mx-auto">We couldn't find any SWIFT codes for this country in our database right now. The crawler may still be processing data.</p>
+            </div>
+            
+            <!-- No Search Results -->
+            <div id="no-search-results" class="hidden py-16 px-6 text-center">
+                <p class="text-slate-500">No banks match your search criteria.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allSwiftData = [];
+
+        async function init() {
+            // 1. Extract ISO code from URL path
+            const pathSegments = window.location.pathname.split('/');
+            const countryCode = pathSegments[pathSegments.length - 1].toLowerCase();
+            
+            // 2. Lookup full country name
+            const countryObj = allCountries.find(c => c.code === countryCode);
+            const countryName = countryObj ? countryObj.name : countryCode.toUpperCase();
+
+            // 3. Populate Header UI
+            document.title = `SWIFT/BIC Codes for ${countryName} | RemitWise`;
+            document.getElementById('breadcrumb-current').textContent = countryName;
+            document.getElementById('page-title').textContent = `SWIFT/BIC Codes for Banks in ${countryName}`;
+            document.getElementById('page-subtitle').textContent = `Find SWIFT/BIC codes for banks and institutions located in ${countryName}.`;
+            
+            const flagImg = document.getElementById('country-flag');
+            flagImg.src = `https://flagcdn.com/w160/${countryCode}.png`;
+            flagImg.classList.remove('hidden');
+
+            // 4. Fetch Data from API
+            try {
+                const res = await fetch(`/api/swift/country/${countryCode.toUpperCase()}`);
+                const data = await res.json();
+                
+                if (!data.success || !data.data || data.data.length === 0) {
+                    showNoData();
+                } else {
+                    allSwiftData = data.data;
+                    renderTable(allSwiftData);
+                }
+            } catch (err) {
+                console.error("Error fetching SWIFT data:", err);
+                showNoData();
+            }
+
+            // 5. Setup Search Filtering
+            document.getElementById('table-search').addEventListener('input', (e) => {
+                const term = e.target.value.toLowerCase().trim();
+                if (!term) {
+                    renderTable(allSwiftData);
+                    return;
+                }
+                
+                const filtered = allSwiftData.filter(row => 
+                    (row.bank_name && row.bank_name.toLowerCase().includes(term)) ||
+                    (row.city && row.city.toLowerCase().includes(term)) ||
+                    (row.swift_code && row.swift_code.toLowerCase().includes(term))
+                );
+                
+                renderTable(filtered, true);
+            });
+        }
+
+        function renderTable(data, isSearch = false) {
+            const tbody = document.getElementById('table-body');
+            const noData = document.getElementById('no-data-state');
+            const noSearch = document.getElementById('no-search-results');
+            
+            noData.classList.add('hidden');
+            
+            if (data.length === 0) {
+                tbody.innerHTML = '';
+                noSearch.classList.remove('hidden');
+                return;
+            }
+            
+            noSearch.classList.add('hidden');
+            
+            tbody.innerHTML = data.map(row => `
+                <tr class="hover:bg-slate-50 transition-colors group">
+                    <td class="px-6 py-4">
+                        <div class="font-medium text-slate-900">${row.bank_name || 'N/A'}</div>
+                    </td>
+                    <td class="px-6 py-4 text-slate-600">${row.city || '-'}</td>
+                    <td class="px-6 py-4 text-slate-500 text-xs uppercase tracking-wide">${row.branch || 'Head Office'}</td>
+                    <td class="px-6 py-4">
+                        <div class="inline-flex items-center gap-2 bg-blue-50 text-xeNav font-mono font-medium px-3 py-1 rounded-md border border-blue-100">
+                            ${row.swift_code}
+                            <button onclick="copyToClipboard('${row.swift_code}', this)" class="text-blue-400 hover:text-blue-600 transition-colors" title="Copy to clipboard">
+                                <i class="ph ph-copy"></i>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function showNoData() {
+            document.getElementById('table-body').innerHTML = '';
+            document.getElementById('no-data-state').classList.remove('hidden');
+        }
+
+        function copyToClipboard(text, btn) {
+            navigator.clipboard.writeText(text).then(() => {
+                const icon = btn.querySelector('i');
+                icon.classList.remove('ph-copy');
+                icon.classList.add('ph-check', 'text-green-500');
+                setTimeout(() => {
+                    icon.classList.remove('ph-check', 'text-green-500');
+                    icon.classList.add('ph-copy');
+                }, 2000);
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
