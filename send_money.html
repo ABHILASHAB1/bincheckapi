@@ -105,7 +105,7 @@
         const [availableBases, setAvailableBases] = useState(['SAR', 'USD']);
         const [availableTargets, setAvailableTargets] = useState(['PHP', 'INR', 'PKR', 'EGP']);
         const [trendGrowth, setTrendGrowth] = useState({ percentage: '0.24', trend: 'up' });
-        const [currentTab, setCurrentTab] = useState('home');
+        const [currentTab, setCurrentTab] = useState(window.location.hash ? window.location.hash.substring(1) : 'home');
         const [allTrends, setAllTrends] = useState([]);
         const [showAllProviders, setShowAllProviders] = useState(false);
         const [refreshTrigger, setRefreshTrigger] = useState(0);
