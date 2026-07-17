@@ -727,6 +727,148 @@
         </div>
     </footer>
 
+    <!-- Customer Support Bot Widget -->
+    <div id="support-widget" class="fixed bottom-6 right-6 z-[100] font-sans">
+        
+        <!-- The Floating Button -->
+        <div class="relative flex items-center justify-center">
+            
+            <!-- "We Are Here!" Badge -->
+            <div id="support-badge" class="absolute -top-12 -left-12 pointer-events-none transition-opacity duration-300">
+                <div class="relative transform -rotate-12 flex flex-col items-center">
+                    <span class="text-[#00a859] font-black text-2xl tracking-tight drop-shadow-md" style="-webkit-text-stroke: 1.5px white;">We Are Here!</span>
+                    <span class="absolute -bottom-4 -left-6 text-3xl">👏</span>
+                </div>
+            </div>
+
+            <!-- Button -->
+            <button id="support-btn" onclick="toggleSupportChat()" class="w-16 h-16 bg-[#00a859] rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.15)] flex items-center justify-center hover:scale-105 transition-transform relative z-10">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 13.8214 2.48697 15.5291 3.33782 17L2.5 21.5L7 20.6622C8.47087 21.513 10.1786 22 12 22Z" fill="white"/>
+                    <path d="M8 13C9 14.5 11 15 12 15C13 15 15 14.5 16 13" stroke="#00a859" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+            </button>
+        </div>
+
+        <!-- The Chat Popup -->
+        <div id="support-chat" class="hidden absolute bottom-20 right-0 w-[350px] bg-white rounded-2xl shadow-[0_8px_40px_rgba(0,0,0,0.12)] border border-black/5 overflow-hidden flex-col origin-bottom-right transition-all duration-300 scale-95 opacity-0">
+            
+            <!-- Header -->
+            <div class="bg-[#00a859] text-white px-4 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <i class="ph-bold ph-caret-left cursor-pointer" onclick="toggleSupportChat()"></i>
+                    <h3 class="font-bold text-lg">Customer Support</h3>
+                </div>
+                <i class="ph-bold ph-list cursor-pointer text-xl"></i>
+            </div>
+
+            <!-- Form Body -->
+            <div class="p-6 bg-[#f4f6f8] flex-1 overflow-y-auto max-h-[450px]">
+                <form id="support-form" class="space-y-4" onsubmit="submitSupportForm(event)">
+                    
+                    <div class="bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm focus-within:border-[#00a859] transition-colors">
+                        <label class="text-xs text-gray-500 font-medium">* Name</label>
+                        <input type="text" required class="w-full text-sm font-medium focus:outline-none bg-transparent text-gray-800" />
+                    </div>
+
+                    <div class="bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm focus-within:border-[#00a859] transition-colors">
+                        <label class="text-xs text-gray-500 font-medium">* Email</label>
+                        <input type="email" required class="w-full text-sm font-medium focus:outline-none bg-transparent text-gray-800" />
+                    </div>
+
+                    <div class="flex gap-2">
+                        <div class="bg-white border border-gray-200 rounded-xl px-2 py-2 flex items-center justify-center w-20 shadow-sm cursor-pointer hover:bg-gray-50">
+                            <span class="text-xs font-bold flex items-center gap-1">🇸🇦 <i class="ph-bold ph-caret-down text-[10px] text-gray-400"></i></span>
+                        </div>
+                        <div class="bg-white border border-gray-200 rounded-xl px-3 py-2 flex-1 shadow-sm focus-within:border-[#00a859] transition-colors">
+                            <label class="text-xs text-gray-500 font-medium">Phone</label>
+                            <div class="flex items-center gap-1 mt-0.5">
+                                <span class="text-sm font-medium text-gray-400">+ 966</span>
+                                <input type="tel" class="w-full text-sm font-medium focus:outline-none bg-transparent text-gray-800" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm focus-within:border-[#00a859] transition-colors">
+                        <label class="text-xs text-gray-500 font-medium">* Subject</label>
+                        <input type="text" required class="w-full text-sm font-medium focus:outline-none bg-transparent text-gray-800" />
+                    </div>
+
+                    <div class="bg-white border border-gray-200 rounded-xl px-3 py-2 shadow-sm focus-within:border-[#00a859] transition-colors">
+                        <label class="text-xs text-gray-500 font-medium">* Message</label>
+                        <textarea required rows="3" class="w-full text-sm font-medium focus:outline-none bg-transparent resize-none text-gray-800 mt-1"></textarea>
+                    </div>
+
+                    <div class="flex items-center gap-3 pt-2">
+                        <div class="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center overflow-hidden shadow-sm shrink-0">
+                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=Felix&backgroundColor=e2e8f0" class="w-full h-full" alt="Agent">
+                        </div>
+                        <button type="submit" class="bg-[#00a859] hover:bg-[#00914d] text-white px-6 py-2.5 rounded-xl font-bold flex items-center gap-2 transition-colors shadow-sm text-sm shrink-0">
+                            <i class="ph-bold ph-paper-plane-tilt"></i> Submit
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Footer Chat Input Mock -->
+            <div class="border-t border-gray-100 p-4 bg-white flex items-center justify-between text-gray-400 rounded-b-2xl">
+                <span class="text-sm">Type here and press enter..</span>
+                <div class="flex items-center gap-3 text-lg">
+                    <i class="ph-bold ph-thumbs-up hover:text-gray-600 cursor-pointer transition-colors"></i>
+                    <i class="ph-bold ph-paperclip hover:text-gray-600 cursor-pointer transition-colors"></i>
+                    <i class="ph-bold ph-smiley hover:text-gray-600 cursor-pointer transition-colors"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function toggleSupportChat() {
+            const chat = document.getElementById('support-chat');
+            const badge = document.getElementById('support-badge');
+            
+            if (chat.classList.contains('hidden')) {
+                // Open chat
+                chat.classList.remove('hidden');
+                chat.classList.add('flex');
+                // slight delay for animation
+                setTimeout(() => {
+                    chat.classList.remove('scale-95', 'opacity-0');
+                    chat.classList.add('scale-100', 'opacity-100');
+                }, 10);
+                badge.classList.add('opacity-0');
+            } else {
+                // Close chat
+                chat.classList.remove('scale-100', 'opacity-100');
+                chat.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    chat.classList.remove('flex');
+                    chat.classList.add('hidden');
+                }, 300); // match transition duration
+                badge.classList.remove('opacity-0');
+            }
+        }
+
+        function submitSupportForm(e) {
+            e.preventDefault();
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="ph-bold ph-spinner animate-spin"></i> Sending...';
+            
+            setTimeout(() => {
+                btn.innerHTML = '<i class="ph-bold ph-check"></i> Sent!';
+                btn.classList.replace('bg-[#00a859]', 'bg-slate-800');
+                e.target.reset();
+                
+                setTimeout(() => {
+                    toggleSupportChat();
+                    btn.innerHTML = originalText;
+                    btn.classList.replace('bg-slate-800', 'bg-[#00a859]');
+                }, 2000);
+            }, 1500);
+        }
+    </script>
+
     <script src="/js/tracker.js"></script>
     <script>
         // Fetch and update the ticker with real-time data
