@@ -87,7 +87,7 @@
         useEffect(() => {
           const fetchPulse = async () => {
             try {
-              const res = await fetch('http://localhost:3002/api/market-pulse');
+              const res = await fetch('/api/market-pulse');
               if (res.ok) {
                 const data = await res.json();
                 setPulse(data.pulse);
@@ -108,7 +108,7 @@
 
           const fetchBreakdown = async () => {
             try {
-              const res = await fetch('http://localhost:3002/api/payout-calculator', {
+              const res = await fetch('/api/payout-calculator', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ baseAmount: wireInput, pair: activePair, flatCommission: 0 })
