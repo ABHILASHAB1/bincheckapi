@@ -11,6 +11,7 @@ let bot = null;
 let db = null;
 let genAI = null;
 export const activeSupportSessions = new Map();
+export const adminActiveChats = new Map(); // Maps Telegram chat_id to ticketId
 
 // Initialize bot if token exists
 export const initTelegramBot = async () => {
@@ -67,28 +68,52 @@ export const initTelegramBot = async () => {
 
         // Intercept Replies for Live Support Chat
         bot.on('message', (msg) => {
-            // Log for debugging if it's a reply
+            if (msg.text && msg.text.startsWith('/')) return; // Ignore commands
+
+            let ticketId = null;
+
+            // 1. Did the admin explicitly swipe-reply to a ticket?
             if (msg.reply_to_message && msg.reply_to_message.text) {
-                console.log("[Telegram] Intercepted reply to:", msg.reply_to_message.text.substring(0, 50));
-                
-                // Match the ticket ID anywhere in the replied message (e.g., TKT-1A2B3C4D)
                 const match = msg.reply_to_message.text.match(/(TKT-[A-Z0-9]+)/);
                 if (match && match[1]) {
-                    const ticketId = match[1];
-                    const session = activeSupportSessions.get(ticketId);
-                    
-                    if (session) {
-                        // Push admin reply to the active session queue
-                        session.messages.push({
-                            sender: 'admin',
-                            text: msg.text,
-                            timestamp: Date.now()
-                        });
-                        bot.sendMessage(msg.chat.id, `✅ Sent to user on Ticket \`${ticketId}\``, { parse_mode: 'Markdown' });
-                    } else {
-                        bot.sendMessage(msg.chat.id, `❌ Session \`${ticketId}\` is closed or expired. The user has left the site.`, { parse_mode: 'Markdown' });
-                    }
+                    ticketId = match[1];
+                    // Lock this chat ID to this ticket ID so they don't have to reply next time
+                    adminActiveChats.set(msg.chat.id, ticketId);
+                    bot.sendMessage(msg.chat.id, `🔒 *Session Locked to ${ticketId}*\nYou can now type normally without swiping to reply. Type /endchat to unlock.`, { parse_mode: 'Markdown' });
                 }
+            }
+
+            // 2. If not a direct reply, are they already locked into an active session?
+            if (!ticketId) {
+                ticketId = adminActiveChats.get(msg.chat.id);
+            }
+
+            // 3. If we found a ticketId (either via reply or active session), route the message
+            if (ticketId) {
+                const session = activeSupportSessions.get(ticketId);
+                
+                if (session) {
+                    session.messages.push({
+                        sender: 'admin',
+                        text: msg.text,
+                        timestamp: Date.now()
+                    });
+                    bot.sendMessage(msg.chat.id, `✅ Sent to \`${ticketId}\``, { parse_mode: 'Markdown' });
+                } else {
+                    bot.sendMessage(msg.chat.id, `❌ Session \`${ticketId}\` is closed.`, { parse_mode: 'Markdown' });
+                    adminActiveChats.delete(msg.chat.id); // Unlock them
+                }
+            }
+        });
+
+        // Command to end active chat
+        bot.onText(/\/endchat/, (msg) => {
+            const ticketId = adminActiveChats.get(msg.chat.id);
+            if (ticketId) {
+                adminActiveChats.delete(msg.chat.id);
+                bot.sendMessage(msg.chat.id, `🔓 Unlocked from \`${ticketId}\`. You will no longer send messages to this user.`);
+            } else {
+                bot.sendMessage(msg.chat.id, `You are not currently locked to any chat session.`);
             }
         });
 
