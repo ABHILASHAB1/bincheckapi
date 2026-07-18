@@ -1,76 +1,56 @@
-# 🛰️ Enterprise ISO 8583 Intelligence Platform
+# Remitwise 💸
 
-An elite, production-hardened fintech simulation ecosystem designed for high-fidelity mada/SAMA certification testing, Global FX Aggregation, and Forensic Payment Auditing.
+Remitwise is a full-stack remittance comparison and insights platform. It empowers users to find the best exchange rates across multiple money transfer operators, track historical trends, and make mathematically informed decisions about when to send money abroad.
 
----
+## Features ✨
 
-## 🏛️ Enterprise Modules
+- **Live Rate Comparison**: Compare real-time foreign exchange buy/sell rates from providers like STC Pay, Western Union, Riyadh Bank, and more.
+- **Smart Analytics & Trends**: Dynamically calculates day-over-day growth percentages based on KSA timezone logic to show whether currencies are trending up or down.
+- **AI Calculator & Insights**: Input a historical transaction date, base currency, and amount. The system queries the database to compare your past rate against today's best live rate, calculating exact profit/loss.
+- **Telegram Bot Integration**: Subscribes users to specific currency pairs and broadcasts live market pulses and alert notifications.
+- **Supabase Cloud Database**: Robust data storage using PostgreSQL hosted on Supabase, connected seamlessly via a Node.js API backend.
 
-### 1. 🛡️ Security Operations Center (SOC)
-- **HSM Enclave Virtualizer**: Visual management of ZMK/TMK/PVK key hierarchies and real-time ARQC/ARPC/MAC generation.
-- **Bit-Level XOR Console**: Deep observability into ISO 9564 PIN Block transformations.
-- **Immutable Audit Logs**: Tamper-proof transaction logging with dual-sync cloud persistence.
+## Tech Stack 🛠️
 
-### 2. ⚡ Infrastructure Mission Control
-- **Kernel Jitter Waveform**: Real-time visualization of processing latency in the switch core.
-- **Network War-Room**: Thermal-mapped stress testing environment for high-TPS throughput validation.
-- **Cloud Link Heartbeat**: Live monitoring of the bridge between local nodes and Global Supabase Vaults.
+- **Frontend**: HTML5, CSS3, React.js (via CDN), TailwindCSS, Babel
+- **Backend API**: Node.js, Express.js
+- **Database**: Supabase (PostgreSQL)
+- **Integrations**: Telegram Bot API (`node-telegram-bot-api`)
 
-### 3. 💹 Remittance Intelligence Hub
-- **Global FX Aggregator**: Real-time market data ingestion from Wise, Frankfurter, and KSA Bank Scrapers.
-- **Effective Payout Engine**: Net-recipient calculation logic including spreads, commissions, and corridors.
-- **Anitha AI™ Market Pulse**: Cognitive analysis of FX volatility and remittance trends.
+## Local Setup Instructions 🚀
 
-### 4. 🎖️ mada Certification Suite (SPG-4)
-- **Compliance Auditor**: Automated validation of 128+ formal SAMA test vectors.
-- **Certification Runner**: Standalone audit engine (`run_certification.js`) for formal compliance report generation.
-- **Forensic Intelligence Vault**: Unified interface for local and global transaction discovery.
+### 1. Prerequisites
+- Node.js (v18 or higher)
+- A Supabase account and project
+- A Telegram Bot Token (from BotFather)
 
----
-
-## 🚀 Quick Start
-
-### 1. Launch the Backend Engine
-The backend handles the TCP switch, FX aggregator, and HSM enclave.
-```powershell
-node server/index.js
+### 2. Installation
+Clone the repository and install the Node dependencies:
+```bash
+git clone https://github.com/YOUR_USERNAME/remitwise-app.git
+cd remitwise-app
+npm install
 ```
 
-### 2. Launch the Mission Control UI
-The frontend provides the visual intelligence and command dashboards.
-```powershell
-npm run dev
-```
-*Note: If port 5173 is busy, the platform will automatically scale to the next available port.*
-
-### 3. Run mada Certification
-Execute the formal audit suite to generate a compliance report:
-```powershell
-node run_certification.js
-```
-
----
-
-## 🏗️ Architecture Matrix
-
-```mermaid
-graph TD
-    A[Frontend Dashboard] <-->|Socket.IO / REST| B[Enterprise Gateway]
-    B <-->|TCP/IP| C[mada SPG-4 Switch]
-    B <-->|Scrapers| D[KSA Bank Intelligence]
-    B <-->|Cloud Link| E[(Supabase Global Vault)]
-    B <-->|Local Storage| F[(SQLite Edge DB)]
-    C <-->|ISO 8583| G[External Networks]
-```
-
----
-
-## 🔐 Configuration
-Ensure your `.env` is configured for Global Intelligence sync:
+### 3. Environment Variables
+Create a `.env` file in the root directory and add the following keys:
 ```env
-SUPABASE_URL=your_project_url
-SUPABASE_KEY=your_service_role_key
-FX_POLLING_INTERVAL=30000
+PORT=3002
+SUPABASE_URL=your_supabase_project_url
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+TELEGRAM_BOT_TOKEN=your_telegram_bot_token
 ```
 
-**Developed for Enterprise Excellence.**
+### 4. Run the Development Server
+Start the Express API server:
+```bash
+npm start
+```
+The application will be running at: `https://remitwise.fit/send_money.html`
+
+## Production Deployment 🌐
+This app is ready to be deployed on platforms like **Render.com** or **Railway.app**. 
+Ensure the build command is set to `npm install` and the start command is `npm start`. All `.env` variables must be added to your hosting platform's dashboard.
+
+---
+*Built with ❤️ for smarter cross-border remittances.*
