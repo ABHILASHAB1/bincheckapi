@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import { fileURLToPath } from 'url';
 import { setupDatabase } from './db.js';
 import { BinService } from './binService.js';
+import { GeolocationService } from './geolocation.js';
 import { initTelegramBot, broadcastFXAlert, broadcastNewUserAlert, broadcastContactAlert } from './telegramBot.js';
 import { initRemittanceDB, getLiveRates, upsertFXRate } from './remittanceDB.js';
 import { calculateNetPayout } from './payoutEngine.js';
@@ -1481,6 +1482,11 @@ app.post('/api/analytics/track', async (req, res) => {
         const hash = crypto.createHash('sha256').update(`${clientIp}-${userAgent}`).digest('hex');
         const fingerprint = `${hash.slice(0,8)}-${hash.slice(8,12)}-4${hash.slice(13,16)}-a${hash.slice(17,20)}-${hash.slice(20,32)}`;
         
+        let userId;
+
+        // Resolve GeoData using Fallback Strategy
+        const geo = await GeolocationService.getGeolocation(clientIp);
+
         // 1. Check if user exists in tracked_users
         const { data: userRecord, error: userErr } = await supabase
             .from('tracked_users')
@@ -1490,8 +1496,6 @@ app.post('/api/analytics/track', async (req, res) => {
             .maybeSingle();
 
         if (userErr) throw userErr;
-
-        let userId;
 
         if (!userRecord) {
             // NEW USER
@@ -1525,7 +1529,10 @@ app.post('/api/analytics/track', async (req, res) => {
                     os: osName.substring(0, 100),
                     device_type: deviceType,
                     time_spent_by_tab: timeObj,
-                    total_visits: 1
+                    total_visits: 1,
+                    ip_address: clientIp,
+                    country: geo ? geo.country : (req.headers['cf-ipcountry'] || null),
+                    geo_data: geo || null
                 }])
                 .select()
                 .single();
@@ -1567,14 +1574,21 @@ app.post('/api/analytics/track', async (req, res) => {
                 await supabase.from('tracked_users').update({
                     time_spent_by_tab: currentTimes,
                     last_seen_at: new Date().toISOString(),
-                    total_visits: (userRecord.total_visits || 0) + 1
+                    total_visits: (userRecord.total_visits || 0) + 1,
+                    ip_address: clientIp,
+                    country: geo ? geo.country : (req.headers['cf-ipcountry'] || userRecord.country),
+                    geo_data: geo || userRecord.geo_data
                 }).eq('id', userId);
             } else {
                 // Just update times and last_seen
                 await supabase.from('tracked_users').update({
-                    time_spent_by_tab: currentTimes,
-                    last_seen_at: new Date().toISOString()
-                }).eq('id', userId);
+                time_spent_by_tab: currentTimes,
+                total_visits: (userRecord.total_visits || 1) + 1,
+                last_seen_at: new Date().toISOString(),
+                ip_address: clientIp,
+                country: geo ? geo.country : (req.headers['cf-ipcountry'] || userRecord.country),
+                geo_data: geo || userRecord.geo_data
+            }).eq('id', userId);
             }
         }
         

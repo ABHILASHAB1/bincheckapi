@@ -86,7 +86,6 @@ async function loadAnalytics() {
     const res = await fetch('/api/admin/tracked-users', {
       headers: { 'X-Admin-Token': token }
     });
-    
     if (!res.ok) return;
     
     analyticsList = await res.json();
@@ -97,8 +96,9 @@ async function loadAnalytics() {
     const countryCounts = {};
     const routeCounts = {};
     analyticsList.forEach(u => {
-      if (u.country) countryCounts[u.country] = (countryCounts[u.country] || 0) + 1;
-      if (u.path) routeCounts[u.path] = (routeCounts[u.path] || 0) + 1;
+      const country = u.geo_data ? u.geo_data.country : 'Unknown';
+      if (country) countryCounts[country] = (countryCounts[country] || 0) + 1;
+      if (u.action) routeCounts[u.action] = (routeCounts[u.action] || 0) + 1;
     });
     
     const topCountry = Object.entries(countryCounts).sort((a,b) => b[1] - a[1])[0];
@@ -121,13 +121,14 @@ function applyAnalyticsFilter() {
   if (!query) {
     filteredAnalyticsList = [...analyticsList];
   } else {
-    filteredAnalyticsList = analyticsList.filter(u => 
-      (u.id || '').toLowerCase().includes(query) ||
-      (u.ip_address || '').toLowerCase().includes(query) ||
-      (u.country || '').toLowerCase().includes(query) ||
-      (u.path || '').toLowerCase().includes(query) ||
-      (u.device_info || '').toLowerCase().includes(query)
-    );
+    filteredAnalyticsList = analyticsList.filter(u => {
+      const geo = u.geo_data || {};
+      const searchStr = [
+        u.id, u.ip_address, u.action, u.search_query,
+        geo.country, geo.city, geo.isp
+      ].join(' ').toLowerCase();
+      return searchStr.includes(query);
+    });
   }
   renderAnalyticsTable();
 }
@@ -137,20 +138,41 @@ function renderAnalyticsTable() {
   tbody.innerHTML = '';
   
   if (filteredAnalyticsList.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No matching users found</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center;">No matching users found</td></tr>';
     return;
   }
   
-  // Render up to 50 items in the UI so the DOM doesn't get massive, but keep the full list for CSV
   const displayList = filteredAnalyticsList.slice(0, 50);
   
   displayList.forEach(user => {
     const tr = document.createElement('tr');
-    const timeAgo = new Date(user.last_seen_at).toLocaleString();
+    const timeAgo = new Date(user.last_seen_at || user.created_at || Date.now()).toLocaleString();
+    const geo = user.geo_data || {};
+    const loc = `${geo.city || 'Unknown'}, ${geo.country || user.country || 'Unknown'}`;
+    const isp = geo.isp || 'Unknown ISP';
+    const tz = geo.timezone || 'N/A';
+    const cur = geo.currency || 'N/A';
+    
+    // tracked_users fields
+    const deviceStr = `${user.os || ''} ${user.browser || ''} ${user.device_type || ''}`.trim() || 'Unknown Device';
+    
+    const queryStr = user.search_query ? `<span style="color:#10b981;">"${user.search_query}"</span>` : 'N/A';
+    const latStr = user.latency_ms ? `(${user.latency_ms}ms)` : '';
+
     tr.innerHTML = `
-      <td><div style="font-weight:600;">${user.id.substring(0,8)}...</div><div style="font-size:10px;color:var(--text-muted);">${user.ip_address}</div></td>
-      <td><div style="font-size:11px;">${user.device_info || 'Unknown'}</div><div style="font-size:10px;color:var(--text-muted);">${user.country || 'Unknown Location'}</div></td>
-      <td><code style="font-size:11px;background:var(--bg-card);padding:2px 4px;border-radius:4px;">${user.path || '/'}</code></td>
+      <td><div style="font-weight:600;">${(user.id || '').substring(0,8)}...</div><div style="font-size:10px;color:var(--text-muted);">${user.ip_address || 'Unknown IP'}</div></td>
+      <td>
+        <div style="font-size:11px;">${loc}</div>
+        <code style="font-size:10px;background:var(--bg-card);padding:2px 4px;border-radius:4px;margin-top:2px;display:inline-block;">Device: ${deviceStr}</code>
+      </td>
+      <td>
+        <div style="font-size:11px;">📡 ${isp}</div>
+        <div style="font-size:10px;color:var(--text-muted);">🕒 ${tz} | 💵 ${cur}</div>
+      </td>
+      <td>
+        <div style="font-size:11px;font-weight:600;">${queryStr}</div>
+        <div style="font-size:10px;color:var(--text-muted);">Lat: ${geo.latitude||'-'}, Lon: ${geo.longitude||'-'} ${latStr}</div>
+      </td>
       <td style="font-size:11px;">${timeAgo}</td>
     `;
     tbody.appendChild(tr);
