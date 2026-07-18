@@ -66,6 +66,78 @@ export const initTelegramBot = async () => {
             bot.sendMessage(msg.chat.id, '🟢 *System Status: ONLINE*\n\nFX Market Simulation Engine is actively polling and updating rates.', { parse_mode: 'Markdown' });
         });
 
+        // Detailed Analytics Command
+        bot.onText(/\/stats/, async (msg) => {
+            const chatId = msg.chat.id;
+            if (!supabase) return bot.sendMessage(chatId, "❌ Analytics DB not connected.");
+
+            try {
+                bot.sendMessage(chatId, "📊 *Querying Enterprise Analytics...*", { parse_mode: 'Markdown' });
+
+                // 1. Total users
+                const { count: totalUsers } = await supabase
+                    .from('tracked_users')
+                    .select('*', { count: 'exact', head: true });
+
+                // 2. Active users (last 5 mins)
+                const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+                const { data: activeUsersData, error } = await supabase
+                    .from('tracked_users')
+                    .select('id, browser, os, device_type, last_seen_at')
+                    .gte('last_seen_at', fiveMinsAgo);
+
+                if (error) throw error;
+
+                let activeCount = activeUsersData.length;
+                let details = "";
+
+                if (activeCount > 0) {
+                    details = "\n\n*🟢 Active Users Info:*\n";
+                    for (const user of activeUsersData) {
+                        // Fetch latest IP for this user
+                        const { data: sessionData } = await supabase
+                            .from('user_sessions')
+                            .select('ip_address')
+                            .eq('user_id', user.id)
+                            .order('visited_at', { ascending: false })
+                            .limit(1);
+                        
+                        let ip = "Unknown IP";
+                        let geoLoc = "Unknown Location";
+                        if (sessionData && sessionData.length > 0) {
+                            ip = sessionData[0].ip_address;
+                            if (ip === '::1' || ip.includes('127.0.0.1')) {
+                                geoLoc = "Localhost";
+                            } else {
+                                // Real IPs would be geolocated here if we had an API key. We will display the IP.
+                                geoLoc = `IP: ${ip}`;
+                            }
+                        }
+
+                        details += `• Device: \`${user.device_type} (${user.os})\`\n`;
+                        details += `  Browser: \`${user.browser}\`\n`;
+                        details += `  Location/GPS: \`${geoLoc}\`\n\n`;
+                    }
+                } else {
+                    details = "\n\n*🟢 Active Users Info:*\nNo active users right now.";
+                }
+
+                const report = `
+📈 *RemitWise Traffic Stats* 📉
+
+👥 *Total Users to Date:* \`${totalUsers || 0}\`
+🟢 *Active Users Online Now:* \`${activeCount || 0}\`
+${details}
+                `.trim();
+
+                bot.sendMessage(chatId, report, { parse_mode: 'Markdown' });
+
+            } catch (e) {
+                console.error("Stats Error:", e);
+                bot.sendMessage(chatId, "❌ Failed to query analytics database.");
+            }
+        });
+
         // Intercept Replies for Live Support Chat
         bot.on('message', (msg) => {
             if (msg.text && msg.text.startsWith('/')) return; // Ignore commands
@@ -471,22 +543,19 @@ _Enterprise FX Simulation Engine_
     }
 };
 
-export const broadcastNewUserAlert = async (pageUrl, userAgent) => {
+export const broadcastNewUserAlert = async (pageUrl, device, os, browser) => {
     if (!bot || !db) return;
 
     try {
         const subscribers = await db.all('SELECT chat_id FROM telegram_subscribers');
         if (subscribers.length === 0) return;
 
-        // Parse user agent minimally
-        let device = 'Desktop';
-        if (/mobile/i.test(userAgent)) device = 'Mobile';
-        if (/bot|crawl|spider/i.test(userAgent)) device = 'Bot';
-
         const message = `
 👤 *New Visitor Detected* 
 • Page: \`${pageUrl}\`
 • Device: \`${device}\`
+• OS: \`${os}\`
+• Browser: \`${browser}\`
         `;
 
         for (const sub of subscribers) {
