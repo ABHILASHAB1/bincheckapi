@@ -1,0 +1,103 @@
+version: '3.8'
+
+services:
+  # ----------------------------------------------------
+  # Infrastructure Services
+  # ----------------------------------------------------
+  db:
+    image: postgres:16-alpine
+    container_name: remitwise_db
+    environment:
+      POSTGRES_USER: remitwise
+      POSTGRES_PASSWORD: remitwisepassword
+      POSTGRES_DB: remitwise_enterprise
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U remitwise"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: remitwise_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
+
+  rabbitmq:
+    image: rabbitmq:3.12-management-alpine
+    container_name: remitwise_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"   # AMQP protocol port
+      - "15672:15672" # Management UI
+
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: remitwise_opensearch
+    environment:
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=Admin123456!
+      - "DISABLE_SECURITY_PLUGIN=true" # Disabled for local dev simplicity
+    ports:
+      - "9200:9200"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+
+  # ----------------------------------------------------
+  # Application Services (To be built)
+  # ----------------------------------------------------
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: remitwise_backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://remitwise:remitwisepassword@db:5432/remitwise_enterprise
+      - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+      - OPENSEARCH_URL=http://opensearch:9200
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_started
+    volumes:
+      - ./backend:/app # For live reload during development
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: remitwise_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app # For live reload during development
+      - /app/node_modules # Avoid overriding node_modules
+
+volumes:
+  postgres_data:
+  redis_data:
+  opensearch_data:
