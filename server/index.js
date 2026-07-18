@@ -554,7 +554,7 @@ app.get('/api/admin/tracked-users', async (req, res) => {
       .from('tracked_users')
       .select('*')
       .order('last_seen_at', { ascending: false })
-      .limit(50);
+      .limit(1000);
       
     if (error) throw error;
     res.json(users);

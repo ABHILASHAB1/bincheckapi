@@ -1,5 +1,7 @@
 let keysList = [];
 let filteredList = [];
+let analyticsList = [];
+let filteredAnalyticsList = [];
 
 // DOM Elements
 const keysTableBody = document.querySelector('#keys-table tbody');
@@ -87,31 +89,105 @@ async function loadAnalytics() {
     
     if (!res.ok) return;
     
-    const usersList = await res.json();
-    const tbody = document.getElementById('analytics-tbody');
-    tbody.innerHTML = '';
+    analyticsList = await res.json();
     
-    if (usersList.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No active users tracked recently</td></tr>';
-      return;
-    }
+    // Compute Insights
+    document.getElementById('insight-total').textContent = analyticsList.length.toLocaleString();
     
-    usersList.forEach(user => {
-      const tr = document.createElement('tr');
-      const timeAgo = new Date(user.last_seen_at).toLocaleString();
-      tr.innerHTML = `
-        <td><div style="font-weight:600;">${user.id.substring(0,8)}...</div><div style="font-size:10px;color:var(--text-muted);">${user.ip_address}</div></td>
-        <td><div style="font-size:11px;">${user.device_info || 'Unknown'}</div><div style="font-size:10px;color:var(--text-muted);">${user.country || 'Unknown Location'}</div></td>
-        <td><code style="font-size:11px;background:var(--bg-card);padding:2px 4px;border-radius:4px;">${user.path || '/'}</code></td>
-        <td style="font-size:11px;">${timeAgo}</td>
-      `;
-      tbody.appendChild(tr);
+    const countryCounts = {};
+    const routeCounts = {};
+    analyticsList.forEach(u => {
+      if (u.country) countryCounts[u.country] = (countryCounts[u.country] || 0) + 1;
+      if (u.path) routeCounts[u.path] = (routeCounts[u.path] || 0) + 1;
     });
+    
+    const topCountry = Object.entries(countryCounts).sort((a,b) => b[1] - a[1])[0];
+    document.getElementById('insight-country').textContent = topCountry ? topCountry[0] : '-';
+    
+    const topRoute = Object.entries(routeCounts).sort((a,b) => b[1] - a[1])[0];
+    document.getElementById('insight-route').textContent = topRoute ? topRoute[0] : '-';
+    
+    applyAnalyticsFilter();
+    
   } catch (err) {
     console.error('Error fetching analytics:', err);
   }
 }
 
+function applyAnalyticsFilter() {
+  const filterInput = document.getElementById('analytics-filter');
+  const query = filterInput ? filterInput.value.toLowerCase().trim() : '';
+  
+  if (!query) {
+    filteredAnalyticsList = [...analyticsList];
+  } else {
+    filteredAnalyticsList = analyticsList.filter(u => 
+      (u.id || '').toLowerCase().includes(query) ||
+      (u.ip_address || '').toLowerCase().includes(query) ||
+      (u.country || '').toLowerCase().includes(query) ||
+      (u.path || '').toLowerCase().includes(query) ||
+      (u.device_info || '').toLowerCase().includes(query)
+    );
+  }
+  renderAnalyticsTable();
+}
+
+function renderAnalyticsTable() {
+  const tbody = document.getElementById('analytics-tbody');
+  tbody.innerHTML = '';
+  
+  if (filteredAnalyticsList.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No matching users found</td></tr>';
+    return;
+  }
+  
+  // Render up to 50 items in the UI so the DOM doesn't get massive, but keep the full list for CSV
+  const displayList = filteredAnalyticsList.slice(0, 50);
+  
+  displayList.forEach(user => {
+    const tr = document.createElement('tr');
+    const timeAgo = new Date(user.last_seen_at).toLocaleString();
+    tr.innerHTML = `
+      <td><div style="font-weight:600;">${user.id.substring(0,8)}...</div><div style="font-size:10px;color:var(--text-muted);">${user.ip_address}</div></td>
+      <td><div style="font-size:11px;">${user.device_info || 'Unknown'}</div><div style="font-size:10px;color:var(--text-muted);">${user.country || 'Unknown Location'}</div></td>
+      <td><code style="font-size:11px;background:var(--bg-card);padding:2px 4px;border-radius:4px;">${user.path || '/'}</code></td>
+      <td style="font-size:11px;">${timeAgo}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function exportAnalyticsCSV() {
+  if (filteredAnalyticsList.length === 0) {
+    showToast('No data to export');
+    return;
+  }
+  
+  const headers = ['User ID', 'IP Address', 'Country', 'Device Info', 'Path', 'Last Active'];
+  const csvRows = [headers.join(',')];
+  
+  filteredAnalyticsList.forEach(u => {
+    const row = [
+      u.id,
+      u.ip_address || '',
+      `"${u.country || ''}"`,
+      `"${u.device_info || ''}"`,
+      u.path || '',
+      u.last_seen_at || ''
+    ];
+    csvRows.push(row.join(','));
+  });
+  
+  const blob = new Blob([csvRows.join('\\n')], { type: 'text/csv' });
+  const url = window.URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.setAttribute('hidden', '');
+  a.setAttribute('href', url);
+  a.setAttribute('download', `remitwise_analytics_${new Date().getTime()}.csv`);
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
 
 // Apply text filtering on Client Name, Email, or Firebase UID
 function applyFilter() {
@@ -406,8 +482,18 @@ lockForm.addEventListener('submit', async (e) => {
 document.getElementById('btn-refresh').addEventListener('click', loadKeys);
 document.getElementById('btn-refresh-analytics').addEventListener('click', loadAnalytics);
 
+// Export CSV
+const btnExportCsv = document.getElementById('btn-export-csv');
+if (btnExportCsv) {
+  btnExportCsv.addEventListener('click', exportAnalyticsCSV);
+}
+
 // Filter bindings
 searchFilterInput.addEventListener('input', applyFilter);
+const analyticsFilterInput = document.getElementById('analytics-filter');
+if (analyticsFilterInput) {
+  analyticsFilterInput.addEventListener('input', applyAnalyticsFilter);
+}
 
 // Sign Out click handler
 btnSignOut.addEventListener('click', handleSignOut);

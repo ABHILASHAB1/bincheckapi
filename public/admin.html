@@ -167,6 +167,17 @@
           </div>
         </div>
 
+        <div class="search-row" style="margin-top: 10px; display: flex; gap: 15px; align-items: center;">
+          <input type="text" class="search-input" id="analytics-filter" placeholder="Filter by IP, Country, Route, or Device..." style="flex: 1;">
+          <button class="btn btn-secondary" id="btn-export-csv" style="padding: 10px 16px; border-radius: 8px;">📥 Export CSV</button>
+        </div>
+
+        <div style="display: flex; gap: 20px; margin-bottom: 16px; padding: 12px; background: rgba(0,0,0,0.2); border-radius: 8px;">
+          <div style="flex: 1;"><div style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">Total Tracked (All Time)</div><div id="insight-total" style="font-size:20px; font-weight:bold;">-</div></div>
+          <div style="flex: 1;"><div style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">Top Country</div><div id="insight-country" style="font-size:20px; font-weight:bold;">-</div></div>
+          <div style="flex: 1;"><div style="font-size:10px; color:var(--text-muted); text-transform:uppercase;">Most Active Route</div><div id="insight-route" style="font-size:20px; font-weight:bold;">-</div></div>
+        </div>
+
         <div class="table-container">
           <table class="keys-table" id="analytics-table">
             <thead>
