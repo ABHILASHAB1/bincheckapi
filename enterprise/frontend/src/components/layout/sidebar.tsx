@@ -10,7 +10,8 @@ import {
   CreditCard,
   History,
   ShieldCheck,
-  Search
+  Search,
+  Sparkles
 } from "lucide-react";
 
 const routes = [
@@ -25,6 +26,12 @@ const routes = [
     icon: Building2,
     href: "/dashboard/merchants",
     color: "text-violet-500",
+  },
+  {
+    label: "AI Enrichment",
+    icon: Sparkles,
+    href: "/dashboard/enrichment",
+    color: "text-indigo-400",
   },
   {
     label: "BIN Lookup",

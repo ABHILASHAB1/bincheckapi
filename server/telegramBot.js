@@ -83,7 +83,7 @@ export const initTelegramBot = async () => {
                 const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
                 const { data: activeUsersData, error } = await supabase
                     .from('tracked_users')
-                    .select('id, browser, os, device_type, last_seen_at, geo_data, country, ip_address')
+                    .select('id, browser, os, device_type, last_seen_at, ip_address, country, city, region, currency, timezone, isp')
                     .gte('last_seen_at', fiveMinsAgo);
 
                 if (error) throw error;
@@ -97,15 +97,14 @@ export const initTelegramBot = async () => {
                         let ip = user.ip_address || "Unknown IP";
                         let geoLoc = user.country || "Unknown Location";
                         
-                        // Parse the rich attributes from the new Node.js Geolocation Service!
-                        if (user.geo_data) {
-                            const geo = user.geo_data;
-                            const city = geo.city || 'Unknown City';
-                            const isp = geo.isp || 'Unknown ISP';
-                            const tz = geo.timezone || 'N/A';
-                            const cur = geo.currency || 'N/A';
+                        // Use the new discrete database columns!
+                        if (user.city || user.isp || user.timezone) {
+                            const city = user.city || 'Unknown City';
+                            const isp = user.isp || 'Unknown ISP';
+                            const tz = user.timezone || 'N/A';
+                            const cur = user.currency || 'N/A';
                             
-                            geoLoc = `${city}, ${geo.country} (📡 ${isp} | 🕒 ${tz} | 💵 ${cur})`;
+                            geoLoc = `${city}, ${user.country || 'Unknown'} (📡 ${isp} | 🕒 ${tz} | 💵 ${cur})`;
                         } else if (ip === '::1' || ip.includes('127.0.0.1')) {
                             geoLoc = "Localhost";
                         }

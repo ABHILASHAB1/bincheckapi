@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Float, Integer, JSON, Text, Enum
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import UUID
 from sqlalchemy.orm import relationship
 from app.infrastructure.database import Base
 import enum
@@ -71,7 +71,7 @@ class MerchantContact(Base):
     phone = Column(String(50), nullable=True)
     email = Column(String(255), nullable=True)
     website = Column(String(255), nullable=True)
-    social_links = Column(JSONB, nullable=True) # e.g. {"twitter": "...", "linkedin": "..."}
+    social_links = Column(JSON, nullable=True) # e.g. {"twitter": "...", "linkedin": "..."}
     merchant = relationship("Merchant", back_populates="contacts")
 
 class MerchantCategory(Base):
@@ -102,7 +102,7 @@ class MerchantAI(Base):
     merchant_id = Column(UUID(as_uuid=True), ForeignKey("merchant.id"), primary_key=True)
     ai_summary = Column(Text, nullable=True)
     confidence_score = Column(Float, nullable=True)
-    enrichment_data = Column(JSONB, nullable=True)
+    enrichment_data = Column(JSON, nullable=True)
     last_enriched_at = Column(DateTime, nullable=True)
     merchant = relationship("Merchant", back_populates="ai_enrichment")
 
@@ -118,7 +118,7 @@ class MerchantRisk(Base):
     __tablename__ = "merchant_risk"
     merchant_id = Column(UUID(as_uuid=True), ForeignKey("merchant.id"), primary_key=True)
     risk_score = Column(Float, default=0.0)
-    risk_factors = Column(JSONB, nullable=True)
+    risk_factors = Column(JSON, nullable=True)
     merchant = relationship("Merchant", back_populates="risk")
 
 class AuditLog(Base):
@@ -127,6 +127,6 @@ class AuditLog(Base):
     entity_name = Column(String(100), nullable=False)
     entity_id = Column(UUID(as_uuid=True), nullable=False)
     action = Column(String(50), nullable=False) # CREATE, UPDATE, DELETE
-    changes = Column(JSONB, nullable=True)
+    changes = Column(JSON, nullable=True)
     user_id = Column(UUID(as_uuid=True), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

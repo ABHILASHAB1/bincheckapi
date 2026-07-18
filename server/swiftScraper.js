@@ -59,9 +59,10 @@ export async function scrapeSwiftCodesForCountry(countryPath) {
 
             // Validate SWIFT length (8 or 11)
             if (swiftCode.length === 8 || swiftCode.length === 11) {
+                const extractedCountryCode = swiftCode.substring(4, 6).toLowerCase();
                 codes.push({
                     country: countryName,
-                    country_code: null, // Will try to infer later or leave null
+                    country_code: extractedCountryCode,
                     bank_name: bankName,
                     city: city,
                     branch: branch,

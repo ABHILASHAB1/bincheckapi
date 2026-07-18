@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from sqlalchemy import Column, String, Boolean, DateTime, ForeignKey, Float, Integer, JSON
-from sqlalchemy.dialects.postgresql import UUID, JSONB
+from sqlalchemy import UUID, JSON
 from sqlalchemy.orm import relationship
 from app.infrastructure.database import Base
 
@@ -25,7 +25,7 @@ class Role(Base):
     __tablename__ = "roles"
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name = Column(String(50), unique=True, nullable=False)
-    permissions = Column(JSONB, nullable=True) # Array of permission strings
+    permissions = Column(JSON, nullable=True) # Array of permission strings
     users = relationship("User", back_populates="role")
 
 class ApiKey(Base):

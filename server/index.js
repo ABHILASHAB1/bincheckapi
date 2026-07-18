@@ -1532,7 +1532,13 @@ app.post('/api/analytics/track', async (req, res) => {
                     total_visits: 1,
                     ip_address: clientIp,
                     country: geo ? geo.country : (req.headers['cf-ipcountry'] || null),
-                    geo_data: geo || null
+                    city: geo ? geo.city : null,
+                    region: geo ? geo.region : null,
+                    currency: geo ? geo.currency : null,
+                    timezone: geo ? geo.timezone : null,
+                    latitude: geo ? geo.latitude : null,
+                    longitude: geo ? geo.longitude : null,
+                    isp: geo ? geo.isp : null
                 }])
                 .select()
                 .single();
@@ -1577,18 +1583,30 @@ app.post('/api/analytics/track', async (req, res) => {
                     total_visits: (userRecord.total_visits || 0) + 1,
                     ip_address: clientIp,
                     country: geo ? geo.country : (req.headers['cf-ipcountry'] || userRecord.country),
-                    geo_data: geo || userRecord.geo_data
+                    city: geo ? geo.city : userRecord.city,
+                    region: geo ? geo.region : userRecord.region,
+                    currency: geo ? geo.currency : userRecord.currency,
+                    timezone: geo ? geo.timezone : userRecord.timezone,
+                    latitude: geo ? geo.latitude : userRecord.latitude,
+                    longitude: geo ? geo.longitude : userRecord.longitude,
+                    isp: geo ? geo.isp : userRecord.isp
                 }).eq('id', userId);
             } else {
                 // Just update times and last_seen
                 await supabase.from('tracked_users').update({
-                time_spent_by_tab: currentTimes,
-                total_visits: (userRecord.total_visits || 1) + 1,
-                last_seen_at: new Date().toISOString(),
-                ip_address: clientIp,
-                country: geo ? geo.country : (req.headers['cf-ipcountry'] || userRecord.country),
-                geo_data: geo || userRecord.geo_data
-            }).eq('id', userId);
+                    time_spent_by_tab: currentTimes,
+                    total_visits: (userRecord.total_visits || 1) + 1,
+                    last_seen_at: new Date().toISOString(),
+                    ip_address: clientIp,
+                    country: geo ? geo.country : (req.headers['cf-ipcountry'] || userRecord.country),
+                    city: geo ? geo.city : userRecord.city,
+                    region: geo ? geo.region : userRecord.region,
+                    currency: geo ? geo.currency : userRecord.currency,
+                    timezone: geo ? geo.timezone : userRecord.timezone,
+                    latitude: geo ? geo.latitude : userRecord.latitude,
+                    longitude: geo ? geo.longitude : userRecord.longitude,
+                    isp: geo ? geo.isp : userRecord.isp
+                }).eq('id', userId);
             }
         }
         

@@ -1,37 +1,60 @@
+"use client";
+
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Building2, MapPin, Globe, Phone, Mail, ShieldAlert, CheckCircle2, ArrowLeft, BrainCircuit, FileText } from "lucide-react";
+import { Building2, MapPin, Globe, Phone, Mail, ShieldAlert, CheckCircle2, ArrowLeft, BrainCircuit, FileText, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useState, useEffect } from "react";
 
 export default function MerchantDetailPage({ params }: { params: { id: string } }) {
-  // Mock data for UI development
-  const merchant = {
-    id: params.id,
-    name: "Global Payments Inc",
-    legal_name: "Global Payments Holdings LLC",
-    status: "Active",
-    risk_score: 12,
-    risk_level: "Low",
-    mcc: "5411",
-    mcc_description: "Grocery Stores, Supermarkets",
-    website: "https://globalpayments.example.com",
-    email: "compliance@globalpayments.example.com",
-    phone: "+1 (555) 123-4567",
-    location: {
-      address: "123 Financial District Blvd",
-      city: "New York",
-      state: "NY",
-      country: "USA",
-      postal_code: "10004"
-    },
-    verification: {
-      status: "Verified",
-      verified_at: "2026-05-12T10:00:00Z",
-      method: "Automated KYC"
-    }
-  };
+  const [merchant, setMerchant] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch(`http://localhost:8000/api/v1/merchants/${params.id}`)
+      .then(res => {
+        if (!res.ok) throw new Error("Merchant not found");
+        return res.json();
+      })
+      .then(data => {
+        // Merge real backend data with placeholder deep relationships
+        setMerchant({
+          id: data.id,
+          name: data.name,
+          legal_name: data.legal_name || "N/A",
+          status: data.is_active ? "Active" : "Inactive",
+          risk_score: 12,
+          risk_level: "Low",
+          mcc: "5411",
+          mcc_description: "Grocery Stores, Supermarkets",
+          website: "https://example.com",
+          email: "contact@example.com",
+          phone: "+1 (555) 000-0000",
+          location: {
+            address: "123 API Gateway",
+            city: "Cloud City",
+            state: "NY",
+            country: "USA",
+            postal_code: "10001"
+          },
+          verification: {
+            status: "Verified",
+            verified_at: data.created_at,
+            method: "Automated KYC"
+          }
+        });
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [params.id]);
+
+  if (loading) return <div className="flex justify-center p-12"><Loader2 className="w-8 h-8 animate-spin text-indigo-600" /></div>;
+  if (!merchant) return <div className="text-center p-12">Merchant not found.</div>;
 
   return (
     <div className="space-y-6">

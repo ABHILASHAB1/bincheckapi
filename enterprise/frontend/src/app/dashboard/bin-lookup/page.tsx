@@ -25,44 +25,22 @@ export default function BinLookupPage() {
     setLoading(true);
     setResult(null);
 
-    // Mock API Call targeting the FastAPI backend endpoint logic
-    setTimeout(() => {
-      const firstDigit = bin[0];
-      let brand = "Unknown";
-      let bank = "Universal Bank";
-      
-      if (firstDigit === "4") {
-        brand = "Visa";
-        bank = bin.startsWith("400000") ? "Chase Bank" : "Bank of America";
-      } else if (firstDigit === "5") {
-        brand = "Mastercard";
-        bank = bin.startsWith("510000") ? "Citi" : "Capital One";
-      } else if (firstDigit === "3") {
-        brand = "American Express";
-        bank = "American Express";
-      } else if (firstDigit === "6") {
-        brand = "Discover";
-        bank = "Discover Financial";
-      } else {
-        setError("BIN not recognized or invalid format.");
+    // Call FastAPI Backend
+    fetch(`http://localhost:8000/api/v1/intelligence/bin/${bin}`)
+      .then(res => {
+        if (!res.ok) {
+          throw new Error("BIN not recognized or invalid format.");
+        }
+        return res.json();
+      })
+      .then(data => {
+        setResult(data);
         setLoading(false);
-        return;
-      }
-
-      setResult({
-        bin: bin.substring(0, 6),
-        brand: brand,
-        type: "Credit",
-        level: "Platinum",
-        issuer: bank,
-        country_code: "US",
-        country_name: "United States",
-        currency: "USD",
-        is_prepaid: false,
-        is_commercial: false
+      })
+      .catch(err => {
+        setError(err.message);
+        setLoading(false);
       });
-      setLoading(false);
-    }, 800);
   };
 
   return (

@@ -22,14 +22,12 @@ export const Header = () => {
           <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full animate-pulse" />
         </Button>
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-              <div className="flex h-full w-full items-center justify-center rounded-full bg-muted">
-                <User className="h-4 w-4" />
-              </div>
-            </Button>
+          <DropdownMenuTrigger className="relative h-8 w-8 rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2">
+            <div className="flex h-full w-full items-center justify-center rounded-full bg-muted hover:bg-slate-200 transition-colors">
+              <User className="h-4 w-4 text-slate-700" />
+            </div>
           </DropdownMenuTrigger>
-          <DropdownMenuContent className="w-56" align="end" forceMount>
+          <DropdownMenuContent className="w-56" align="end">
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">Admin User</p>

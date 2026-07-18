@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ShieldCheck, Search, AlertCircle, Building, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { ShieldCheck, Search, AlertCircle, Building, CheckCircle2, XCircle, Loader2, Globe } from "lucide-react";
 
 export default function VerificationPage() {
   const [routing, setRouting] = useState("");
@@ -19,16 +19,21 @@ export default function VerificationPage() {
     setLoading(true);
     setRoutingResult(null);
 
-    // Mock API Call to FastAPI
-    setTimeout(() => {
-      const is_valid = routing.length === 9 && !routing.startsWith("00"); // Mock logic
-      setRoutingResult({
-        is_valid,
-        routing_number: routing,
-        error: is_valid ? null : "Invalid routing number checksum according to ABA Modulus 10."
+    // Call FastAPI Backend
+    fetch("http://localhost:8000/api/v1/intelligence/validate/routing", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ routing_number: routing }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        setRoutingResult(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setRoutingResult({ is_valid: false, routing_number: routing, error: "Network Error: Could not connect to validation server." });
+        setLoading(false);
       });
-      setLoading(false);
-    }, 600);
   };
 
   const handleIbanSearch = (e: React.FormEvent) => {
@@ -36,17 +41,21 @@ export default function VerificationPage() {
     setLoading(true);
     setIbanResult(null);
 
-    // Mock API Call to FastAPI
-    setTimeout(() => {
-      const is_valid = iban.length >= 15 && /^[a-zA-Z]{2}/.test(iban); // Mock logic
-      setIbanResult({
-        is_valid,
-        iban: iban.toUpperCase(),
-        country_code: is_valid ? iban.substring(0, 2).toUpperCase() : null,
-        error: is_valid ? null : "Failed ISO 13616 Modulus 97 verification."
+    // Call FastAPI Backend
+    fetch("http://localhost:8000/api/v1/intelligence/validate/iban", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ iban: iban }),
+    })
+      .then(res => res.json())
+      .then(data => {
+        setIbanResult(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        setIbanResult({ is_valid: false, iban: iban, error: "Network Error: Could not connect to validation server." });
+        setLoading(false);
       });
-      setLoading(false);
-    }, 600);
   };
 
   return (

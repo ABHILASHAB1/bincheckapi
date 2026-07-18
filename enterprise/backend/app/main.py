@@ -1,6 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.v1 import merchants, intelligence
+from app.api.v1 import merchants, intelligence, telegram
+from app.infrastructure.database import engine, Base
+from app.domain.models import merchant, jurisdiction, activity
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="RemitWise Enterprise API",
@@ -21,6 +25,7 @@ app.add_middleware(
 
 app.include_router(merchants.router, prefix="/api/v1/merchants", tags=["Merchants"])
 app.include_router(intelligence.router, prefix="/api/v1/intelligence", tags=["Payment Intelligence"])
+app.include_router(telegram.router, prefix="/api/v1/telegram", tags=["Telegram"])
 
 @app.get("/health", tags=["System"])
 async def health_check():

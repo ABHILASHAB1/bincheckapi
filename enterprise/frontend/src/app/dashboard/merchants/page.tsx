@@ -32,37 +32,20 @@ export default function MerchantsPage() {
   const [search, setSearch] = useState("");
 
   useEffect(() => {
-    // In production, fetch from FastAPI backend: fetch("http://localhost:8000/api/v1/merchants")
-    // Using mock data for UI setup phase
-    setTimeout(() => {
-      setMerchants([
-        {
-          id: "123e4567-e89b-12d3-a456-426614174000",
-          name: "Global Payments Inc",
-          legal_name: "Global Payments Holdings LLC",
-          tax_id: "US-123456789",
-          is_active: true,
-          created_at: new Date().toISOString(),
-        },
-        {
-          id: "987fcdeb-51a2-43d7-9012-345678901234",
-          name: "Stripe",
-          legal_name: "Stripe, Inc.",
-          tax_id: "US-987654321",
-          is_active: true,
-          created_at: new Date(Date.now() - 86400000).toISOString(),
-        },
-        {
-          id: "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
-          name: "Fraudulent Tech",
-          legal_name: "Scam Holdings",
-          tax_id: null,
-          is_active: false,
-          created_at: new Date(Date.now() - 864000000).toISOString(),
-        }
-      ]);
-      setLoading(false);
-    }, 1000);
+    // Fetch from FastAPI backend
+    fetch("http://localhost:8000/api/v1/merchants/")
+      .then(res => {
+        if (!res.ok) throw new Error("Failed to fetch merchants");
+        return res.json();
+      })
+      .then(data => {
+        setMerchants(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
   }, []);
 
   const filteredMerchants = merchants.filter(m => 

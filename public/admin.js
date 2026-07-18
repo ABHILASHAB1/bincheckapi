@@ -147,11 +147,10 @@ function renderAnalyticsTable() {
   displayList.forEach(user => {
     const tr = document.createElement('tr');
     const timeAgo = new Date(user.last_seen_at || user.created_at || Date.now()).toLocaleString();
-    const geo = user.geo_data || {};
-    const loc = `${geo.city || 'Unknown'}, ${geo.country || user.country || 'Unknown'}`;
-    const isp = geo.isp || 'Unknown ISP';
-    const tz = geo.timezone || 'N/A';
-    const cur = geo.currency || 'N/A';
+    const loc = `${user.city || 'Unknown'}, ${user.country || 'Unknown'}`;
+    const isp = user.isp || 'Unknown ISP';
+    const tz = user.timezone || 'N/A';
+    const cur = user.currency || 'N/A';
     
     // tracked_users fields
     const deviceStr = `${user.os || ''} ${user.browser || ''} ${user.device_type || ''}`.trim() || 'Unknown Device';
