@@ -1,4 +1,6 @@
 import ActiveUsersWidget from '../components/ActiveUsersWidget';
+import AdUnit from '../components/AdUnit';
+
 export default function Home() { return (<>
 
 
@@ -115,6 +117,9 @@ export default function Home() { return (<>
         </div>
     </section>
 
+    <section className="bg-bgSecondary w-full pt-10">
+        <AdUnit type="banner" />
+    </section>
     
     <section id="products" className="py-32 bg-bgSecondary relative">
         <div className="max-w-7xl mx-auto px-6">
@@ -479,6 +484,7 @@ export default function Home() { return (<>
                 Open The Platform <i className="ph-bold ph-arrow-right"></i>
             </a>
         </div>
+        <AdUnit type="banner" className="mt-16" />
     </section>
 
     
