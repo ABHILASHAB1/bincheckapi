@@ -56,11 +56,62 @@ async function loadKeys() {
     keysList = await res.json();
     applyFilter();
     hideLockScreen();
+    
+    // Also load analytics
+    loadAnalytics();
   } catch (err) {
     console.error('Error fetching API keys:', err);
     showToast('Failed to connect to server');
   }
 }
+
+// Fetch and load analytics from API
+async function loadAnalytics() {
+  const token = getAdminToken();
+  if (!token) return;
+  
+  try {
+    const activeRes = await fetch('/api/analytics/active');
+    const activeData = await activeRes.json();
+    if (activeData) {
+      document.getElementById('analytics-active-count').innerHTML = `
+        <span class="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span>
+        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+        <span>${activeData.active_users} Active Now</span>
+      `;
+    }
+
+    const res = await fetch('/api/admin/tracked-users', {
+      headers: { 'X-Admin-Token': token }
+    });
+    
+    if (!res.ok) return;
+    
+    const usersList = await res.json();
+    const tbody = document.getElementById('analytics-tbody');
+    tbody.innerHTML = '';
+    
+    if (usersList.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">No active users tracked recently</td></tr>';
+      return;
+    }
+    
+    usersList.forEach(user => {
+      const tr = document.createElement('tr');
+      const timeAgo = new Date(user.last_seen_at).toLocaleString();
+      tr.innerHTML = `
+        <td><div style="font-weight:600;">${user.id.substring(0,8)}...</div><div style="font-size:10px;color:var(--text-muted);">${user.ip_address}</div></td>
+        <td><div style="font-size:11px;">${user.device_info || 'Unknown'}</div><div style="font-size:10px;color:var(--text-muted);">${user.country || 'Unknown Location'}</div></td>
+        <td><code style="font-size:11px;background:var(--bg-card);padding:2px 4px;border-radius:4px;">${user.path || '/'}</code></td>
+        <td style="font-size:11px;">${timeAgo}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    console.error('Error fetching analytics:', err);
+  }
+}
+
 
 // Apply text filtering on Client Name, Email, or Firebase UID
 function applyFilter() {
@@ -353,6 +404,7 @@ lockForm.addEventListener('submit', async (e) => {
 
 // Manual refresh
 document.getElementById('btn-refresh').addEventListener('click', loadKeys);
+document.getElementById('btn-refresh-analytics').addEventListener('click', loadAnalytics);
 
 // Filter bindings
 searchFilterInput.addEventListener('input', applyFilter);

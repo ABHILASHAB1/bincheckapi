@@ -152,6 +152,42 @@
     </section>
   </main>
 
+  <main class="app-layout" style="grid-template-columns: 1fr; margin-top: 20px;">
+    <section class="column-manager">
+      <div class="card glass-panel full-height">
+        <div class="card-header-flex" style="margin-bottom: 16px;">
+          <h2 class="card-title"><span class="title-icon">🌍</span> Live User Analytics</h2>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <div id="analytics-active-count" style="background: rgba(16, 185, 129, 0.1); color: #10b981; padding: 4px 12px; border-radius: 20px; font-weight: bold; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+              <span class="animate-ping absolute inline-flex h-2 w-2 rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              <span>Loading...</span>
+            </div>
+            <button class="btn btn-icon" id="btn-refresh-analytics" title="Refresh analytics">🔄</button>
+          </div>
+        </div>
+
+        <div class="table-container">
+          <table class="keys-table" id="analytics-table">
+            <thead>
+              <tr>
+                <th>User ID / IP</th>
+                <th>Device Info</th>
+                <th>Path / Route</th>
+                <th>Last Active</th>
+              </tr>
+            </thead>
+            <tbody id="analytics-tbody">
+              <tr class="loading-row">
+                <td colspan="4">Loading analytics...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </main>
+
   <div id="toast" class="toast hidden">Copied to clipboard!</div>
 
   <!-- Secure Login Lock Overlay -->
