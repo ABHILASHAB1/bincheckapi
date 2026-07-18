@@ -1580,7 +1580,7 @@ app.post('/api/analytics/track', async (req, res) => {
 
 // Get active users online now
 app.get('/api/analytics/active', async (req, res) => {
-    if (!supabase) return res.json({ active_users: Math.floor(Math.random() * 30) + 140 });
+    if (!supabase) return res.json({ active_users: 1 });
     try {
         const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
         const { count, error } = await supabase
@@ -1590,12 +1590,10 @@ app.get('/api/analytics/active', async (req, res) => {
             
         if (error) throw error;
         
-        // If traffic is low, boost it slightly for marketing aesthetics, or just return actual
-        // We'll return actual + a base of ~140 for the "Global Directory" feel.
-        const base = 142;
-        res.json({ active_users: (count || 0) + base });
+        // Return exact count, minimum 1 (the current user)
+        res.json({ active_users: Math.max(1, count || 0) });
     } catch (e) {
-        res.json({ active_users: Math.floor(Math.random() * 30) + 140 });
+        res.json({ active_users: 1 });
     }
 });
 

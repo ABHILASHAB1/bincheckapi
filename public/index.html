@@ -688,8 +688,7 @@
                             const data = await res.json();
                             if (data && data.active_users) {
                                 widget.classList.remove('hidden');
-                                const jitter = Math.floor(Math.random() * 3) - 1;
-                                countEl.textContent = Math.max(1, data.active_users + jitter).toLocaleString();
+                                countEl.textContent = data.active_users.toLocaleString();
                             }
                         } catch (err) {
                             console.error('Failed to fetch active users');

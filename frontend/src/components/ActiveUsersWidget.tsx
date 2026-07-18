@@ -15,10 +15,7 @@ export default function ActiveUsersWidget() {
         });
         const data = await res.json();
         if (isMounted && data.active_users) {
-          // Add a tiny bit of random jitter (-1, 0, 1) to make it feel alive locally
-          // between real polls
-          const jitter = Math.floor(Math.random() * 3) - 1;
-          setActiveUsers(Math.max(1, data.active_users + jitter));
+          setActiveUsers(data.active_users);
         }
       } catch (err) {
         console.error('Failed to fetch active users:', err);
