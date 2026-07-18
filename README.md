@@ -1,56 +1,68 @@
-# Remitwise 💸
+# RemitWise Intelligence Platform
 
-Remitwise is a full-stack remittance comparison and insights platform. It empowers users to find the best exchange rates across multiple money transfer operators, track historical trends, and make mathematically informed decisions about when to send money abroad.
+A production-grade, cloud-native Global Payment Intelligence SaaS platform. RemitWise empowers banks, FinTechs, and payment gateways with advanced merchant verification, robust BIN lookup engines, and strict ISO-standard routing validations.
 
-## Features ✨
+![RemitWise Brand](https://via.placeholder.com/1200x400/111827/FFFFFF?text=RemitWise+Intelligence+Platform)
 
-- **Live Rate Comparison**: Compare real-time foreign exchange buy/sell rates from providers like STC Pay, Western Union, Riyadh Bank, and more.
-- **Smart Analytics & Trends**: Dynamically calculates day-over-day growth percentages based on KSA timezone logic to show whether currencies are trending up or down.
-- **AI Calculator & Insights**: Input a historical transaction date, base currency, and amount. The system queries the database to compare your past rate against today's best live rate, calculating exact profit/loss.
-- **Telegram Bot Integration**: Subscribes users to specific currency pairs and broadcasts live market pulses and alert notifications.
-- **Supabase Cloud Database**: Robust data storage using PostgreSQL hosted on Supabase, connected seamlessly via a Node.js API backend.
+## 🚀 Features
 
-## Tech Stack 🛠️
+- **Merchant Intelligence Module**: Comprehensive tracking of merchants, aliases, branches, locations, enriched AI insights, and calculated risk profiles.
+- **BIN Lookup Engine**: Decodes Bank Identification Numbers instantly to reveal Card Brands, Types, Levels, Issuers, and Geo-Origins.
+- **Global Validation Tools**:
+  - **US Routing Validations**: ABA Modulus 10 checksum validation.
+  - **IBAN Validations**: ISO 13616 Modulus 97 international checks.
+- **Enterprise UI**: A breathtaking dark-mode interface built on Next.js, Tailwind CSS, and Shadcn UI.
+- **Lightning API**: Fully typed, high-performance REST APIs built with Python FastAPI and Pydantic.
 
-- **Frontend**: HTML5, CSS3, React.js (via CDN), TailwindCSS, Babel
-- **Backend API**: Node.js, Express.js
-- **Database**: Supabase (PostgreSQL)
-- **Integrations**: Telegram Bot API (`node-telegram-bot-api`)
+## 🏗️ Tech Stack
 
-## Local Setup Instructions 🚀
+- **Frontend**: Next.js 14, React, Tailwind CSS, Shadcn UI, Lucide React
+- **Backend Core**: Python 3.12, FastAPI, Pydantic
+- **Database Layer**: PostgreSQL 15, SQLAlchemy ORM, Alembic Migrations
+- **Orchestration**: Docker & Docker Compose
 
-### 1. Prerequisites
-- Node.js (v18 or higher)
-- A Supabase account and project
-- A Telegram Bot Token (from BotFather)
+## 🛠️ Quick Start (Docker Orchestration)
 
-### 2. Installation
-Clone the repository and install the Node dependencies:
-```bash
-git clone https://github.com/YOUR_USERNAME/remitwise-app.git
-cd remitwise-app
-npm install
+The easiest way to spin up the entire RemitWise ecosystem is using Docker.
+
+1. **Ensure Docker is running** on your local machine.
+2. Clone the repository and navigate to the root directory.
+3. Run the complete orchestration command:
+   ```bash
+   docker compose up -d
+   ```
+
+### What happens when you run `docker-compose up`?
+* **Database**: Spins up a PostgreSQL 15 instance.
+* **Backend**: Boots the FastAPI server (Port: `8000`), automatically running all Alembic SQL schemas and migrations.
+* **Frontend**: Boots the Next.js standalone dashboard application (Port: `3000`).
+* **Legacy System**: Keeps the original Node MVP active (Port: `5000`).
+
+### Accessing the Platform
+- **Enterprise Dashboard (Next.js)**: [http://localhost:3000](http://localhost:3000)
+- **Enterprise API Docs (Swagger)**: [http://localhost:8000/api/docs](http://localhost:8000/api/docs)
+- **Legacy Node API**: [http://localhost:5000](http://localhost:5000)
+
+## 📁 Repository Structure
+
+```text
+/
+├── enterprise/
+│   ├── backend/               # FastAPI Application & SQLAlchemy Models
+│   │   ├── alembic/           # Database Migrations
+│   │   ├── app/               # Core Application Logic (Services, APIs)
+│   │   └── Dockerfile         # Python Production Container Config
+│   └── frontend/              # Next.js Application
+│       ├── src/               # React Components, Dashboard Pages, Routing
+│       └── Dockerfile         # Next.js Standalone Production Container Config
+├── server/                    # Legacy Node.js MVP codebase
+├── docker-compose.yml         # Global Orchestration Configuration
+└── README.md                  # This File
 ```
 
-### 3. Environment Variables
-Create a `.env` file in the root directory and add the following keys:
-```env
-PORT=3002
-SUPABASE_URL=your_supabase_project_url
-SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
-TELEGRAM_BOT_TOKEN=your_telegram_bot_token
-```
+## 📚 Further Reading
 
-### 4. Run the Development Server
-Start the Express API server:
-```bash
-npm start
-```
-The application will be running at: `https://remitwise.fit/send_money.html`
-
-## Production Deployment 🌐
-This app is ready to be deployed on platforms like **Render.com** or **Railway.app**. 
-Ensure the build command is set to `npm install` and the start command is `npm start`. All `.env` variables must be added to your hosting platform's dashboard.
+For a deep dive into the technical design, database relationships, and container flow, please review the [Architecture Blueprint](./enterprise/ARCHITECTURE.md).
 
 ---
-*Built with ❤️ for smarter cross-border remittances.*
+*Engineered by Antigravity AI.*
