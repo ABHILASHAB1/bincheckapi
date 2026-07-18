@@ -1,3 +1,4 @@
+import ActiveUsersWidget from '../components/ActiveUsersWidget';
 export default function Home() { return (<>
 
 
