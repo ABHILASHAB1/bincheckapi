@@ -11,7 +11,6 @@ import { calculateNetPayout } from './payoutEngine.js';
 import { generateMarketPulse } from './anithaAI.js';
 import { supabase } from './supabaseClient.js';
 import { initSwiftScheduler } from './swiftScheduler.js';
-import { UAParser } from 'ua-parser-js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -1500,14 +1499,22 @@ app.post('/api/analytics/track', async (req, res) => {
             timeObj[page_url] = delta_ms || 0;
             
             // Parse User-Agent
-            const parser = new UAParser(userAgent);
-            const resData = parser.getResult();
-            const browserName = resData.browser.name ? `${resData.browser.name} ${resData.browser.version || ''}`.trim() : 'Unknown Browser';
-            const osName = resData.os.name ? `${resData.os.name} ${resData.os.version || ''}`.trim() : 'Unknown OS';
+            let browserName = 'Unknown Browser';
+            if (/firefox/i.test(userAgent)) browserName = 'Firefox';
+            else if (/chrome|chromium|crios/i.test(userAgent)) browserName = 'Chrome';
+            else if (/safari/i.test(userAgent) && !/chrome|chromium|crios/i.test(userAgent)) browserName = 'Safari';
+            else if (/edg/i.test(userAgent)) browserName = 'Edge';
+            
+            let osName = 'Unknown OS';
+            if (/windows/i.test(userAgent)) osName = 'Windows';
+            else if (/mac/i.test(userAgent)) osName = 'MacOS';
+            else if (/linux/i.test(userAgent)) osName = 'Linux';
+            else if (/android/i.test(userAgent)) osName = 'Android';
+            else if (/ios|iphone|ipad/i.test(userAgent)) osName = 'iOS';
             
             let deviceType = 'Desktop';
-            if (resData.device.type === 'mobile') deviceType = 'Mobile';
-            else if (resData.device.type === 'tablet') deviceType = 'Tablet';
+            if (/mobile|android|touch/i.test(userAgent) && !/ipad/i.test(userAgent)) deviceType = 'Mobile';
+            else if (/ipad|tablet/i.test(userAgent)) deviceType = 'Tablet';
             if (/bot|crawl|spider/i.test(userAgent)) deviceType = 'Bot';
             
             const { data: newUser, error: insertErr } = await supabase
