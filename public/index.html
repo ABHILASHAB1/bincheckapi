@@ -663,9 +663,43 @@
             <p class="text-slate-600 text-lg md:text-xl font-light mb-10 max-w-2xl mx-auto">
                 Stop guessing on exchange rates and card routing. Get institutional transparency on your very next transaction.
             </p>
-            <a href="/send_money" class="inline-flex items-center gap-3 bg-slate-900 text-white px-10 py-5 rounded-full font-bold hover:scale-105 transition-transform">
+            <a href="/send_money" class="inline-flex items-center gap-3 bg-slate-900 text-white px-10 py-5 rounded-full font-bold hover:scale-105 transition-transform mb-8">
                 Open The Platform <i class="ph-bold ph-arrow-right"></i>
             </a>
+            
+            <div class="flex justify-center mt-4 pb-8">
+                <div id="activeUsersWidget" class="inline-flex items-center gap-2 bg-white/10 backdrop-blur border border-slate-200/20 px-4 py-2 rounded-full shadow-sm text-sm font-medium text-slate-700 hidden">
+                    <span class="relative flex h-2.5 w-2.5">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                    </span>
+                    <span id="activeUsersCount" class="tabular-nums font-bold">142</span> active users online now
+                </div>
+            </div>
+            
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const widget = document.getElementById('activeUsersWidget');
+                    const countEl = document.getElementById('activeUsersCount');
+                    
+                    const fetchActiveUsers = async () => {
+                        try {
+                            const res = await fetch('/api/analytics/active');
+                            const data = await res.json();
+                            if (data && data.active_users) {
+                                widget.classList.remove('hidden');
+                                const jitter = Math.floor(Math.random() * 3) - 1;
+                                countEl.textContent = Math.max(1, data.active_users + jitter).toLocaleString();
+                            }
+                        } catch (err) {
+                            console.error('Failed to fetch active users');
+                        }
+                    };
+                    
+                    fetchActiveUsers();
+                    setInterval(fetchActiveUsers, 15000);
+                });
+            </script>
         </div>
     </section>
 
