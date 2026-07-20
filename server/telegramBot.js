@@ -589,6 +589,33 @@ _${contactData.message}_
     }
 };
 
+export const broadcastSecurityAlert = async (ip, userAgent, path, action) => {
+    if (!bot || !db) return;
+
+    try {
+        const subscribers = await db.all('SELECT chat_id FROM telegram_subscribers');
+        if (subscribers.length === 0) return;
+
+        const message = `
+⚠️ *Security Alert Triggered*
+• *Action:* \`${action}\`
+• *Path:* \`${path}\`
+• *IP Address:* \`${ip}\`
+• *User-Agent:* \`${userAgent}\`
+
+_Anti-Scraping / Anti-Inspect engine triggered._
+        `;
+
+        for (const sub of subscribers) {
+            bot.sendMessage(sub.chat_id, message, { parse_mode: 'Markdown' }).catch(err => {
+                console.error(`Failed to send security alert to ${sub.chat_id}:`, err.message);
+            });
+        }
+    } catch (err) {
+        console.error('Error broadcasting security alert:', err);
+    }
+};
+
 const sanitize = (text) => {
     if (!text) return '';
     return text.replace(/[_*`\[\]]/g, ' '); // Strip markdown control chars

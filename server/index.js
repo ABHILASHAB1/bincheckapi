@@ -1638,7 +1638,19 @@ app.get('/api/analytics/active', async (req, res) => {
 
 import { runFullScraper } from './swiftScraper.js';
 import { runProviderScraper } from './providerScraper.js';
-import { broadcastSupportBotAlert, broadcastSupportBotReply, activeSupportSessions } from './telegramBot.js';
+import { broadcastSupportBotAlert, broadcastSupportBotReply, broadcastSecurityAlert, activeSupportSessions } from './telegramBot.js';
+
+app.post('/api/security/alert', (req, res) => {
+    const { action, path } = req.body;
+    const rawIp = req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'unknown';
+    const clientIp = rawIp.split(',')[0].trim();
+    const userAgent = req.headers['user-agent'] || 'unknown';
+
+    // Broadcast to Telegram
+    broadcastSecurityAlert(clientIp, userAgent, path, action);
+    
+    res.json({ success: true });
+});
 
 app.post('/api/support-bot', async (req, res) => {
     try {

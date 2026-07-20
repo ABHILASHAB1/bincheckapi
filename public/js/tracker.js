@@ -86,9 +86,23 @@
  * Anti-Scraping and Anti-Inspect Protections
  */
 (function() {
+    let hasAlerted = false;
+    
+    function triggerSecurityAlert(action) {
+        if (hasAlerted) return;
+        hasAlerted = true;
+        
+        fetch('/api/security/alert', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: action, path: window.location.pathname })
+        }).catch(() => {});
+    }
+
     // 1. Disable Right-Click (Context Menu)
     document.addEventListener('contextmenu', function(e) {
         e.preventDefault();
+        triggerSecurityAlert('Right-Click / Context Menu');
     });
 
     // 2. Disable Keyboard Shortcuts (F12, Ctrl+Shift+I, Ctrl+Shift+J, Ctrl+U)
@@ -96,26 +110,31 @@
         // F12
         if (e.key === 'F12' || e.keyCode === 123) {
             e.preventDefault();
+            triggerSecurityAlert('F12 DevTools Shortcut');
             return false;
         }
         // Ctrl+Shift+I (Inspect)
         if (e.ctrlKey && e.shiftKey && (e.key === 'I' || e.key === 'i' || e.keyCode === 73)) {
             e.preventDefault();
+            triggerSecurityAlert('Ctrl+Shift+I Inspect Shortcut');
             return false;
         }
         // Ctrl+Shift+J (Console)
         if (e.ctrlKey && e.shiftKey && (e.key === 'J' || e.key === 'j' || e.keyCode === 74)) {
             e.preventDefault();
+            triggerSecurityAlert('Ctrl+Shift+J Console Shortcut');
             return false;
         }
         // Ctrl+Shift+C (Inspect Element)
         if (e.ctrlKey && e.shiftKey && (e.key === 'C' || e.key === 'c' || e.keyCode === 67)) {
             e.preventDefault();
+            triggerSecurityAlert('Ctrl+Shift+C Inspect Shortcut');
             return false;
         }
         // Ctrl+U (View Source)
         if (e.ctrlKey && (e.key === 'U' || e.key === 'u' || e.keyCode === 85)) {
             e.preventDefault();
+            triggerSecurityAlert('Ctrl+U View Source Shortcut');
             return false;
         }
     });
@@ -126,6 +145,7 @@
     });
     document.addEventListener('copy', function(e) {
         e.preventDefault();
+        triggerSecurityAlert('Text Copy Attempt');
     });
 
     // Add CSS to disable selection visually
@@ -147,6 +167,7 @@
         const after = new Date().getTime();
         if (after - before > 100) {
             // DevTools is likely open and paused on debugger
+            triggerSecurityAlert('Debugger Trap (DevTools Forced Open)');
             document.body.innerHTML = "Inspector detected. Access denied.";
         }
     }, 1000);
